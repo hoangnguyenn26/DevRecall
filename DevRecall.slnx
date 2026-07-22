@@ -12,5 +12,11 @@
     <Project Path="src/DevRecall.Domain/DevRecall.Domain.csproj" Id="0dcabe3d-bb6c-4a93-81d4-d8a40434ced0" />
     <Project Path="src/DevRecall.Infrastructure/DevRecall.Infrastructure.csproj" Id="9e74115b-9428-40cc-a9b4-fdabe543897f" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="DevRecall.ArchitectureTests/DevRecall.ArchitectureTests.csproj" Id="dbb231c5-c7bf-4af1-baf5-65e5920f4c2a" />
+    <Project Path="tests/DevRecall.Api.Tests/DevRecall.Api.Tests.csproj" Id="584fd089-7b5e-42e0-84ee-a7f74c74609f" />
+    <Project Path="tests/DevRecall.Application.Tests/DevRecall.Application.Tests.csproj" Id="21f47127-5b6f-4b66-8281-31a6fe854f7b" />
+    <Project Path="tests/DevRecall.Domain.Tests/DevRecall.Domain.Tests.csproj" Id="3cbbb948-a4bc-4072-a381-537f3f330cbb" />
+    <Project Path="tests/DevRecall.IntegrationTests/DevRecall.IntegrationTests.csproj" Id="1c20ef26-5af7-42e4-8a98-b50c207d9cbd" />
+  </Folder>
 </Solution>

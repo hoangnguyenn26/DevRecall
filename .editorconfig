@@ -30,3 +30,4 @@ dotnet_style_qualification_for_method = false:suggestion
 dotnet_style_qualification_for_event = false:suggestion
 
 dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.CA1707.severity = none
