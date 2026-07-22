@@ -13,11 +13,23 @@ public sealed partial class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
-        LogUnhandledException(
-            logger,
-            httpContext.Request.Method,
-            httpContext.Request.Path,
-            exception);
+        if (exception is AppException appException)
+        {
+            LogApplicationException(
+                logger,
+                appException.ErrorCode,
+                httpContext.Request.Method,
+                httpContext.Request.Path,
+                exception);
+        }
+        else
+        {
+            LogUnhandledException(
+                logger,
+                httpContext.Request.Method,
+                httpContext.Request.Path,
+                exception);
+        }
 
         var problemDetails = MapException(httpContext, exception);
 
@@ -119,6 +131,17 @@ public sealed partial class GlobalExceptionHandler(
         Message = "Unhandled exception occurred while processing request {Method} {Path}")]
     private static partial void LogUnhandledException(
         ILogger logger,
+        string method,
+        PathString path,
+        Exception exception);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Warning,
+        Message = "Application exception {ErrorCode} occurred while processing {Method} {Path}")]
+    private static partial void LogApplicationException(
+        ILogger logger,
+        string errorCode,
         string method,
         PathString path,
         Exception exception);

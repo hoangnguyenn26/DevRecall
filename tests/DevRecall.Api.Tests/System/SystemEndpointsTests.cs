@@ -1,6 +1,6 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
+using DevRecall.Api.Middleware;
 using DevRecall.Contracts.System;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
@@ -75,6 +75,49 @@ public sealed class SystemEndpointsTests : IClassFixture<SystemApiFactory>
             CancellationToken.None);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetInfo_WithoutCorrelationId_ReturnsGeneratedCorrelationId()
+    {
+        using var response = await _client.GetAsync(
+            "/api/v1/system/info",
+            CancellationToken.None);
+
+        response.Headers.TryGetValues(
+            CorrelationIdMiddleware.HeaderName,
+            out var values).Should().BeTrue();
+        values.Should().ContainSingle();
+        Guid.TryParseExact(values!.Single(), "N", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetInfo_WithCorrelationId_EchoesCorrelationId()
+    {
+        const string correlationId = "devrecall-local-test-001";
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/api/v1/system/info");
+        request.Headers.Add(CorrelationIdMiddleware.HeaderName, correlationId);
+
+        using var response = await _client.SendAsync(
+            request,
+            CancellationToken.None);
+
+        response.Headers.GetValues(CorrelationIdMiddleware.HeaderName)
+            .Should().ContainSingle(correlationId);
+    }
+
+    [Theory]
+    [InlineData("/health/live")]
+    [InlineData("/health/ready")]
+    public async Task HealthEndpoint_ReturnsHealthy(string path)
+    {
+        using var response = await _client.GetAsync(path, CancellationToken.None);
+        var content = await response.Content.ReadAsStringAsync(CancellationToken.None);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        content.Should().Be("Healthy");
     }
 }
 

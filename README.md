@@ -211,6 +211,26 @@ The exact commands may change during the bootstrap phase.
 
 The planned endpoint catalog is documented in [`docs/API_CATALOG.md`](./docs/API_CATALOG.md).
 
+## Health endpoints
+
+Liveness:
+
+```http
+GET /health/live
+```
+
+Readiness:
+
+```http
+GET /health/ready
+```
+
+Both endpoints currently report process health. Readiness checks for PostgreSQL will be added when database integration is implemented.
+
+## Request correlation
+
+Clients may provide an `X-Correlation-ID` request header. The API echoes the same value in the response and includes it as `traceId` in Problem Details responses. If the header is omitted, the API generates a correlation ID automatically.
+
 ## Development roadmap
 
 ### Phase 1 — Foundation
