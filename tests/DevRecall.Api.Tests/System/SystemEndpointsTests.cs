@@ -6,7 +6,10 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DevRecall.Api.Tests.System;
 
@@ -16,9 +19,11 @@ public sealed class SystemEndpointsTests : IClassFixture<SystemApiFactory>
         new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _client;
+    private readonly SystemApiFactory _factory;
 
     public SystemEndpointsTests(SystemApiFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
@@ -109,16 +114,28 @@ public sealed class SystemEndpointsTests : IClassFixture<SystemApiFactory>
             .Should().ContainSingle(correlationId);
     }
 
-    [Theory]
-    [InlineData("/health/live")]
-    [InlineData("/health/ready")]
-    public async Task HealthEndpoint_ReturnsHealthy(string path)
+    [Fact]
+    public async Task LivenessEndpoint_WithoutDatabase_ReturnsHealthy()
     {
-        using var response = await _client.GetAsync(path, CancellationToken.None);
+        using var response = await _client.GetAsync(
+            "/health/live",
+            CancellationToken.None);
         var content = await response.Content.ReadAsStringAsync(CancellationToken.None);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         content.Should().Be("Healthy");
+    }
+
+    [Fact]
+    public void ReadinessHealthCheck_IsRegisteredForPostgreSql()
+    {
+        var options = _factory.Services
+            .GetRequiredService<IOptions<HealthCheckServiceOptions>>()
+            .Value;
+        var registration = options.Registrations
+            .Single(check => check.Name == "postgresql");
+
+        registration.Tags.Should().ContainSingle("ready");
     }
 }
 
@@ -133,7 +150,7 @@ public sealed class SystemApiFactory : WebApplicationFactory<Program>
                 new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:Database"] =
-                        "Host=localhost;Database=dummy;Username=dummy;Password=dummy"
+                        "Host=127.0.0.1;Port=1;Database=dummy;Username=dummy;Password=dummy;Timeout=1"
                 });
         });
         builder.ConfigureLogging(logging => logging.ClearProviders());

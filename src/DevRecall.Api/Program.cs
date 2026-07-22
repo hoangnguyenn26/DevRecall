@@ -2,6 +2,8 @@ using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
 using DevRecall.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 const string DevelopmentCorsPolicy = "DevelopmentCors";
 
@@ -11,7 +13,22 @@ builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddHealthChecks();
+
+var connectionString =
+    builder.Configuration.GetConnectionString("Database")
+    ?? throw new InvalidOperationException(
+        "Connection string 'Database' was not configured.");
+
+builder.Services
+    .AddHealthChecks()
+    .AddCheck(
+        "self",
+        () => HealthCheckResult.Healthy(),
+        tags: ["live"])
+    .AddNpgSql(
+        connectionString,
+        name: "postgresql",
+        tags: ["ready"]);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
@@ -43,8 +60,18 @@ if (app.Environment.IsDevelopment())
     app.UseCors(DevelopmentCorsPolicy);
 }
 
-app.MapHealthChecks("/health/live");
-app.MapHealthChecks("/health/ready");
+app.MapHealthChecks(
+    "/health/live",
+    new HealthCheckOptions
+    {
+        Predicate = registration => registration.Tags.Contains("live")
+    });
+app.MapHealthChecks(
+    "/health/ready",
+    new HealthCheckOptions
+    {
+        Predicate = registration => registration.Tags.Contains("ready")
+    });
 app.MapSystemEndpoints();
 
 app.Run();

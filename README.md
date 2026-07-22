@@ -225,11 +225,35 @@ Readiness:
 GET /health/ready
 ```
 
-Both endpoints currently report process health. Readiness checks for PostgreSQL will be added when database integration is implemented.
+Liveness reports process health independently of PostgreSQL. Readiness verifies that PostgreSQL is reachable and returns `503 Unhealthy` when the database is unavailable.
 
 ## Request correlation
 
 Clients may provide an `X-Correlation-ID` request header. The API echoes the same value in the response and includes it as `traceId` in Problem Details responses. If the header is omitted, the API generates a correlation ID automatically.
+
+## Database migrations
+
+Open Visual Studio Package Manager Console and select `DevRecall.Infrastructure` as the default project.
+
+Create a migration:
+
+```powershell
+Add-Migration MigrationName -Project DevRecall.Infrastructure -StartupProject DevRecall.Api -OutputDir Persistence/Migrations
+```
+
+Apply migrations:
+
+```powershell
+Update-Database -Project DevRecall.Infrastructure -StartupProject DevRecall.Api
+```
+
+Rollback all migrations:
+
+```powershell
+Update-Database 0 -Project DevRecall.Infrastructure -StartupProject DevRecall.Api
+```
+
+Migrations are applied explicitly as a deployment step. The API does not call `Database.Migrate()` during startup.
 
 ## Development roadmap
 
