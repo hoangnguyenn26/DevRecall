@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DevRecall.Api/DevRecall.Api.csproj" Id="87d8ba33-9be7-4ee8-ad1a-4a7382810b07" />
+    <Project Path="src/DevRecall.Application/DevRecall.Application.csproj" Id="07c122b3-9af3-4841-8ecb-a9771d27fc30" />
+    <Project Path="src/DevRecall.Contracts/DevRecall.Contracts.csproj" Id="0e663a5b-5be9-4288-8c06-ee637a6d69a4" />
+    <Project Path="src/DevRecall.Domain/DevRecall.Domain.csproj" Id="0dcabe3d-bb6c-4a93-81d4-d8a40434ced0" />
+    <Project Path="src/DevRecall.Infrastructure/DevRecall.Infrastructure.csproj" Id="9e74115b-9428-40cc-a9b4-fdabe543897f" />
+  </Folder>
+  <Folder Name="/tests/" />
+</Solution>
