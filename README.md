@@ -321,6 +321,22 @@ The project is currently in the **documentation and implementation-planning phas
 
 ## Development commands
 
+## Integration tests
+
+Integration tests use Testcontainers with PostgreSQL.
+
+Requirements:
+
+- Docker Desktop must be running.
+
+Run:
+
+```bash
+dotnet test tests/DevRecall.IntegrationTests
+```
+
+The test suite creates, migrates and disposes its own PostgreSQL container. It does not use the local development database or User Secrets.
+
 ### Restore packages
 ```bash
 dotnet restore
