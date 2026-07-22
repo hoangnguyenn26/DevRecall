@@ -49,6 +49,36 @@ public sealed class GlobalExceptionHandlerTests
     }
 
     [Fact]
+    public async Task TryHandleAsync_ConflictException_WritesProblemDetails()
+    {
+        using var document = await HandleAsync(
+            new ConflictException(
+                "TEST_CONFLICT",
+                "The requested operation conflicts with current state."));
+        var root = document.RootElement;
+
+        root.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status409Conflict);
+        root.GetProperty("title").GetString().Should().Be("Conflict");
+        root.GetProperty("errorCode").GetString().Should().Be("TEST_CONFLICT");
+        root.GetProperty("traceId").GetString().Should().Be("test-trace-id");
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_ForbiddenException_WritesProblemDetails()
+    {
+        using var document = await HandleAsync(
+            new ForbiddenException(
+                "TEST_FORBIDDEN",
+                "The requested operation is forbidden."));
+        var root = document.RootElement;
+
+        root.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status403Forbidden);
+        root.GetProperty("title").GetString().Should().Be("Forbidden");
+        root.GetProperty("errorCode").GetString().Should().Be("TEST_FORBIDDEN");
+        root.GetProperty("traceId").GetString().Should().Be("test-trace-id");
+    }
+
+    [Fact]
     public async Task TryHandleAsync_UnexpectedException_HidesExceptionDetails()
     {
         const string sensitiveMessage = "Sensitive implementation detail";
