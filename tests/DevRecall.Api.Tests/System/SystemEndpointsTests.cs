@@ -1,0 +1,88 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using DevRecall.Contracts.System;
+using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Logging;
+
+namespace DevRecall.Api.Tests.System;
+
+public sealed class SystemEndpointsTests : IClassFixture<SystemApiFactory>
+{
+    private static readonly JsonSerializerOptions JsonOptions =
+        new(JsonSerializerDefaults.Web);
+
+    private readonly HttpClient _client;
+
+    public SystemEndpointsTests(SystemApiFactory factory)
+    {
+        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+    }
+
+    [Fact]
+    public async Task GetInfo_ReturnsSystemInformation()
+    {
+        var beforeRequest = DateTimeOffset.UtcNow;
+
+        using var response = await _client.GetAsync(
+            "/api/v1/system/info",
+            CancellationToken.None);
+        var json = await response.Content.ReadAsStringAsync(CancellationToken.None);
+        var systemInfo = JsonSerializer.Deserialize<SystemInfoResponse>(
+            json,
+            JsonOptions);
+        using var document = JsonDocument.Parse(json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        systemInfo.Should().NotBeNull();
+        systemInfo!.ApplicationName.Should().Be("DevRecall");
+        systemInfo.Version.Should().Be("0.1.0");
+        systemInfo.Environment.Should().Be("Development");
+        systemInfo.CurrentTimeUtc.Should().BeOnOrAfter(beforeRequest);
+        systemInfo.CurrentTimeUtc.Offset.Should().Be(TimeSpan.Zero);
+        document.RootElement.TryGetProperty("applicationName", out _).Should().BeTrue();
+        document.RootElement.TryGetProperty("currentTimeUtc", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetInfo_FromDevelopmentFrontend_AllowsCorsRequest()
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/api/v1/system/info");
+        request.Headers.Add("Origin", "http://localhost:5173");
+
+        using var response = await _client.SendAsync(
+            request,
+            CancellationToken.None);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.GetValues("Access-Control-Allow-Origin")
+            .Should().ContainSingle("http://localhost:5173");
+    }
+
+    [Fact]
+    public async Task OpenApi_InDevelopment_IsAvailable()
+    {
+        using var response = await _client.GetAsync(
+            "/openapi/v1.json",
+            CancellationToken.None);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+}
+
+public sealed class SystemApiFactory : WebApplicationFactory<Program>
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Development");
+        builder.ConfigureLogging(logging => logging.ClearProviders());
+    }
+}

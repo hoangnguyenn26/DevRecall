@@ -489,6 +489,7 @@ dist/
 .env
 .env.*
 !.env.example
+!frontend/devrecall-web/.env.development
 
 # Local files
 backups/

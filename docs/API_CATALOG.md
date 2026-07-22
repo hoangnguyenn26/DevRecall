@@ -1166,13 +1166,16 @@ GET /health/ready
 GET /api/v1/system/info
 ```
 
-Possible response fields:
+Response:
 
-- applicationVersion
-- environment
-- databaseMigrationVersion
-- initialized
-- currentTimeUtc
+```json
+{
+  "applicationName": "DevRecall",
+  "version": "0.1.0",
+  "environment": "Development",
+  "currentTimeUtc": "2026-07-23T00:00:00+00:00"
+}
+```
 
 ---
 
