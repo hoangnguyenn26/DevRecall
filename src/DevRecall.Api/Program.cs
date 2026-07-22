@@ -1,6 +1,7 @@
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
+using DevRecall.Infrastructure;
 
 const string DevelopmentCorsPolicy = "DevelopmentCors";
 
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks();
 builder.Services.AddCors(options =>
 {

@@ -5,6 +5,7 @@ using DevRecall.Contracts.System;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace DevRecall.Api.Tests.System;
@@ -126,6 +127,15 @@ public sealed class SystemApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        builder.ConfigureAppConfiguration(configuration =>
+        {
+            configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:Database"] =
+                        "Host=localhost;Database=dummy;Username=dummy;Password=dummy"
+                });
+        });
         builder.ConfigureLogging(logging => logging.ClearProviders());
     }
 }
