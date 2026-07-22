@@ -1,19 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\DevRecall.Application\DevRecall.Application.csproj" />
+		<ProjectReference Include="..\DevRecall.Contracts\DevRecall.Contracts.csproj" />
+		<ProjectReference Include="..\DevRecall.Infrastructure\DevRecall.Infrastructure.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\DevRecall.Application\DevRecall.Application.csproj" />
-    <ProjectReference Include="..\DevRecall.Contracts\DevRecall.Contracts.csproj" />
-    <ProjectReference Include="..\DevRecall.Infrastructure\DevRecall.Infrastructure.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+		<PackageReference Include="Microsoft.OpenApi" />
+	</ItemGroup>
 
 </Project>

@@ -274,3 +274,37 @@ Before implementing a feature:
 ## Status
 
 The project is currently in the **documentation and implementation-planning phase**. AI features are deferred until the non-AI MVP is stable.
+
+## Development commands
+
+### Restore packages
+```bash
+dotnet restore
+```
+
+### Build solution
+```bash
+dotnet build
+```
+
+### Run tests
+```bash
+dotnet test
+```
+
+### Run API
+```bash
+dotnet run --project src/DevRecall.Api
+```
+
+### Format code
+```bash
+dotnet format
+```
+
+## Development environment
+
+- Backend IDE: Visual Studio 2026
+- Frontend IDE: Visual Studio Code
+- Package management: NuGet Package Manager
+- Runtime: .NET 10

@@ -1,4 +1,10 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/DevRecall.Api/DevRecall.Api.csproj" Id="87d8ba33-9be7-4ee8-ad1a-4a7382810b07" />
     <Project Path="src/DevRecall.Application/DevRecall.Application.csproj" Id="07c122b3-9af3-4841-8ecb-a9771d27fc30" />
