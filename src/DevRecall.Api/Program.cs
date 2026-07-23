@@ -4,6 +4,7 @@ using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
 using DevRecall.Application;
 using DevRecall.Infrastructure;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -16,6 +17,18 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "devrecall.auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
+builder.Services.AddAuthorization();
 
 var connectionString =
     builder.Configuration.GetConnectionString("Database")
@@ -62,6 +75,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseCors(DevelopmentCorsPolicy);
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapHealthChecks(
     "/health/live",

@@ -69,6 +69,14 @@ public sealed partial class GlobalExceptionHandler(
                     conflictException.ErrorCode,
                     conflictException.Message),
 
+            UnauthorizedException unauthorizedException =>
+                CreateProblemDetails(
+                    context,
+                    StatusCodes.Status401Unauthorized,
+                    "Unauthorized",
+                    unauthorizedException.ErrorCode,
+                    unauthorizedException.Message),
+
             ForbiddenException forbiddenException =>
                 CreateProblemDetails(
                     context,

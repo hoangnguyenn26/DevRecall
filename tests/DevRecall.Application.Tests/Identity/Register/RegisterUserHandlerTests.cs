@@ -138,6 +138,13 @@ public sealed class RegisterUserHandlerTests
             return Task.FromResult(Exists);
         }
 
+        public Task<User?> GetByNormalizedEmailAsync(
+            string normalizedEmail,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<User?>(null);
+        }
+
         public void Add(User user)
         {
             AddedUser = user;
@@ -155,6 +162,11 @@ public sealed class RegisterUserHandlerTests
         public string Hash(string password)
         {
             return $"HASHED:{password}";
+        }
+
+        public bool Verify(string passwordHash, string providedPassword)
+        {
+            return passwordHash == $"HASHED:{providedPassword}";
         }
     }
 }

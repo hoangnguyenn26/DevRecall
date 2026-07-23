@@ -79,7 +79,21 @@ Creates the first local account when the application has not yet been initialize
 
 ```http
 POST /api/v1/auth/login
+Content-Type: application/json
 ```
+
+Request:
+
+```json
+{
+  "email": "hoang@example.com",
+  "password": "Example123!"
+}
+```
+
+Returns `200 OK` with `id`, `email`, and `displayName`, and issues the
+`devrecall.auth` authentication cookie. Invalid credentials return
+`401 IDENTITY_INVALID_CREDENTIALS` without revealing whether the email exists.
 
 ### Logout
 

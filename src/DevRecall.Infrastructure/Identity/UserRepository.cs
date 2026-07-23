@@ -18,6 +18,15 @@ internal sealed class UserRepository(
             cancellationToken);
     }
 
+    public Task<User?> GetByNormalizedEmailAsync(
+        string normalizedEmail,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.Users.SingleOrDefaultAsync(
+            user => user.NormalizedEmail == normalizedEmail,
+            cancellationToken);
+    }
+
     public void Add(User user)
     {
         dbContext.Users.Add(user);

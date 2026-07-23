@@ -8,6 +8,10 @@ public interface IUserRepository
         string normalizedEmail,
         CancellationToken cancellationToken);
 
+    Task<User?> GetByNormalizedEmailAsync(
+        string normalizedEmail,
+        CancellationToken cancellationToken);
+
     void Add(User user);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

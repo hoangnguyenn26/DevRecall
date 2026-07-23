@@ -15,4 +15,16 @@ internal sealed class AspNetPasswordHasher : IPasswordHasher
             new object(),
             password);
     }
+
+    public bool Verify(string passwordHash, string providedPassword)
+    {
+        var result = _hasher.VerifyHashedPassword(
+            new object(),
+            passwordHash,
+            providedPassword);
+
+        return result is
+            PasswordVerificationResult.Success
+            or PasswordVerificationResult.SuccessRehashNeeded;
+    }
 }
