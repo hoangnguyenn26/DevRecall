@@ -1,5 +1,6 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Knowledge.Create;
+using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Contracts.Knowledge;
 
 namespace DevRecall.Api.Endpoints.Knowledge;
@@ -15,6 +16,7 @@ public static class KnowledgeEndpoints
             .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
 
         group.MapPost("", CreateAsync);
+        group.MapGet("/tree", GetTreeAsync);
 
         return endpoints;
     }
@@ -36,5 +38,24 @@ public static class KnowledgeEndpoints
                 result.Title,
                 result.CreatedAtUtc,
                 result.UpdatedAtUtc));
+    }
+
+    private static async Task<IResult> GetTreeAsync(
+        GetKnowledgeTreeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var tree = await handler.HandleAsync(cancellationToken);
+
+        return Results.Ok(tree.Select(MapTreeNode));
+    }
+
+    private static KnowledgeTreeNodeResponse MapTreeNode(
+        KnowledgeTreeItem item)
+    {
+        return new KnowledgeTreeNodeResponse(
+            item.Id,
+            item.ParentId,
+            item.Title,
+            item.Children.Select(MapTreeNode).ToList());
     }
 }

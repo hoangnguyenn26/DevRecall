@@ -189,6 +189,13 @@ public sealed class CreateKnowledgeNodeHandlerTests
                 existingNode?.Id == id ? existingNode : null);
         }
 
+        public Task<IReadOnlyList<KnowledgeNode>> GetActiveByUserIdAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<KnowledgeNode>>([]);
+        }
+
         public void Add(KnowledgeNode node)
         {
             AddedNode = node;

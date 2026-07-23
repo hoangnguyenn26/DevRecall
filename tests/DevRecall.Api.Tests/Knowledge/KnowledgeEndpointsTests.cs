@@ -4,6 +4,7 @@ using System.Text.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Knowledge;
+using DevRecall.Domain.Knowledge;
 using DevRecall.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -112,6 +113,118 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         response.Headers.Location.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetTree_WithNoNodes_ShouldReturnEmptyArray()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+
+        using var response = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await response.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        tree.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetTree_AfterCreatingHierarchy_ShouldReturnNestedTree()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var programming = await CreateNodeAsync(client, "Programming", null);
+        var csharp = await CreateNodeAsync(client, "C#", programming.Id);
+        await CreateNodeAsync(client, "LINQ", csharp.Id);
+
+        using var response = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await response.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        tree.Should().ContainSingle();
+        tree![0].Title.Should().Be("Programming");
+        tree[0].Children.Should().ContainSingle();
+        tree[0].Children[0].Title.Should().Be("C#");
+        tree[0].Children[0].Children.Should().ContainSingle();
+        tree[0].Children[0].Children[0].Title.Should().Be("LINQ");
+        tree[0].Children[0].Children[0].Children.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetTree_ShouldReturnOnlyAuthenticatedUsersNodes()
+    {
+        var firstSession = await CreateAuthenticatedClientAsync();
+        using var firstClient = firstSession.Client;
+        await CreateNodeAsync(firstClient, "Programming", null);
+
+        var secondSession = await CreateAuthenticatedClientAsync();
+        using var secondClient = secondSession.Client;
+        await CreateNodeAsync(secondClient, "Cooking", null);
+
+        using var firstResponse = await firstClient.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        using var secondResponse = await secondClient.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var firstTree = await firstResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+        var secondTree = await secondResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        firstTree!.Select(node => node.Title)
+            .Should().Equal("Programming");
+        secondTree!.Select(node => node.Title)
+            .Should().Equal("Cooking");
+    }
+
+    [Fact]
+    public async Task GetTree_ShouldHideArchivedNodeAndItsActiveChild()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var parent = KnowledgeNode.Create(
+            Guid.NewGuid(),
+            session.User.Id,
+            null,
+            "Archived parent",
+            DateTimeOffset.UtcNow);
+        parent.Archive(DateTimeOffset.UtcNow);
+        var child = KnowledgeNode.Create(
+            Guid.NewGuid(),
+            session.User.Id,
+            parent.Id,
+            "Active child",
+            DateTimeOffset.UtcNow);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider
+                .GetRequiredService<DevRecallDbContext>();
+            dbContext.KnowledgeNodes.AddRange(parent, child);
+            await dbContext.SaveChangesAsync();
+        }
+
+        using var response = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await response.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        tree.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetTree_WithoutAuthentication_ShouldReturnUnauthorized()
+    {
+        using var client = CreateClient();
+
+        using var response = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     private async Task<(HttpClient Client, RegisterResponse User)>

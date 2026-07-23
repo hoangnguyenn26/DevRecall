@@ -150,10 +150,12 @@ Representative preference fields:
 GET /api/v1/knowledge-nodes/tree
 ```
 
-Optional query:
+Requires authentication. Returns the authenticated user's active nodes as a
+nested tree, ordered by title and then ID. Every leaf has `children: []`.
+An account with no active root nodes receives `200 OK` with:
 
-```text
-?includeArchived=false
+```json
+[]
 ```
 
 ### Get node details
