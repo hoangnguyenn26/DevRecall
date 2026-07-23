@@ -1,4 +1,5 @@
 using DevRecall.Api.Authentication;
+using DevRecall.Api.Authorization;
 using DevRecall.Api.Endpoints.Auth;
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.ExceptionHandling;
@@ -40,7 +41,12 @@ builder.Services
             return Task.CompletedTask;
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AuthorizationPolicies.AuthenticatedUser,
+        policy => policy.RequireAuthenticatedUser());
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 

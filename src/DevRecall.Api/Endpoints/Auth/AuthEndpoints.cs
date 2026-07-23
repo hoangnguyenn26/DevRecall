@@ -1,4 +1,5 @@
 using DevRecall.Api.Authentication;
+using DevRecall.Api.Authorization;
 using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
@@ -20,11 +21,11 @@ public static class AuthEndpoints
         group.MapPost("/register", RegisterAsync);
         group.MapPost("/login", LoginAsync);
         group.MapGet("/me", GetCurrentUserAsync)
-            .RequireAuthorization();
+            .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
         group.MapPost(
                 "/logout",
                 (Func<HttpContext, Task<IResult>>)LogoutAsync)
-            .RequireAuthorization();
+            .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
 
         return endpoints;
     }
