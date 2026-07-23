@@ -83,6 +83,39 @@ public sealed class KnowledgeNodeTests
         node.UpdatedAtUtc.Should().Be(archivedAtUtc);
     }
 
+    [Fact]
+    public void MoveTo_WithAnotherParent_ShouldUpdateParentAndTimestamp()
+    {
+        var node = CreateNode();
+        var parentId = Guid.NewGuid();
+        var updatedAtUtc = DateTimeOffset.UtcNow.AddMinutes(1);
+
+        node.MoveTo(parentId, updatedAtUtc);
+
+        node.ParentId.Should().Be(parentId);
+        node.UpdatedAtUtc.Should().Be(updatedAtUtc);
+    }
+
+    [Fact]
+    public void MoveTo_WithNullParent_ShouldMoveNodeToRoot()
+    {
+        var node = CreateNode(parentId: Guid.NewGuid());
+
+        node.MoveTo(null, DateTimeOffset.UtcNow);
+
+        node.ParentId.Should().BeNull();
+    }
+
+    [Fact]
+    public void MoveTo_WithSelfParent_ShouldThrowInvalidOperationException()
+    {
+        var node = CreateNode();
+
+        var action = () => node.MoveTo(node.Id, DateTimeOffset.UtcNow);
+
+        action.Should().Throw<InvalidOperationException>();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]

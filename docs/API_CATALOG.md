@@ -205,25 +205,24 @@ Returns `200 OK`. Missing or cross-user nodes return
 ### Move node
 
 ```http
-POST /api/v1/knowledge-nodes/{nodeId}/move
+PUT /api/v1/knowledge-nodes/{nodeId}/parent
 ```
 
 Request:
 
 ```json
 {
-  "newParentId": "uuid-or-null",
-  "newSortOrder": 2,
-  "version": 4
+  "parentId": "uuid-or-null"
 }
 ```
 
 Possible errors:
 
 - `KNOWLEDGE_NODE_NOT_FOUND`
-- `KNOWLEDGE_NODE_CIRCULAR_PARENT`
+- `KNOWLEDGE_PARENT_NOT_FOUND`
+- `KNOWLEDGE_INVALID_PARENT`
+- `KNOWLEDGE_CIRCULAR_HIERARCHY`
 - `KNOWLEDGE_NODE_ARCHIVED`
-- `CONCURRENCY_CONFLICT`
 
 ### Reorder siblings
 

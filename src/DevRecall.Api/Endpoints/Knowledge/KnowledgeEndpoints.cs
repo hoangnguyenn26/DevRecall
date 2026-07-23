@@ -2,6 +2,7 @@ using DevRecall.Api.Authorization;
 using DevRecall.Application.Knowledge.Archive;
 using DevRecall.Application.Knowledge.Create;
 using DevRecall.Application.Knowledge.GetTree;
+using DevRecall.Application.Knowledge.Move;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Contracts.Knowledge;
 
@@ -21,6 +22,7 @@ public static class KnowledgeEndpoints
         group.MapGet("/tree", GetTreeAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
         group.MapPost("/{id:guid}/archive", ArchiveAsync);
+        group.MapPut("/{id:guid}/parent", MoveAsync);
 
         return endpoints;
     }
@@ -49,6 +51,19 @@ public static class KnowledgeEndpoints
     {
         await handler.HandleAsync(
             new ArchiveKnowledgeNodeCommand(id),
+            cancellationToken);
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> MoveAsync(
+        Guid id,
+        MoveKnowledgeNodeRequest request,
+        MoveKnowledgeNodeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            new MoveKnowledgeNodeCommand(id, request.ParentId),
             cancellationToken);
 
         return Results.NoContent();

@@ -77,6 +77,18 @@ public sealed class KnowledgeNode
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    public void MoveTo(Guid? parentId, DateTimeOffset updatedAtUtc)
+    {
+        if (parentId == Id)
+        {
+            throw new InvalidOperationException(
+                "A knowledge node cannot be its own parent.");
+        }
+
+        ParentId = parentId;
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
     private static string NormalizeTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))

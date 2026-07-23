@@ -196,6 +196,13 @@ public sealed class CreateKnowledgeNodeHandlerTests
             return Task.FromResult<IReadOnlyList<KnowledgeNode>>([]);
         }
 
+        public Task<IReadOnlyList<KnowledgeNodeHierarchyItem>> GetHierarchyAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<KnowledgeNodeHierarchyItem>>([]);
+        }
+
         public void Add(KnowledgeNode node)
         {
             AddedNode = node;

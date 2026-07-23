@@ -161,6 +161,13 @@ public sealed class GetKnowledgeTreeHandlerTests
             return Task.FromResult(nodes);
         }
 
+        public Task<IReadOnlyList<KnowledgeNodeHierarchyItem>> GetHierarchyAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<KnowledgeNodeHierarchyItem>>([]);
+        }
+
         public void Add(KnowledgeNode node)
         {
             throw new NotSupportedException();

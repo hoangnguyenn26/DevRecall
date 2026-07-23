@@ -12,6 +12,10 @@ public interface IKnowledgeNodeRepository
         Guid userId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<KnowledgeNodeHierarchyItem>> GetHierarchyAsync(
+        Guid userId,
+        CancellationToken cancellationToken);
+
     void Add(KnowledgeNode node);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

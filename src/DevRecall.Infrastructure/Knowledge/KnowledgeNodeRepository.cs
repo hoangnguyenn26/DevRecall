@@ -31,6 +31,20 @@ internal sealed class KnowledgeNodeRepository(DevRecallDbContext dbContext)
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<KnowledgeNodeHierarchyItem>>
+        GetHierarchyAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+    {
+        return await dbContext.KnowledgeNodes
+            .AsNoTracking()
+            .Where(node => node.UserId == userId)
+            .Select(node => new KnowledgeNodeHierarchyItem(
+                node.Id,
+                node.ParentId))
+            .ToListAsync(cancellationToken);
+    }
+
     public void Add(KnowledgeNode node)
     {
         dbContext.KnowledgeNodes.Add(node);

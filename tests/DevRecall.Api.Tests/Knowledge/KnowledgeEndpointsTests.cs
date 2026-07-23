@@ -303,6 +303,89 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         archiveResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task MoveToValidParent_ShouldUpdateTreeAndDatabase()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var root = await CreateNodeAsync(client, "A", null);
+        var firstChild = await CreateNodeAsync(client, "B", root.Id);
+        var secondChild = await CreateNodeAsync(client, "C", root.Id);
+
+        using var moveResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{firstChild.Id}/parent",
+            new MoveKnowledgeNodeRequest(secondChild.Id));
+        using var treeResponse = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await treeResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        moveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        tree.Should().ContainSingle();
+        tree![0].Children.Should().ContainSingle();
+        tree[0].Children[0].Title.Should().Be("C");
+        tree[0].Children[0].Children.Should().ContainSingle();
+        tree[0].Children[0].Children[0].Title.Should().Be("B");
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>();
+        var persistedParentId = await dbContext.KnowledgeNodes
+            .Where(node => node.Id == firstChild.Id)
+            .Select(node => node.ParentId)
+            .SingleAsync();
+        persistedParentId.Should().Be(secondChild.Id);
+    }
+
+    [Fact]
+    public async Task MoveToRoot_ShouldReturnBothNodesAsRoots()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var root = await CreateNodeAsync(client, "Programming", null);
+        var child = await CreateNodeAsync(client, "C#", root.Id);
+
+        using var moveResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{child.Id}/parent",
+            new MoveKnowledgeNodeRequest(null));
+        using var treeResponse = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await treeResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        moveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        tree!.Select(node => node.Title)
+            .Should().Equal("C#", "Programming");
+    }
+
+    [Fact]
+    public async Task MoveCreatingCycle_ShouldReturnConflictAndPreserveTree()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var root = await CreateNodeAsync(client, "A", null);
+        var child = await CreateNodeAsync(client, "B", root.Id);
+        var grandchild = await CreateNodeAsync(client, "C", child.Id);
+
+        using var moveResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{root.Id}/parent",
+            new MoveKnowledgeNodeRequest(grandchild.Id));
+        using var document = JsonDocument.Parse(
+            await moveResponse.Content.ReadAsStringAsync());
+        using var treeResponse = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await treeResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        moveResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_CIRCULAR_HIERARCHY");
+        tree.Should().ContainSingle();
+        tree![0].Title.Should().Be("A");
+        tree[0].Children[0].Title.Should().Be("B");
+        tree[0].Children[0].Children[0].Title.Should().Be("C");
+    }
+
     private async Task<(HttpClient Client, RegisterResponse User)>
         CreateAuthenticatedClientAsync()
     {
