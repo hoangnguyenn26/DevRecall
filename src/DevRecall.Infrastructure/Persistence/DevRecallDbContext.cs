@@ -1,5 +1,6 @@
 using DevRecall.Domain.Common;
 using DevRecall.Domain.Identity;
+using DevRecall.Domain.Knowledge;
 using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Infrastructure.Persistence;
@@ -13,6 +14,9 @@ public sealed class DevRecallDbContext(
 
     public DbSet<User> Users =>
         Set<User>();
+
+    public DbSet<KnowledgeNode> KnowledgeNodes =>
+        Set<KnowledgeNode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
