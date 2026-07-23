@@ -166,7 +166,21 @@ GET /api/v1/knowledge-nodes/{nodeId}
 
 ```http
 POST /api/v1/knowledge-nodes
+Content-Type: application/json
 ```
+
+Requires authentication.
+
+```json
+{
+  "title": "C#",
+  "parentId": "uuid-or-null"
+}
+```
+
+Returns `201 Created`. A missing or cross-user parent returns
+`404 KNOWLEDGE_PARENT_NOT_FOUND`; an archived parent returns
+`409 KNOWLEDGE_INVALID_PARENT`.
 
 ### Update node
 

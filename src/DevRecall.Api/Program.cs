@@ -1,6 +1,7 @@
 using DevRecall.Api.Authentication;
 using DevRecall.Api.Authorization;
 using DevRecall.Api.Endpoints.Auth;
+using DevRecall.Api.Endpoints.Knowledge;
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
@@ -113,6 +114,7 @@ app.MapHealthChecks(
         Predicate = registration => registration.Tags.Contains("ready")
     });
 app.MapAuthEndpoints();
+app.MapKnowledgeEndpoints();
 app.MapSystemEndpoints();
 
 app.Run();
