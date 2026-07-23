@@ -27,9 +27,7 @@ public sealed class UpdateKnowledgeNodeHandler(
 
         if (node.Status != KnowledgeNodeStatus.Active)
         {
-            throw new ConflictException(
-                "KNOWLEDGE_NODE_ARCHIVED",
-                "An archived knowledge node cannot be updated.");
+            throw new ConflictException(KnowledgeErrors.NodeArchived.Code, KnowledgeErrors.NodeArchived.Message);
         }
 
         node.Rename(command.Title, DateTimeOffset.UtcNow);

@@ -225,6 +225,17 @@ Completed:
 - Named authenticated-user authorization policy
 - PostgreSQL-backed authentication API workflow tests
 
+### Week 4 — Knowledge Tree Core
+
+Completed:
+
+- Knowledge node aggregate with rename, move, archive, and hierarchy invariants
+- PostgreSQL knowledge node persistence with ownership and active-tree filtering
+- Create, read tree, rename, move, and archive REST endpoints
+- Stable Problem Details error codes for knowledge operations
+- Cycle prevention for self-parenting and descendant moves
+- PostgreSQL-backed domain, application, integration, and API regression coverage
+
 ## Health endpoints
 
 Liveness:

@@ -283,7 +283,7 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
-    public async Task UpdateAndArchiveAnotherUsersNode_ShouldReturnNotFound()
+    public async Task UpdateMoveAndArchiveAnotherUsersNode_ShouldReturnNotFound()
     {
         var ownerSession = await CreateAuthenticatedClientAsync();
         using var ownerClient = ownerSession.Client;
@@ -295,12 +295,56 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         using var updateResponse = await otherClient.PutAsJsonAsync(
             $"/api/v1/knowledge-nodes/{node.Id}",
             new UpdateKnowledgeNodeRequest("Unauthorized update"));
+        using var moveResponse = await otherClient.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/parent",
+            new MoveKnowledgeNodeRequest(null));
         using var archiveResponse = await otherClient.PostAsync(
             $"/api/v1/knowledge-nodes/{node.Id}/archive",
             null);
 
         updateResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        moveResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         archiveResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task KnowledgeWeekWorkflow_ShouldReturnExpectedFinalTree()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var programming = await CreateNodeAsync(client, "Programming", null);
+        var csharp = await CreateNodeAsync(client, "C#", programming.Id);
+        var database = await CreateNodeAsync(client, "Database", programming.Id);
+
+        using var initialTreeResponse = await client.GetAsync("/api/v1/knowledge-nodes/tree");
+        var initialTree = await initialTreeResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+        initialTreeResponse.EnsureSuccessStatusCode();
+        initialTree.Should().ContainSingle();
+        initialTree![0].Children.Select(node => node.Title).Should().Equal("C#", "Database");
+
+        using var renameResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{csharp.Id}",
+            new UpdateKnowledgeNodeRequest("C# and .NET"));
+        using var moveResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{database.Id}/parent",
+            new MoveKnowledgeNodeRequest(csharp.Id));
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{database.Id}/archive",
+            null);
+        renameResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        moveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        archiveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var finalTreeResponse = await client.GetAsync("/api/v1/knowledge-nodes/tree");
+        var finalTree = await finalTreeResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+        finalTreeResponse.EnsureSuccessStatusCode();
+        finalTree.Should().ContainSingle();
+        finalTree![0].Title.Should().Be("Programming");
+        finalTree[0].Children.Should().ContainSingle();
+        finalTree[0].Children[0].Title.Should().Be("C# and .NET");
+        finalTree[0].Children[0].Children.Should().BeEmpty();
     }
 
     [Fact]

@@ -8,6 +8,10 @@ public static class KnowledgeErrors
         "KNOWLEDGE_NODE_NOT_FOUND",
         "The knowledge node was not found.");
 
+    public static readonly DomainError NodeArchived = new(
+        "KNOWLEDGE_NODE_ARCHIVED",
+        "An archived knowledge node cannot be modified.");
+
     public static readonly DomainError ParentNotFound = new(
         "KNOWLEDGE_PARENT_NOT_FOUND",
         "The parent knowledge node was not found.");

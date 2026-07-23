@@ -26,9 +26,7 @@ public sealed class MoveKnowledgeNodeHandler(
 
         if (node.Status != KnowledgeNodeStatus.Active)
         {
-            throw new ConflictException(
-                "KNOWLEDGE_NODE_ARCHIVED",
-                "An archived knowledge node cannot be moved.");
+            throw new ConflictException(KnowledgeErrors.NodeArchived.Code, KnowledgeErrors.NodeArchived.Message);
         }
 
         if (command.ParentId is not null)
