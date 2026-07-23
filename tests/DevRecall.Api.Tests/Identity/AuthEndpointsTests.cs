@@ -82,6 +82,31 @@ public sealed class AuthEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task InvalidLogin_ShouldEchoCorrelationIdInHeaderAndProblemDetails()
+    {
+        const string correlationId = "auth-review-001";
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/v1/auth/login")
+        {
+            Content = JsonContent.Create(
+                new LoginRequest("missing@example.com", "WrongPassword"))
+        };
+        request.Headers.Add("X-Correlation-ID", correlationId);
+
+        using var response = await client.SendAsync(request);
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.Headers.GetValues("X-Correlation-ID")
+            .Should().ContainSingle(correlationId);
+        document.RootElement.GetProperty("traceId").GetString()
+            .Should().Be(correlationId);
+    }
+
+    [Fact]
     public async Task Me_ShouldReturnUnauthorizedWithoutRedirectWhenAnonymous()
     {
         using var client = CreateClient();

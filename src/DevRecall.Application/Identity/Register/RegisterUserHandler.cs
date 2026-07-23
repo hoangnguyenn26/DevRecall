@@ -15,10 +15,9 @@ public sealed class RegisterUserHandler(
         Validate(command);
 
         var normalizedEmail = UserEmail.Normalize(command.Email);
-        var alreadyExists = await userRepository
-            .ExistsByNormalizedEmailAsync(
-                normalizedEmail,
-                cancellationToken);
+        var alreadyExists = await userRepository.ExistsByNormalizedEmailAsync(
+            normalizedEmail,
+            cancellationToken);
 
         if (alreadyExists)
         {
@@ -28,12 +27,8 @@ public sealed class RegisterUserHandler(
         }
 
         var passwordHash = passwordHasher.Hash(command.Password);
-        var user = User.Create(
-            Guid.NewGuid(),
-            command.Email,
-            command.DisplayName,
-            passwordHash,
-            DateTimeOffset.UtcNow);
+        var user = User.Create(Guid.NewGuid(), command.Email,
+            command.DisplayName, passwordHash, DateTimeOffset.UtcNow);
 
         userRepository.Add(user);
 

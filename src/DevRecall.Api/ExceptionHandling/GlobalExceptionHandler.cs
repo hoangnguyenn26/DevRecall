@@ -1,3 +1,4 @@
+using DevRecall.Api.Middleware;
 using DevRecall.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,8 @@ public sealed partial class GlobalExceptionHandler(
         httpContext.Response.StatusCode =
             problemDetails.Status
             ?? StatusCodes.Status500InternalServerError;
+        httpContext.Response.Headers[CorrelationIdMiddleware.HeaderName] =
+            httpContext.TraceIdentifier;
 
         await httpContext.Response.WriteAsJsonAsync(
             problemDetails,

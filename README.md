@@ -211,6 +211,20 @@ The exact commands may change during the bootstrap phase.
 
 The planned endpoint catalog is documented in [`docs/API_CATALOG.md`](./docs/API_CATALOG.md).
 
+## Implementation status
+
+### Week 3 — Identity and Authentication
+
+Completed:
+
+- User domain model and case-insensitive email identity
+- PostgreSQL user persistence and unique normalized email
+- Registration with framework-supported password hashing
+- Login with secure cookie authentication
+- Current-user and logout endpoints
+- Named authenticated-user authorization policy
+- PostgreSQL-backed authentication API workflow tests
+
 ## Health endpoints
 
 Liveness:

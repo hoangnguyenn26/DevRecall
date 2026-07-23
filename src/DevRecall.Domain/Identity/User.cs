@@ -6,13 +6,8 @@ public sealed class User
     {
     }
 
-    private User(
-        Guid id,
-        string email,
-        string normalizedEmail,
-        string displayName,
-        string passwordHash,
-        DateTimeOffset createdAtUtc)
+    private User(Guid id, string email, string normalizedEmail,
+        string displayName, string passwordHash, DateTimeOffset createdAtUtc)
     {
         Id = id;
         Email = email;
@@ -40,12 +35,8 @@ public sealed class User
 
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
-    public static User Create(
-        Guid id,
-        string email,
-        string displayName,
-        string passwordHash,
-        DateTimeOffset createdAtUtc)
+    public static User Create(Guid id, string email, string displayName,
+        string passwordHash, DateTimeOffset createdAtUtc)
     {
         if (id == Guid.Empty)
         {
@@ -77,13 +68,7 @@ public sealed class User
 
         var trimmedEmail = email.Trim();
 
-        return new User(
-            id,
-            trimmedEmail,
-            UserEmail.Normalize(trimmedEmail),
-            displayName.Trim(),
-            passwordHash,
-            createdAtUtc);
+        return new User(id, trimmedEmail, UserEmail.Normalize(trimmedEmail),
+            displayName.Trim(), passwordHash, createdAtUtc);
     }
-
 }
