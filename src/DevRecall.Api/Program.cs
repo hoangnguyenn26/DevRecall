@@ -1,6 +1,8 @@
+using DevRecall.Api.Endpoints.Auth;
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
+using DevRecall.Application;
 using DevRecall.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -12,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var connectionString =
@@ -72,6 +75,7 @@ app.MapHealthChecks(
     {
         Predicate = registration => registration.Tags.Contains("ready")
     });
+app.MapAuthEndpoints();
 app.MapSystemEndpoints();
 
 app.Run();

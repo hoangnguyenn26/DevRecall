@@ -80,16 +80,10 @@ public sealed class User
         return new User(
             id,
             trimmedEmail,
-            NormalizeEmail(trimmedEmail),
+            UserEmail.Normalize(trimmedEmail),
             displayName.Trim(),
             passwordHash,
             createdAtUtc);
     }
 
-    private static string NormalizeEmail(string email)
-    {
-        return email
-            .Trim()
-            .ToUpperInvariant();
-    }
 }

@@ -42,6 +42,31 @@ Standard paged response:
 
 ## 2. Authentication and profile
 
+### Register
+
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "email": "hoang@example.com",
+  "displayName": "Hoang Nguyen",
+  "password": "Example123!"
+}
+```
+
+Returns `201 Created` with the new user's `id`, `email`, and `displayName`.
+The response never includes the password, password hash, or normalized email.
+
+Errors:
+
+- `400 VALIDATION_FAILED` for missing fields, an invalid email, or a password outside 8–128 characters.
+- `409 IDENTITY_EMAIL_ALREADY_EXISTS` when the normalized email is already registered.
+
 ### Account initialization
 
 ```http

@@ -1,3 +1,5 @@
+using DevRecall.Application.Identity;
+using DevRecall.Infrastructure.Identity;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +29,9 @@ public static class DependencyInjection
                                 typeof(DevRecallDbContext).Assembly.FullName))
                     .UseSnakeCaseNamingConvention();
             });
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
 
         return services;
     }
