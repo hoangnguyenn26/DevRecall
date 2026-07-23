@@ -227,6 +227,82 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task UpdateOwnedNode_ShouldReturnUpdatedNodeAndTreeTitle()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Programming", null);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}",
+            new UpdateKnowledgeNodeRequest("Software Engineering"));
+        var updated = await updateResponse.Content
+            .ReadFromJsonAsync<UpdateKnowledgeNodeResponse>();
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        updated!.Title.Should().Be("Software Engineering");
+
+        using var treeResponse = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await treeResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+        tree.Should().ContainSingle();
+        tree![0].Title.Should().Be("Software Engineering");
+    }
+
+    [Fact]
+    public async Task ArchiveOwnedNode_ShouldBeIdempotentAndHideNodeWithoutDeletingIt()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Programming", null);
+
+        using var firstResponse = await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            null);
+        using var secondResponse = await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            null);
+        using var treeResponse = await client.GetAsync(
+            "/api/v1/knowledge-nodes/tree");
+        var tree = await treeResponse.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        tree.Should().BeEmpty();
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>();
+        var persisted = await dbContext.KnowledgeNodes
+            .AsNoTracking()
+            .SingleAsync(item => item.Id == node.Id);
+        persisted.Status.Should().Be(KnowledgeNodeStatus.Archived);
+    }
+
+    [Fact]
+    public async Task UpdateAndArchiveAnotherUsersNode_ShouldReturnNotFound()
+    {
+        var ownerSession = await CreateAuthenticatedClientAsync();
+        using var ownerClient = ownerSession.Client;
+        var node = await CreateNodeAsync(ownerClient, "Owner node", null);
+
+        var otherSession = await CreateAuthenticatedClientAsync();
+        using var otherClient = otherSession.Client;
+
+        using var updateResponse = await otherClient.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}",
+            new UpdateKnowledgeNodeRequest("Unauthorized update"));
+        using var archiveResponse = await otherClient.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            null);
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        archiveResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private async Task<(HttpClient Client, RegisterResponse User)>
         CreateAuthenticatedClientAsync()
     {

@@ -190,6 +190,18 @@ Returns `201 Created`. A missing or cross-user parent returns
 PUT /api/v1/knowledge-nodes/{nodeId}
 ```
 
+Requires authentication and ownership.
+
+```json
+{
+  "title": "Software Engineering"
+}
+```
+
+Returns `200 OK`. Missing or cross-user nodes return
+`404 KNOWLEDGE_NODE_NOT_FOUND`; archived nodes return
+`409 KNOWLEDGE_NODE_ARCHIVED`.
+
 ### Move node
 
 ```http
@@ -224,6 +236,10 @@ POST /api/v1/knowledge-nodes/reorder
 ```http
 POST /api/v1/knowledge-nodes/{nodeId}/archive
 ```
+
+Requires authentication and ownership. Returns `204 No Content`; repeated
+archive requests are idempotent. Archiving changes node status without deleting
+the database row.
 
 ### Restore node
 

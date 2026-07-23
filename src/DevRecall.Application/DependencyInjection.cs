@@ -1,8 +1,10 @@
 using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
+using DevRecall.Application.Knowledge.Archive;
 using DevRecall.Application.Knowledge.Create;
 using DevRecall.Application.Knowledge.GetTree;
+using DevRecall.Application.Knowledge.Update;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Application;
@@ -17,6 +19,8 @@ public static class DependencyInjection
         services.AddScoped<GetCurrentUserHandler>();
         services.AddScoped<CreateKnowledgeNodeHandler>();
         services.AddScoped<GetKnowledgeTreeHandler>();
+        services.AddScoped<UpdateKnowledgeNodeHandler>();
+        services.AddScoped<ArchiveKnowledgeNodeHandler>();
 
         return services;
     }
