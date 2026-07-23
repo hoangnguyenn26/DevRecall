@@ -101,11 +101,17 @@ Returns `200 OK` with `id`, `email`, and `displayName`, and issues the
 POST /api/v1/auth/logout
 ```
 
+Requires authentication. Returns `204 No Content` and removes the
+`devrecall.auth` authentication cookie.
+
 ### Current user
 
 ```http
 GET /api/v1/auth/me
 ```
+
+Requires authentication. Returns `200 OK` with the authenticated user's
+`id`, `email`, and `displayName`; anonymous requests return `401 Unauthorized`.
 
 ### Change password
 

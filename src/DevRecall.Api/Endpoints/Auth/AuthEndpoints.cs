@@ -1,4 +1,5 @@
 using DevRecall.Api.Authentication;
+using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
 using DevRecall.Contracts.Auth;
@@ -18,6 +19,12 @@ public static class AuthEndpoints
 
         group.MapPost("/register", RegisterAsync);
         group.MapPost("/login", LoginAsync);
+        group.MapGet("/me", GetCurrentUserAsync)
+            .RequireAuthorization();
+        group.MapPost(
+                "/logout",
+                (Func<HttpContext, Task<IResult>>)LogoutAsync)
+            .RequireAuthorization();
 
         return endpoints;
     }
@@ -65,5 +72,25 @@ public static class AuthEndpoints
             result.Id,
             result.Email,
             result.DisplayName));
+    }
+
+    private static async Task<IResult> GetCurrentUserAsync(
+        GetCurrentUserHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(cancellationToken);
+
+        return Results.Ok(new CurrentUserResponse(
+            result.Id,
+            result.Email,
+            result.DisplayName));
+    }
+
+    private static async Task<IResult> LogoutAsync(HttpContext httpContext)
+    {
+        await httpContext.SignOutAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme);
+
+        return Results.NoContent();
     }
 }

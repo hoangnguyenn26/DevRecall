@@ -145,6 +145,13 @@ public sealed class RegisterUserHandlerTests
             return Task.FromResult<User?>(null);
         }
 
+        public Task<User?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<User?>(null);
+        }
+
         public void Add(User user)
         {
             AddedUser = user;

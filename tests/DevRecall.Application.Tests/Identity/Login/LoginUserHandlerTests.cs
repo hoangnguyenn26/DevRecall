@@ -116,6 +116,13 @@ public sealed class LoginUserHandlerTests
             return Task.FromResult(User);
         }
 
+        public Task<User?> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(User);
+        }
+
         public void Add(User user)
         {
         }

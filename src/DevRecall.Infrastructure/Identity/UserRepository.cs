@@ -27,6 +27,13 @@ internal sealed class UserRepository(
             cancellationToken);
     }
 
+    public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.Users.SingleOrDefaultAsync(
+            user => user.Id == id,
+            cancellationToken);
+    }
+
     public void Add(User user)
     {
         dbContext.Users.Add(user);

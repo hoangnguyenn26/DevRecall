@@ -1,8 +1,10 @@
+using DevRecall.Api.Authentication;
 using DevRecall.Api.Endpoints.Auth;
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
 using DevRecall.Application;
+using DevRecall.Application.Identity;
 using DevRecall.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -27,8 +29,20 @@ builder.Services
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var connectionString =
     builder.Configuration.GetConnectionString("Database")
@@ -54,7 +68,8 @@ builder.Services.AddCors(options =>
             policy
                 .WithOrigins("http://localhost:5173")
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
 });
 
