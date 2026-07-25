@@ -202,6 +202,24 @@ Returns `200 OK`. Missing or cross-user nodes return
 `404 KNOWLEDGE_NODE_NOT_FOUND`; archived nodes return
 `409 KNOWLEDGE_NODE_ARCHIVED`.
 
+### Update note content
+
+```http
+PUT /api/v1/knowledge-nodes/{nodeId}/content
+```
+
+Requires authentication and ownership.
+
+```json
+{
+  "content": "Dictionary<TKey, TValue> uses a hash table internally."
+}
+```
+
+Content is trimmed, `null` becomes an empty string, and the maximum length is
+100,000 characters. Returns `200 OK`; archived nodes return
+`409 KNOWLEDGE_NODE_ARCHIVED`.
+
 ### Move node
 
 ```http

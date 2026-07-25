@@ -308,6 +308,72 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task UpdateContent_AsOwner_ShouldNormalizeAndPersistContent()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "C# Dictionary", null);
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/content",
+            new UpdateKnowledgeContentRequest(
+                "  Dictionary<TKey, TValue> uses a hash table internally.  "));
+        var result = await response.Content.ReadFromJsonAsync<UpdateKnowledgeContentResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Content.Should().Be("Dictionary<TKey, TValue> uses a hash table internally.");
+
+        using var scope = factory.Services.CreateScope();
+        var persistedContent = await scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>()
+            .KnowledgeNodes.AsNoTracking()
+            .Where(item => item.Id == node.Id)
+            .Select(item => item.Content)
+            .SingleAsync();
+        persistedContent.Should().Be(result.Content);
+    }
+
+    [Fact]
+    public async Task UpdateContent_AsAnotherUser_ShouldReturnNotFound()
+    {
+        var ownerSession = await CreateAuthenticatedClientAsync();
+        using var ownerClient = ownerSession.Client;
+        var node = await CreateNodeAsync(ownerClient, "Owner note", null);
+        var otherSession = await CreateAuthenticatedClientAsync();
+        using var otherClient = otherSession.Client;
+
+        using var response = await otherClient.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/content",
+            new UpdateKnowledgeContentRequest("Unauthorized content"));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_NODE_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task UpdateContent_OnArchivedNode_ShouldReturnConflict()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Archived note", null);
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            null);
+        archiveResponse.EnsureSuccessStatusCode();
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/content",
+            new UpdateKnowledgeContentRequest("New content"));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_NODE_ARCHIVED");
+    }
+
+    [Fact]
     public async Task KnowledgeWeekWorkflow_ShouldReturnExpectedFinalTree()
     {
         var session = await CreateAuthenticatedClientAsync();

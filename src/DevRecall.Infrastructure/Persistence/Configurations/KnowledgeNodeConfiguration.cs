@@ -26,6 +26,10 @@ internal sealed class KnowledgeNodeConfiguration
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(node => node.Content)
+            .HasColumnType("text")
+            .IsRequired();
+
         builder.Property(node => node.Status)
             .HasConversion<int>()
             .IsRequired();

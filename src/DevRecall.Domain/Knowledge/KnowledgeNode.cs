@@ -2,6 +2,7 @@ namespace DevRecall.Domain.Knowledge;
 
 public sealed class KnowledgeNode
 {
+    private const int MaximumContentLength = 100_000;
     private const int MaximumTitleLength = 200;
 
     private KnowledgeNode()
@@ -15,6 +16,7 @@ public sealed class KnowledgeNode
         UserId = userId;
         ParentId = parentId;
         Title = title;
+        Content = string.Empty;
         Status = KnowledgeNodeStatus.Active;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
@@ -27,6 +29,8 @@ public sealed class KnowledgeNode
     public Guid? ParentId { get; private set; }
 
     public string Title { get; private set; } = null!;
+
+    public string Content { get; private set; } = string.Empty;
 
     public KnowledgeNodeStatus Status { get; private set; }
 
@@ -68,6 +72,21 @@ public sealed class KnowledgeNode
     public void Rename(string title, DateTimeOffset updatedAtUtc)
     {
         Title = NormalizeTitle(title);
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void UpdateContent(string? content, DateTimeOffset updatedAtUtc)
+    {
+        var normalizedContent = content?.Trim() ?? string.Empty;
+
+        if (normalizedContent.Length > MaximumContentLength)
+        {
+            throw new ArgumentException(
+                $"Content cannot exceed {MaximumContentLength} characters.",
+                nameof(content));
+        }
+
+        Content = normalizedContent;
         UpdatedAtUtc = updatedAtUtc;
     }
 
