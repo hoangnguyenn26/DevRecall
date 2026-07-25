@@ -3,6 +3,7 @@ using DevRecall.Api.Authorization;
 using DevRecall.Api.Endpoints.Auth;
 using DevRecall.Api.Endpoints.Knowledge;
 using DevRecall.Api.Endpoints.System;
+using DevRecall.Api.Endpoints.Tags;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
 using DevRecall.Application;
@@ -116,6 +117,7 @@ app.MapHealthChecks(
 app.MapAuthEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapSystemEndpoints();
+app.MapTagEndpoints();
 
 app.Run();
 
