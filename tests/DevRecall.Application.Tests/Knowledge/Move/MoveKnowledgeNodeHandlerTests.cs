@@ -221,6 +221,10 @@ public sealed class MoveKnowledgeNodeHandlerTests
             return Task.FromResult(hierarchy);
         }
 
+        public Task<int> GetNextSortOrderAsync(
+            Guid userId, Guid? parentId, CancellationToken cancellationToken) =>
+            Task.FromResult(0);
+
         public void Add(KnowledgeNode node)
         {
             throw new NotSupportedException();

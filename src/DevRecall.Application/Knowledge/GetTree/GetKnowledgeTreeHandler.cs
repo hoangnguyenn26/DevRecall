@@ -34,7 +34,8 @@ public sealed class GetKnowledgeTreeHandler(
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .OrderBy(node => node.Title)
+                    .OrderBy(node => node.SortOrder)
+                    .ThenBy(node => node.Title)
                     .ThenBy(node => node.Id)
                     .ToList());
 
@@ -49,12 +50,14 @@ public sealed class GetKnowledgeTreeHandler(
                 node.Id,
                 node.ParentId,
                 node.Title,
+                node.SortOrder,
                 children);
         }
 
         return nodes
             .Where(node => node.ParentId is null)
-            .OrderBy(node => node.Title)
+            .OrderBy(node => node.SortOrder)
+            .ThenBy(node => node.Title)
             .ThenBy(node => node.Id)
             .Select(Map)
             .ToList();

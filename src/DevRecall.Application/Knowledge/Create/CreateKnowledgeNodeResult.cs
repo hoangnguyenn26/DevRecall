@@ -4,5 +4,6 @@ public sealed record CreateKnowledgeNodeResult(
     Guid Id,
     Guid? ParentId,
     string Title,
+    int SortOrder,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);

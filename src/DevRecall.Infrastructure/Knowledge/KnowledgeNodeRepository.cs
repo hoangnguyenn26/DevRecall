@@ -38,7 +38,8 @@ internal sealed class KnowledgeNodeRepository(DevRecallDbContext dbContext)
             .Where(node =>
                 node.UserId == userId
                 && node.Status == KnowledgeNodeStatus.Active)
-            .OrderBy(node => node.Title)
+            .OrderBy(node => node.SortOrder)
+            .ThenBy(node => node.Title)
             .ThenBy(node => node.Id)
             .ToListAsync(cancellationToken);
     }
@@ -60,6 +61,23 @@ internal sealed class KnowledgeNodeRepository(DevRecallDbContext dbContext)
     public void Add(KnowledgeNode node)
     {
         dbContext.KnowledgeNodes.Add(node);
+    }
+
+    public async Task<int> GetNextSortOrderAsync(
+        Guid userId,
+        Guid? parentId,
+        CancellationToken cancellationToken)
+    {
+        var maximum = await dbContext.KnowledgeNodes
+            .AsNoTracking()
+            .Where(node =>
+                node.UserId == userId
+                && node.ParentId == parentId
+                && node.Status == KnowledgeNodeStatus.Active)
+            .Select(node => (int?)node.SortOrder)
+            .MaxAsync(cancellationToken);
+
+        return maximum is null ? 0 : maximum.Value + 1;
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

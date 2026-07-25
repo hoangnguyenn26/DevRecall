@@ -151,7 +151,8 @@ GET /api/v1/knowledge-nodes/tree
 ```
 
 Requires authentication. Returns the authenticated user's active nodes as a
-nested tree, ordered by title and then ID. Every leaf has `children: []`.
+nested tree, ordered by persisted sibling `sortOrder`, then title and ID.
+Every leaf has `children: []`.
 An account with no active root nodes receives `200 OK` with:
 
 ```json
@@ -187,7 +188,8 @@ Requires authentication.
 
 Returns `201 Created`. A missing or cross-user parent returns
 `404 KNOWLEDGE_PARENT_NOT_FOUND`; an archived parent returns
-`409 KNOWLEDGE_INVALID_PARENT`.
+`409 KNOWLEDGE_INVALID_PARENT`. New nodes are appended to their active sibling
+scope and the response includes the assigned zero-based `sortOrder`.
 
 ### Update node
 

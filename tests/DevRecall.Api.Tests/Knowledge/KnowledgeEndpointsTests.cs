@@ -155,6 +155,36 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task CreateNodes_ShouldAppendWithinEachSiblingScopeAndTreeShouldUseStoredOrder()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var programming = await CreateNodeAsync(client, "Programming", null);
+        var interview = await CreateNodeAsync(client, "Interview", null);
+        var csharp = await CreateNodeAsync(client, "C#", programming.Id);
+        var database = await CreateNodeAsync(client, "Database", programming.Id);
+        var architecture = await CreateNodeAsync(client, "Architecture", programming.Id);
+        var behavioral = await CreateNodeAsync(client, "Behavioral", interview.Id);
+
+        using var response = await client.GetAsync("/api/v1/knowledge-nodes/tree");
+        var tree = await response.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>();
+
+        response.EnsureSuccessStatusCode();
+        programming.SortOrder.Should().Be(0);
+        interview.SortOrder.Should().Be(1);
+        csharp.SortOrder.Should().Be(0);
+        database.SortOrder.Should().Be(1);
+        architecture.SortOrder.Should().Be(2);
+        behavioral.SortOrder.Should().Be(0);
+        var actualTree = tree!;
+        actualTree.Select(node => node.Title).Should().Equal("Programming", "Interview");
+        actualTree[0].Children.Select(node => node.Title)
+            .Should().Equal("C#", "Database", "Architecture");
+        actualTree[0].Children.Select(node => node.SortOrder).Should().Equal(0, 1, 2);
+    }
+
+    [Fact]
     public async Task GetTree_ShouldReturnOnlyAuthenticatedUsersNodes()
     {
         var firstSession = await CreateAuthenticatedClientAsync();

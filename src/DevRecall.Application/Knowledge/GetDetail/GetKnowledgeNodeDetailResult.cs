@@ -8,5 +8,6 @@ public sealed record GetKnowledgeNodeDetailResult(
     string? Description,
     string? SourceUrl,
     string Status,
+    int SortOrder,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);

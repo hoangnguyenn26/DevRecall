@@ -21,6 +21,11 @@ public interface IKnowledgeNodeRepository
         Guid userId,
         CancellationToken cancellationToken);
 
+    Task<int> GetNextSortOrderAsync(
+        Guid userId,
+        Guid? parentId,
+        CancellationToken cancellationToken);
+
     void Add(KnowledgeNode node);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

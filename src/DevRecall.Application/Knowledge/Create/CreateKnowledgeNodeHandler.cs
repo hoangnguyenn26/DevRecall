@@ -44,12 +44,17 @@ public sealed class CreateKnowledgeNodeHandler(
             }
         }
 
+        var sortOrder = await repository.GetNextSortOrderAsync(
+            userId,
+            command.ParentId,
+            cancellationToken);
         var now = DateTimeOffset.UtcNow;
         var node = KnowledgeNode.Create(
             Guid.NewGuid(),
             userId,
             command.ParentId,
             command.Title,
+            sortOrder,
             now);
 
         repository.Add(node);
@@ -59,6 +64,7 @@ public sealed class CreateKnowledgeNodeHandler(
             node.Id,
             node.ParentId,
             node.Title,
+            node.SortOrder,
             node.CreatedAtUtc,
             node.UpdatedAtUtc);
     }

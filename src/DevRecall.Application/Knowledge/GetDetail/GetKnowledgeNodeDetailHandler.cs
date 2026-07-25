@@ -30,6 +30,7 @@ public sealed class GetKnowledgeNodeDetailHandler(
             node.Description,
             node.SourceUrl,
             node.Status.ToString(),
+            node.SortOrder,
             node.CreatedAtUtc,
             node.UpdatedAtUtc);
     }

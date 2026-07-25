@@ -91,6 +91,10 @@ public sealed class UpdateKnowledgeContentHandlerTests
             return Task.FromResult<IReadOnlyList<KnowledgeNodeHierarchyItem>>([]);
         }
 
+        public Task<int> GetNextSortOrderAsync(
+            Guid userId, Guid? parentId, CancellationToken cancellationToken) =>
+            Task.FromResult(0);
+
         public void Add(KnowledgeNode knowledgeNode) => throw new NotSupportedException();
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)

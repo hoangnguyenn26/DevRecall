@@ -50,6 +50,7 @@ public static class KnowledgeEndpoints
             result.Description,
             result.SourceUrl,
             result.Status,
+            result.SortOrder,
             result.CreatedAtUtc,
             result.UpdatedAtUtc));
     }
@@ -144,6 +145,7 @@ public static class KnowledgeEndpoints
                 result.Id,
                 result.ParentId,
                 result.Title,
+                result.SortOrder,
                 result.CreatedAtUtc,
                 result.UpdatedAtUtc));
     }
@@ -164,6 +166,7 @@ public static class KnowledgeEndpoints
             item.Id,
             item.ParentId,
             item.Title,
+            item.SortOrder,
             item.Children.Select(MapTreeNode).ToList());
     }
 }

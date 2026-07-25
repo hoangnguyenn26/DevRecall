@@ -12,12 +12,13 @@ public sealed class KnowledgeNode
     }
 
     private KnowledgeNode(Guid id, Guid userId, Guid? parentId,
-        string title, DateTimeOffset createdAtUtc)
+        string title, int sortOrder, DateTimeOffset createdAtUtc)
     {
         Id = id;
         UserId = userId;
         ParentId = parentId;
         Title = title;
+        SortOrder = sortOrder;
         Content = string.Empty;
         Status = KnowledgeNodeStatus.Active;
         CreatedAtUtc = createdAtUtc;
@@ -32,6 +33,8 @@ public sealed class KnowledgeNode
 
     public string Title { get; private set; } = null!;
 
+    public int SortOrder { get; private set; }
+
     public string Content { get; private set; } = string.Empty;
 
     public string? Description { get; private set; }
@@ -45,7 +48,7 @@ public sealed class KnowledgeNode
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
     public static KnowledgeNode Create(Guid id, Guid userId, Guid? parentId,
-        string title, DateTimeOffset createdAtUtc)
+        string title, int sortOrder, DateTimeOffset createdAtUtc)
     {
         if (id == Guid.Empty)
         {
@@ -67,12 +70,26 @@ public sealed class KnowledgeNode
                 "A knowledge node cannot be its own parent.");
         }
 
+        if (sortOrder < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(sortOrder),
+                "Sort order cannot be negative.");
+        }
+
         return new KnowledgeNode(
             id,
             userId,
             parentId,
             NormalizeTitle(title),
+            sortOrder,
             createdAtUtc);
+    }
+
+    public static KnowledgeNode Create(Guid id, Guid userId, Guid? parentId,
+        string title, DateTimeOffset createdAtUtc)
+    {
+        return Create(id, userId, parentId, title, 0, createdAtUtc);
     }
 
     public void Rename(string title, DateTimeOffset updatedAtUtc)
@@ -144,6 +161,25 @@ public sealed class KnowledgeNode
 
         ParentId = parentId;
         UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public bool ChangeSortOrder(int sortOrder, DateTimeOffset updatedAtUtc)
+    {
+        if (sortOrder < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(sortOrder),
+                "Sort order cannot be negative.");
+        }
+
+        if (SortOrder == sortOrder)
+        {
+            return false;
+        }
+
+        SortOrder = sortOrder;
+        UpdatedAtUtc = updatedAtUtc;
+        return true;
     }
 
     private static string NormalizeTitle(string title)

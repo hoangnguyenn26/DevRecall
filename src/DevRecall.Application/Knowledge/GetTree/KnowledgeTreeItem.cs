@@ -4,4 +4,5 @@ public sealed record KnowledgeTreeItem(
     Guid Id,
     Guid? ParentId,
     string Title,
+    int SortOrder,
     IReadOnlyList<KnowledgeTreeItem> Children);

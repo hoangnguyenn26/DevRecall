@@ -36,6 +36,9 @@ internal sealed class KnowledgeNodeConfiguration
         builder.Property(node => node.SourceUrl)
             .HasMaxLength(2048);
 
+        builder.Property(node => node.SortOrder)
+            .IsRequired();
+
         builder.Property(node => node.Status)
             .HasConversion<int>()
             .IsRequired();
@@ -61,5 +64,8 @@ internal sealed class KnowledgeNodeConfiguration
 
         builder.HasIndex(node => new { node.UserId, node.ParentId })
             .HasDatabaseName("ix_knowledge_nodes_user_id_parent_id");
+
+        builder.HasIndex(node => new { node.UserId, node.ParentId, node.SortOrder })
+            .HasDatabaseName("ix_knowledge_nodes_user_parent_sort_order");
     }
 }
