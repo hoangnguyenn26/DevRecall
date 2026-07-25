@@ -236,6 +236,19 @@ Completed:
 - Cycle prevention for self-parenting and descendant moves
 - PostgreSQL-backed domain, application, integration, and API regression coverage
 
+### Week 5 — Knowledge Advanced
+
+Completed:
+
+- Knowledge note content
+- Knowledge description and source URL
+- Knowledge detail API with archived-note access
+- Safe content updates using expected timestamps
+- No-op content update detection
+- Persistent sibling ordering and append-to-end creation
+- Root and child reorder workflows
+- Tree ordering based on stored positions
+
 ## Health endpoints
 
 Liveness:

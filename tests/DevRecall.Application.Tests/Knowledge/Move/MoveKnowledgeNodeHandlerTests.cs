@@ -170,6 +170,7 @@ public sealed class MoveKnowledgeNodeHandlerTests
             userId,
             parentId,
             "Node",
+            0,
             DateTimeOffset.UtcNow);
     }
 

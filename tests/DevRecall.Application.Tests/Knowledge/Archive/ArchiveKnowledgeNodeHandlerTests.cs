@@ -91,6 +91,7 @@ public sealed class ArchiveKnowledgeNodeHandlerTests
             userId,
             null,
             "Node",
+            0,
             DateTimeOffset.UtcNow);
     }
 

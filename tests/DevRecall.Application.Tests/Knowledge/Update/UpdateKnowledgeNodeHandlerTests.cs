@@ -124,6 +124,7 @@ public sealed class UpdateKnowledgeNodeHandlerTests
             userId,
             null,
             "Programming",
+            0,
             DateTimeOffset.UtcNow);
     }
 

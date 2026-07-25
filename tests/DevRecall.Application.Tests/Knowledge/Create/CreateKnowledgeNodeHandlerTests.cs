@@ -163,6 +163,7 @@ public sealed class CreateKnowledgeNodeHandlerTests
             userId,
             null,
             "Parent",
+            0,
             DateTimeOffset.UtcNow);
     }
 

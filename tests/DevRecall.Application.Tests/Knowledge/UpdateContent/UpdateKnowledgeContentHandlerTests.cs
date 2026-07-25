@@ -54,6 +54,7 @@ public sealed class UpdateKnowledgeContentHandlerTests
             userId,
             null,
             "Dictionary",
+            0,
             DateTimeOffset.UtcNow);
     }
 

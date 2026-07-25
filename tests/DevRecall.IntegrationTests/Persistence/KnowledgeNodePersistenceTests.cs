@@ -19,6 +19,7 @@ public sealed class KnowledgeNodePersistenceTests(PostgreSqlFixture fixture)
             user.Id,
             null,
             "Programming",
+            0,
             DateTimeOffset.UtcNow);
 
         context.Users.Add(user);
@@ -138,6 +139,7 @@ public sealed class KnowledgeNodePersistenceTests(PostgreSqlFixture fixture)
             userId,
             parentId,
             title,
+            0,
             DateTimeOffset.UtcNow);
     }
 }

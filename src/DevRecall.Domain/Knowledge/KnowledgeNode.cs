@@ -86,12 +86,6 @@ public sealed class KnowledgeNode
             createdAtUtc);
     }
 
-    public static KnowledgeNode Create(Guid id, Guid userId, Guid? parentId,
-        string title, DateTimeOffset createdAtUtc)
-    {
-        return Create(id, userId, parentId, title, 0, createdAtUtc);
-    }
-
     public void Rename(string title, DateTimeOffset updatedAtUtc)
     {
         Title = NormalizeTitle(title);

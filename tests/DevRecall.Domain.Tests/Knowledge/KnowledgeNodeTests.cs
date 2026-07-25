@@ -16,6 +16,7 @@ public sealed class KnowledgeNodeTests
             userId,
             null,
             "Programming",
+            0,
             now);
 
         node.UserId.Should().Be(userId);
@@ -54,6 +55,7 @@ public sealed class KnowledgeNodeTests
             Guid.NewGuid(),
             id,
             "Invalid",
+            0,
             DateTimeOffset.UtcNow);
 
         action.Should().Throw<InvalidOperationException>();
@@ -170,6 +172,7 @@ public sealed class KnowledgeNodeTests
             Guid.NewGuid(),
             null,
             "Node",
+            0,
             DateTimeOffset.UtcNow);
 
         action.Should().Throw<ArgumentException>()
@@ -184,6 +187,7 @@ public sealed class KnowledgeNodeTests
             Guid.Empty,
             null,
             "Node",
+            0,
             DateTimeOffset.UtcNow);
 
         action.Should().Throw<ArgumentException>()
@@ -199,6 +203,7 @@ public sealed class KnowledgeNodeTests
             Guid.NewGuid(),
             parentId,
             title,
+            0,
             DateTimeOffset.UtcNow);
     }
 }

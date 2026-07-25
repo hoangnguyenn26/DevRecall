@@ -130,6 +130,7 @@ public sealed class GetKnowledgeTreeHandlerTests
             userId,
             parentId,
             title,
+            0,
             DateTimeOffset.UtcNow);
     }
 

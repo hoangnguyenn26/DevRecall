@@ -315,6 +315,7 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
             session.User.Id,
             null,
             "Archived parent",
+            0,
             DateTimeOffset.UtcNow);
         parent.Archive(DateTimeOffset.UtcNow);
         var child = KnowledgeNode.Create(
@@ -322,6 +323,7 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
             session.User.Id,
             parent.Id,
             "Active child",
+            0,
             DateTimeOffset.UtcNow);
 
         using (var scope = factory.Services.CreateScope())
@@ -740,6 +742,42 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         finalTree[0].Children.Should().ContainSingle();
         finalTree[0].Children[0].Title.Should().Be("C# and .NET");
         finalTree[0].Children[0].Children.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task KnowledgeAdvancedWorkflow_ShouldPersistDetailAndReorderedTree()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var programming = await CreateNodeAsync(client, "Programming", null);
+        var database = await CreateNodeAsync(client, "Database", programming.Id);
+        var architecture = await CreateNodeAsync(client, "Architecture", programming.Id);
+        var original = await GetDetailAsync(client, database.Id);
+
+        using var contentResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{database.Id}/content",
+            new UpdateKnowledgeContentRequest("PostgreSQL indexing notes.", original.UpdatedAtUtc));
+        contentResponse.EnsureSuccessStatusCode();
+        using var metadataResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{database.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest(
+                "Database performance reference.",
+                "https://www.postgresql.org/docs/"));
+        metadataResponse.EnsureSuccessStatusCode();
+        var detail = await GetDetailAsync(client, database.Id);
+
+        using var reorderResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{architecture.Id}/order",
+            new ReorderKnowledgeNodeRequest(0));
+        var tree = await GetTreeAsync(client);
+
+        detail.Content.Should().Be("PostgreSQL indexing notes.");
+        detail.Description.Should().Be("Database performance reference.");
+        reorderResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        tree.Should().ContainSingle();
+        tree[0].Children.Select(node => node.Title)
+            .Should().Equal("Architecture", "Database");
+        tree[0].Children.Select(node => node.SortOrder).Should().Equal(0, 1);
     }
 
     [Fact]
