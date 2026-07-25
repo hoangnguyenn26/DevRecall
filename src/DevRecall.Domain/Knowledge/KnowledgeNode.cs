@@ -176,6 +176,35 @@ public sealed class KnowledgeNode
         return true;
     }
 
+    public bool ChangePosition(
+        Guid? parentId,
+        int sortOrder,
+        DateTimeOffset updatedAtUtc)
+    {
+        if (parentId == Id)
+        {
+            throw new InvalidOperationException(
+                "A knowledge node cannot be its own parent.");
+        }
+
+        if (sortOrder < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(sortOrder),
+                "Sort order cannot be negative.");
+        }
+
+        if (ParentId == parentId && SortOrder == sortOrder)
+        {
+            return false;
+        }
+
+        ParentId = parentId;
+        SortOrder = sortOrder;
+        UpdatedAtUtc = updatedAtUtc;
+        return true;
+    }
+
     private static string NormalizeTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))

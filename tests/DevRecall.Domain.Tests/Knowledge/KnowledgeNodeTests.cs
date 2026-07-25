@@ -118,6 +118,49 @@ public sealed class KnowledgeNodeTests
         action.Should().Throw<InvalidOperationException>();
     }
 
+    [Fact]
+    public void ChangePosition_ShouldUpdateParentOrderAndTimestamp()
+    {
+        var node = CreateNode();
+        var parentId = Guid.NewGuid();
+        var updatedAtUtc = DateTimeOffset.UtcNow.AddMinutes(1);
+
+        var changed = node.ChangePosition(parentId, 2, updatedAtUtc);
+
+        changed.Should().BeTrue();
+        node.ParentId.Should().Be(parentId);
+        node.SortOrder.Should().Be(2);
+        node.UpdatedAtUtc.Should().Be(updatedAtUtc);
+    }
+
+    [Fact]
+    public void ChangePosition_WithCurrentPosition_ShouldBeNoOp()
+    {
+        var node = CreateNode();
+        var originalUpdatedAtUtc = node.UpdatedAtUtc;
+
+        var changed = node.ChangePosition(
+            node.ParentId,
+            node.SortOrder,
+            originalUpdatedAtUtc.AddMinutes(1));
+
+        changed.Should().BeFalse();
+        node.UpdatedAtUtc.Should().Be(originalUpdatedAtUtc);
+    }
+
+    [Fact]
+    public void ChangePosition_WithSelfParent_ShouldThrowInvalidOperationException()
+    {
+        var node = CreateNode();
+
+        var action = () => node.ChangePosition(
+            node.Id,
+            0,
+            DateTimeOffset.UtcNow);
+
+        action.Should().Throw<InvalidOperationException>();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]

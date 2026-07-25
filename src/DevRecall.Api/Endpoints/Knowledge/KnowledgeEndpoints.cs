@@ -1,5 +1,6 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Knowledge.Archive;
+using DevRecall.Application.Knowledge.ChangePosition;
 using DevRecall.Application.Knowledge.Create;
 using DevRecall.Application.Knowledge.GetByTags;
 using DevRecall.Application.Knowledge.GetDetail;
@@ -35,6 +36,7 @@ public static class KnowledgeEndpoints
         group.MapPut("/{id:guid}/content", UpdateContentAsync);
         group.MapPut("/{id:guid}/metadata", UpdateMetadataAsync);
         group.MapPut("/{id:guid}/order", ReorderAsync);
+        group.MapPut("/{id:guid}/position", ChangePositionAsync);
         group.MapPut("/{nodeId:guid}/tags/{tagId:guid}", AssignTagAsync);
         group.MapDelete("/{nodeId:guid}/tags/{tagId:guid}", RemoveTagAsync);
 
@@ -150,6 +152,22 @@ public static class KnowledgeEndpoints
     {
         await handler.HandleAsync(
             new ReorderKnowledgeNodeCommand(id, request.TargetIndex),
+            cancellationToken);
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ChangePositionAsync(
+        Guid id,
+        ChangeKnowledgeNodePositionRequest request,
+        ChangeKnowledgeNodePositionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            new ChangeKnowledgeNodePositionCommand(
+                id,
+                request.TargetParentId,
+                request.TargetIndex),
             cancellationToken);
 
         return Results.NoContent();

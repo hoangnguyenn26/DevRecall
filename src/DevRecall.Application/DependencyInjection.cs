@@ -2,6 +2,7 @@ using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
 using DevRecall.Application.Knowledge.Archive;
+using DevRecall.Application.Knowledge.ChangePosition;
 using DevRecall.Application.Knowledge.Create;
 using DevRecall.Application.Knowledge.GetByTags;
 using DevRecall.Application.Knowledge.GetDetail;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<GetKnowledgeTreeHandler>();
         services.AddScoped<UpdateKnowledgeNodeHandler>();
         services.AddScoped<ArchiveKnowledgeNodeHandler>();
+        services.AddScoped<ChangeKnowledgeNodePositionHandler>();
         services.AddScoped<MoveKnowledgeNodeHandler>();
         services.AddScoped<ReorderKnowledgeNodeHandler>();
         services.AddScoped<UpdateKnowledgeContentHandler>();
