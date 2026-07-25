@@ -23,4 +23,8 @@ public static class KnowledgeErrors
     public static readonly DomainError CircularHierarchy = new(
         "KNOWLEDGE_CIRCULAR_HIERARCHY",
         "The operation would create a circular hierarchy.");
+
+    public static readonly DomainError ConcurrentUpdate = new(
+        "KNOWLEDGE_CONCURRENT_UPDATE",
+        "The knowledge node was modified by another operation.");
 }

@@ -81,19 +81,18 @@ public sealed class KnowledgeNode
         UpdatedAtUtc = updatedAtUtc;
     }
 
-    public void UpdateContent(string? content, DateTimeOffset updatedAtUtc)
+    public bool UpdateContent(string? content, DateTimeOffset updatedAtUtc)
     {
-        var normalizedContent = content?.Trim() ?? string.Empty;
+        var normalizedContent = NormalizeContent(content);
 
-        if (normalizedContent.Length > MaximumContentLength)
+        if (string.Equals(Content, normalizedContent, StringComparison.Ordinal))
         {
-            throw new ArgumentException(
-                $"Content cannot exceed {MaximumContentLength} characters.",
-                nameof(content));
+            return false;
         }
 
         Content = normalizedContent;
         UpdatedAtUtc = updatedAtUtc;
+        return true;
     }
 
     public void UpdateMetadata(
@@ -166,5 +165,19 @@ public sealed class KnowledgeNode
         }
 
         return normalizedTitle;
+    }
+
+    private static string NormalizeContent(string? content)
+    {
+        var normalizedContent = content?.Trim() ?? string.Empty;
+
+        if (normalizedContent.Length > MaximumContentLength)
+        {
+            throw new ArgumentException(
+                $"Content cannot exceed {MaximumContentLength} characters.",
+                nameof(content));
+        }
+
+        return normalizedContent;
     }
 }

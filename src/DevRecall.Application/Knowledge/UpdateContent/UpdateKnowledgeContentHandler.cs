@@ -28,8 +28,19 @@ public sealed class UpdateKnowledgeContentHandler(
             throw new ConflictException(KnowledgeErrors.NodeArchived.Code, KnowledgeErrors.NodeArchived.Message);
         }
 
-        node.UpdateContent(command.Content, DateTimeOffset.UtcNow);
-        await repository.SaveChangesAsync(cancellationToken);
+        if (node.UpdatedAtUtc != command.ExpectedUpdatedAtUtc)
+        {
+            throw new ConflictException(
+                KnowledgeErrors.ConcurrentUpdate.Code,
+                KnowledgeErrors.ConcurrentUpdate.Message);
+        }
+
+        var changed = node.UpdateContent(command.Content, DateTimeOffset.UtcNow);
+
+        if (changed)
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
 
         return new UpdateKnowledgeContentResult(node.Id, node.Content, node.UpdatedAtUtc);
     }
@@ -48,14 +59,21 @@ public sealed class UpdateKnowledgeContentHandler(
 
     private static void Validate(UpdateKnowledgeContentCommand command)
     {
-        if ((command.Content?.Trim().Length ?? 0) <= 100_000)
+        var errors = new Dictionary<string, string[]>();
+
+        if ((command.Content?.Trim().Length ?? 0) > 100_000)
         {
-            return;
+            errors["content"] = ["Content cannot exceed 100000 characters."];
         }
 
-        throw new ValidationException(new Dictionary<string, string[]>
+        if (command.ExpectedUpdatedAtUtc == default)
         {
-            ["content"] = ["Content cannot exceed 100000 characters."]
-        });
+            errors["expectedUpdatedAtUtc"] = ["Expected updated timestamp is required."];
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
     }
 }

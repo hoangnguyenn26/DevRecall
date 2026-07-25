@@ -1,3 +1,5 @@
 namespace DevRecall.Contracts.Knowledge;
 
-public sealed record UpdateKnowledgeContentRequest(string? Content);
+public sealed record UpdateKnowledgeContentRequest(
+    string? Content,
+    DateTimeOffset ExpectedUpdatedAtUtc);

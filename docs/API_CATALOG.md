@@ -217,13 +217,16 @@ Requires authentication and ownership.
 
 ```json
 {
-  "content": "Dictionary<TKey, TValue> uses a hash table internally."
+  "content": "Dictionary<TKey, TValue> uses a hash table internally.",
+  "expectedUpdatedAtUtc": "2026-07-25T10:15:00+00:00"
 }
 ```
 
 Content is trimmed, `null` becomes an empty string, and the maximum length is
-100,000 characters. Returns `200 OK`; archived nodes return
-`409 KNOWLEDGE_NODE_ARCHIVED`.
+100,000 characters. The expected timestamp must match the current detail
+version; stale writes return `409 KNOWLEDGE_CONCURRENT_UPDATE`. Equivalent
+normalized content is a no-op and preserves the timestamp. Archived nodes
+return `409 KNOWLEDGE_NODE_ARCHIVED`.
 
 ### Update note metadata
 

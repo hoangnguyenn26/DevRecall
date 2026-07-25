@@ -313,11 +313,13 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         var session = await CreateAuthenticatedClientAsync();
         using var client = session.Client;
         var node = await CreateNodeAsync(client, "C# Dictionary", null);
+        var detail = await GetDetailAsync(client, node.Id);
 
         using var response = await client.PutAsJsonAsync(
             $"/api/v1/knowledge-nodes/{node.Id}/content",
             new UpdateKnowledgeContentRequest(
-                "  Dictionary<TKey, TValue> uses a hash table internally.  "));
+                "  Dictionary<TKey, TValue> uses a hash table internally.  ",
+                detail.UpdatedAtUtc));
         var result = await response.Content.ReadFromJsonAsync<UpdateKnowledgeContentResponse>();
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -344,7 +346,7 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
 
         using var response = await otherClient.PutAsJsonAsync(
             $"/api/v1/knowledge-nodes/{node.Id}/content",
-            new UpdateKnowledgeContentRequest("Unauthorized content"));
+            new UpdateKnowledgeContentRequest("Unauthorized content", node.UpdatedAtUtc));
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -365,7 +367,7 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
 
         using var response = await client.PutAsJsonAsync(
             $"/api/v1/knowledge-nodes/{node.Id}/content",
-            new UpdateKnowledgeContentRequest("New content"));
+            new UpdateKnowledgeContentRequest("New content", node.UpdatedAtUtc));
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -470,9 +472,12 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         var session = await CreateAuthenticatedClientAsync();
         using var client = session.Client;
         var node = await CreateNodeAsync(client, "TryGetValue", null);
+        var initialDetail = await GetDetailAsync(client, node.Id);
         using var contentResponse = await client.PutAsJsonAsync(
             $"/api/v1/knowledge-nodes/{node.Id}/content",
-            new UpdateKnowledgeContentRequest("Dictionary lookup example."));
+            new UpdateKnowledgeContentRequest(
+                "Dictionary lookup example.",
+                initialDetail.UpdatedAtUtc));
         using var metadataResponse = await client.PutAsJsonAsync(
             $"/api/v1/knowledge-nodes/{node.Id}/metadata",
             new UpdateKnowledgeMetadataRequest("Quick reference.", "https://learn.microsoft.com/"));
@@ -493,6 +498,48 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         detail.SourceUrl.Should().Be("https://learn.microsoft.com/");
         detail.Status.Should().Be("Active");
         json.Should().NotContain("userId");
+    }
+
+    [Fact]
+    public async Task UpdateContent_WithStaleTimestamp_ShouldReturnConflictAndPreserveNewerContent()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Concurrent note", null);
+        var original = await GetDetailAsync(client, node.Id);
+
+        using var firstResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/content",
+            new UpdateKnowledgeContentRequest("Current content", original.UpdatedAtUtc));
+        firstResponse.EnsureSuccessStatusCode();
+        using var staleResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/content",
+            new UpdateKnowledgeContentRequest("Stale content", original.UpdatedAtUtc));
+        using var document = JsonDocument.Parse(await staleResponse.Content.ReadAsStringAsync());
+        var latest = await GetDetailAsync(client, node.Id);
+
+        staleResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_CONCURRENT_UPDATE");
+        latest.Content.Should().Be("Current content");
+    }
+
+    [Fact]
+    public async Task UpdateContent_WithEquivalentContent_ShouldPreserveTimestamp()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "No-op note", null);
+        var original = await GetDetailAsync(client, node.Id);
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/content",
+            new UpdateKnowledgeContentRequest("   ", original.UpdatedAtUtc));
+        var result = await response.Content.ReadFromJsonAsync<UpdateKnowledgeContentResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Content.Should().BeEmpty();
+        result.UpdatedAtUtc.Should().Be(original.UpdatedAtUtc);
     }
 
     [Fact]
@@ -696,5 +743,14 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
 
         return (await response.Content
             .ReadFromJsonAsync<KnowledgeNodeResponse>())!;
+    }
+
+    private static async Task<KnowledgeNodeDetailResponse> GetDetailAsync(
+        HttpClient client,
+        Guid id)
+    {
+        using var response = await client.GetAsync($"/api/v1/knowledge-nodes/{id}");
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<KnowledgeNodeDetailResponse>())!;
     }
 }

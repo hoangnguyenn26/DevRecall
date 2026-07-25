@@ -90,7 +90,7 @@ public static class KnowledgeEndpoints
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
-            new UpdateKnowledgeContentCommand(id, request.Content),
+            new UpdateKnowledgeContentCommand(id, request.Content, request.ExpectedUpdatedAtUtc),
             cancellationToken);
 
         return Results.Ok(new UpdateKnowledgeContentResponse(
