@@ -3,6 +3,8 @@ namespace DevRecall.Domain.Knowledge;
 public sealed class KnowledgeNode
 {
     private const int MaximumContentLength = 100_000;
+    private const int MaximumDescriptionLength = 500;
+    private const int MaximumSourceUrlLength = 2_048;
     private const int MaximumTitleLength = 200;
 
     private KnowledgeNode()
@@ -31,6 +33,10 @@ public sealed class KnowledgeNode
     public string Title { get; private set; } = null!;
 
     public string Content { get; private set; } = string.Empty;
+
+    public string? Description { get; private set; }
+
+    public string? SourceUrl { get; private set; }
 
     public KnowledgeNodeStatus Status { get; private set; }
 
@@ -87,6 +93,39 @@ public sealed class KnowledgeNode
         }
 
         Content = normalizedContent;
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void UpdateMetadata(
+        string? description,
+        string? sourceUrl,
+        DateTimeOffset updatedAtUtc)
+    {
+        var normalizedDescription = string.IsNullOrWhiteSpace(description)
+            ? null
+            : description.Trim();
+        var normalizedSourceUrl = string.IsNullOrWhiteSpace(sourceUrl)
+            ? null
+            : sourceUrl.Trim();
+
+        if (normalizedDescription is not null && normalizedDescription.Length > MaximumDescriptionLength)
+        {
+            throw new ArgumentException(
+                $"Description cannot exceed {MaximumDescriptionLength} characters.",
+                nameof(description));
+        }
+
+        if (normalizedSourceUrl is not null
+            && (normalizedSourceUrl.Length > MaximumSourceUrlLength
+                || !Uri.TryCreate(normalizedSourceUrl, UriKind.Absolute, out _)))
+        {
+            throw new ArgumentException(
+                "Source URL must be a valid absolute URL and cannot exceed 2048 characters.",
+                nameof(sourceUrl));
+        }
+
+        Description = normalizedDescription;
+        SourceUrl = normalizedSourceUrl;
         UpdatedAtUtc = updatedAtUtc;
     }
 

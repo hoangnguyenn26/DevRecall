@@ -7,6 +7,7 @@ using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Application.Knowledge.Move;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
+using DevRecall.Application.Knowledge.UpdateMetadata;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Application;
@@ -25,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<ArchiveKnowledgeNodeHandler>();
         services.AddScoped<MoveKnowledgeNodeHandler>();
         services.AddScoped<UpdateKnowledgeContentHandler>();
+        services.AddScoped<UpdateKnowledgeMetadataHandler>();
 
         return services;
     }

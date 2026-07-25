@@ -220,6 +220,25 @@ Content is trimmed, `null` becomes an empty string, and the maximum length is
 100,000 characters. Returns `200 OK`; archived nodes return
 `409 KNOWLEDGE_NODE_ARCHIVED`.
 
+### Update note metadata
+
+```http
+PUT /api/v1/knowledge-nodes/{nodeId}/metadata
+```
+
+Requires authentication and ownership.
+
+```json
+{
+  "description": "Quick reference for Dictionary lookup.",
+  "sourceUrl": "https://learn.microsoft.com/"
+}
+```
+
+Description is limited to 500 characters. Source URL must be an absolute URL
+and is limited to 2,048 characters. Passing `null` for both fields clears the
+metadata. Returns `200 OK`; invalid metadata returns `400 VALIDATION_FAILED`.
+
 ### Move node
 
 ```http

@@ -374,6 +374,97 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task UpdateMetadata_AsOwner_ShouldNormalizeAndPersistMetadata()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Dictionary TryGetValue", null);
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest(
+                "  Quick reference for Dictionary lookup.  ",
+                "  https://learn.microsoft.com/  "));
+        var result = await response.Content.ReadFromJsonAsync<UpdateKnowledgeMetadataResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Description.Should().Be("Quick reference for Dictionary lookup.");
+        result.SourceUrl.Should().Be("https://learn.microsoft.com/");
+
+        using var scope = factory.Services.CreateScope();
+        var persisted = await scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>()
+            .KnowledgeNodes.AsNoTracking()
+            .SingleAsync(item => item.Id == node.Id);
+        persisted.Description.Should().Be(result.Description);
+        persisted.SourceUrl.Should().Be(result.SourceUrl);
+    }
+
+    [Fact]
+    public async Task UpdateMetadata_WithNullValues_ShouldClearMetadata()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Metadata note", null);
+        using var setResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest("Description", "https://example.com"));
+        setResponse.EnsureSuccessStatusCode();
+
+        using var clearResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest(null, null));
+        var result = await clearResponse.Content.ReadFromJsonAsync<UpdateKnowledgeMetadataResponse>();
+
+        clearResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Description.Should().BeNull();
+        result.SourceUrl.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateMetadata_WithInvalidUrl_ShouldReturnValidationProblem()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Invalid metadata", null);
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest("Something", "hello world"));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("VALIDATION_FAILED");
+        document.RootElement.GetProperty("errors").GetProperty("sourceUrl")
+            .GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateMetadata_ForAnotherUsersOrArchivedNode_ShouldRejectRequest()
+    {
+        var ownerSession = await CreateAuthenticatedClientAsync();
+        using var ownerClient = ownerSession.Client;
+        var node = await CreateNodeAsync(ownerClient, "Protected metadata", null);
+        var otherSession = await CreateAuthenticatedClientAsync();
+        using var otherClient = otherSession.Client;
+
+        using var crossUserResponse = await otherClient.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest("Unauthorized", "https://example.com"));
+        using var archiveResponse = await ownerClient.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            null);
+        archiveResponse.EnsureSuccessStatusCode();
+        using var archivedResponse = await ownerClient.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest("Archived", "https://example.com"));
+
+        crossUserResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        archivedResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
     public async Task KnowledgeWeekWorkflow_ShouldReturnExpectedFinalTree()
     {
         var session = await CreateAuthenticatedClientAsync();
