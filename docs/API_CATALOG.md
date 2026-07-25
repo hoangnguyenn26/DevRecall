@@ -164,6 +164,11 @@ An account with no active root nodes receives `200 OK` with:
 GET /api/v1/knowledge-nodes/{nodeId}
 ```
 
+Requires authentication and ownership. Returns title, content, metadata,
+status, and timestamps without exposing `userId`. Missing or cross-user nodes
+return `404 KNOWLEDGE_NODE_NOT_FOUND`. Owners can read archived nodes by known
+ID even though those nodes are excluded from the active tree.
+
 ### Create node
 
 ```http

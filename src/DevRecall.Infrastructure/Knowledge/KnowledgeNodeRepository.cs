@@ -17,6 +17,18 @@ internal sealed class KnowledgeNodeRepository(DevRecallDbContext dbContext)
             cancellationToken);
     }
 
+    public Task<KnowledgeNode?> GetByIdAndUserIdAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.KnowledgeNodes
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                node => node.Id == id && node.UserId == userId,
+                cancellationToken);
+    }
+
     public async Task<IReadOnlyList<KnowledgeNode>> GetActiveByUserIdAsync(
         Guid userId,
         CancellationToken cancellationToken)

@@ -8,6 +8,11 @@ public interface IKnowledgeNodeRepository
         Guid id,
         CancellationToken cancellationToken);
 
+    Task<KnowledgeNode?> GetByIdAndUserIdAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<KnowledgeNode>> GetActiveByUserIdAsync(
         Guid userId,
         CancellationToken cancellationToken);

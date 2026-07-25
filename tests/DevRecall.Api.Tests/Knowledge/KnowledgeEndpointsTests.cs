@@ -465,6 +465,72 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task GetDetail_AsOwner_ShouldReturnContentAndMetadataWithoutUserId()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "TryGetValue", null);
+        using var contentResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/content",
+            new UpdateKnowledgeContentRequest("Dictionary lookup example."));
+        using var metadataResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/metadata",
+            new UpdateKnowledgeMetadataRequest("Quick reference.", "https://learn.microsoft.com/"));
+        contentResponse.EnsureSuccessStatusCode();
+        metadataResponse.EnsureSuccessStatusCode();
+
+        using var response = await client.GetAsync($"/api/v1/knowledge-nodes/{node.Id}");
+        var json = await response.Content.ReadAsStringAsync();
+        var detail = JsonSerializer.Deserialize<KnowledgeNodeDetailResponse>(
+            json,
+            JsonSerializerOptions.Web);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        detail.Should().NotBeNull();
+        detail!.Title.Should().Be("TryGetValue");
+        detail.Content.Should().Be("Dictionary lookup example.");
+        detail.Description.Should().Be("Quick reference.");
+        detail.SourceUrl.Should().Be("https://learn.microsoft.com/");
+        detail.Status.Should().Be("Active");
+        json.Should().NotContain("userId");
+    }
+
+    [Fact]
+    public async Task GetDetail_AsAnotherUser_ShouldReturnNotFound()
+    {
+        var ownerSession = await CreateAuthenticatedClientAsync();
+        using var ownerClient = ownerSession.Client;
+        var node = await CreateNodeAsync(ownerClient, "Private note", null);
+        var otherSession = await CreateAuthenticatedClientAsync();
+        using var otherClient = otherSession.Client;
+
+        using var response = await otherClient.GetAsync($"/api/v1/knowledge-nodes/{node.Id}");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_NODE_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task GetDetail_ForArchivedNode_ShouldRemainReadableByOwner()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Archived detail", null);
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            null);
+        archiveResponse.EnsureSuccessStatusCode();
+
+        using var response = await client.GetAsync($"/api/v1/knowledge-nodes/{node.Id}");
+        var detail = await response.Content.ReadFromJsonAsync<KnowledgeNodeDetailResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        detail!.Status.Should().Be("Archived");
+    }
+
+    [Fact]
     public async Task KnowledgeWeekWorkflow_ShouldReturnExpectedFinalTree()
     {
         var session = await CreateAuthenticatedClientAsync();

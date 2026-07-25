@@ -146,6 +146,13 @@ public sealed class UpdateKnowledgeNodeHandlerTests
             return Task.FromResult(node?.Id == id ? node : null);
         }
 
+        public async Task<KnowledgeNode?> GetByIdAndUserIdAsync(
+            Guid id, Guid userId, CancellationToken cancellationToken)
+        {
+            var node = await GetByIdAsync(id, cancellationToken);
+            return node?.UserId == userId ? node : null;
+        }
+
         public Task<IReadOnlyList<KnowledgeNode>> GetActiveByUserIdAsync(
             Guid userId,
             CancellationToken cancellationToken)
