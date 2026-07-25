@@ -26,6 +26,11 @@ public interface IKnowledgeNodeRepository
         Guid? parentId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<KnowledgeNode>> GetActiveSiblingsAsync(
+        Guid userId,
+        Guid? parentId,
+        CancellationToken cancellationToken);
+
     void Add(KnowledgeNode node);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

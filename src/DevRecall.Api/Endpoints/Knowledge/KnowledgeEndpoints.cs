@@ -4,6 +4,7 @@ using DevRecall.Application.Knowledge.Create;
 using DevRecall.Application.Knowledge.GetDetail;
 using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Application.Knowledge.Move;
+using DevRecall.Application.Knowledge.Reorder;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
@@ -29,6 +30,7 @@ public static class KnowledgeEndpoints
         group.MapPut("/{id:guid}/parent", MoveAsync);
         group.MapPut("/{id:guid}/content", UpdateContentAsync);
         group.MapPut("/{id:guid}/metadata", UpdateMetadataAsync);
+        group.MapPut("/{id:guid}/order", ReorderAsync);
 
         return endpoints;
     }
@@ -79,6 +81,19 @@ public static class KnowledgeEndpoints
     {
         await handler.HandleAsync(
             new ArchiveKnowledgeNodeCommand(id),
+            cancellationToken);
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ReorderAsync(
+        Guid id,
+        ReorderKnowledgeNodeRequest request,
+        ReorderKnowledgeNodeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            new ReorderKnowledgeNodeCommand(id, request.TargetIndex),
             cancellationToken);
 
         return Results.NoContent();

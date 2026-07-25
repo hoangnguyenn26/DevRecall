@@ -80,6 +80,22 @@ internal sealed class KnowledgeNodeRepository(DevRecallDbContext dbContext)
         return maximum is null ? 0 : maximum.Value + 1;
     }
 
+    public async Task<IReadOnlyList<KnowledgeNode>> GetActiveSiblingsAsync(
+        Guid userId,
+        Guid? parentId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.KnowledgeNodes
+            .Where(node =>
+                node.UserId == userId
+                && node.ParentId == parentId
+                && node.Status == KnowledgeNodeStatus.Active)
+            .OrderBy(node => node.SortOrder)
+            .ThenBy(node => node.Title)
+            .ThenBy(node => node.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         return dbContext.SaveChangesAsync(cancellationToken);

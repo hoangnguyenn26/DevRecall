@@ -265,6 +265,23 @@ Request:
 
 Possible errors:
 
+### Reorder node within its current parent
+
+```http
+PUT /api/v1/knowledge-nodes/{nodeId}/order
+```
+
+```json
+{
+  "targetIndex": 0
+}
+```
+
+Reorders active siblings only within the node's existing parent and normalizes
+their positions to `0..n-1`. It never changes `parentId`. Returns `204 No
+Content`; an out-of-range zero-based index returns `400 VALIDATION_FAILED`,
+cross-user nodes return 404, and archived nodes return 409.
+
 - `KNOWLEDGE_NODE_NOT_FOUND`
 - `KNOWLEDGE_PARENT_NOT_FOUND`
 - `KNOWLEDGE_INVALID_PARENT`

@@ -95,6 +95,10 @@ public sealed class UpdateKnowledgeContentHandlerTests
             Guid userId, Guid? parentId, CancellationToken cancellationToken) =>
             Task.FromResult(0);
 
+        public Task<IReadOnlyList<KnowledgeNode>> GetActiveSiblingsAsync(
+            Guid userId, Guid? parentId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<KnowledgeNode>>([]);
+
         public void Add(KnowledgeNode knowledgeNode) => throw new NotSupportedException();
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)

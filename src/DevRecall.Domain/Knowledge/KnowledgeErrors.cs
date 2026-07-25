@@ -27,4 +27,8 @@ public static class KnowledgeErrors
     public static readonly DomainError ConcurrentUpdate = new(
         "KNOWLEDGE_CONCURRENT_UPDATE",
         "The knowledge node was modified by another operation.");
+
+    public static readonly DomainError InvalidOrder = new(
+        "KNOWLEDGE_INVALID_ORDER",
+        "The target knowledge node position is invalid.");
 }

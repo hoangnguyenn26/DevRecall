@@ -185,6 +185,101 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task ReorderChild_ShouldMoveLastToFirstThenFirstToLastAndNormalizeOrder()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var parent = await CreateNodeAsync(client, "Programming", null);
+        var csharp = await CreateNodeAsync(client, "C#", parent.Id);
+        var database = await CreateNodeAsync(client, "Database", parent.Id);
+        var architecture = await CreateNodeAsync(client, "Architecture", parent.Id);
+
+        using var firstResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{architecture.Id}/order",
+            new ReorderKnowledgeNodeRequest(0));
+        var firstTree = await GetTreeAsync(client);
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        firstTree[0].Children.Select(node => node.Title)
+            .Should().Equal("Architecture", "C#", "Database");
+        firstTree[0].Children.Select(node => node.SortOrder).Should().Equal(0, 1, 2);
+
+        using var secondResponse = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{architecture.Id}/order",
+            new ReorderKnowledgeNodeRequest(2));
+        var secondTree = await GetTreeAsync(client);
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        secondTree[0].Children.Select(node => node.Title)
+            .Should().Equal("C#", "Database", "Architecture");
+        secondTree[0].Children.Select(node => node.Id)
+            .Should().Equal(csharp.Id, database.Id, architecture.Id);
+    }
+
+    [Fact]
+    public async Task ReorderChild_ShouldNotAffectRootsOrAnotherParentsChildren()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var programming = await CreateNodeAsync(client, "Programming", null);
+        var interview = await CreateNodeAsync(client, "Interview", null);
+        await CreateNodeAsync(client, "C#", programming.Id);
+        var database = await CreateNodeAsync(client, "Database", programming.Id);
+        await CreateNodeAsync(client, "Behavioral", interview.Id);
+        await CreateNodeAsync(client, "System Design", interview.Id);
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{database.Id}/order",
+            new ReorderKnowledgeNodeRequest(0));
+        var tree = await GetTreeAsync(client);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        tree.Select(node => node.Title).Should().Equal("Programming", "Interview");
+        tree[0].Children.Select(node => node.Title).Should().Equal("Database", "C#");
+        tree[1].Children.Select(node => node.Title)
+            .Should().Equal("Behavioral", "System Design");
+    }
+
+    [Fact]
+    public async Task Reorder_WithInvalidTargetIndex_ShouldReturnValidationProblem()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Programming", null);
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/order",
+            new ReorderKnowledgeNodeRequest(1));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        document.RootElement.GetProperty("errors").GetProperty("targetIndex")
+            .GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Reorder_AnotherUsersOrArchivedNode_ShouldRejectRequest()
+    {
+        var ownerSession = await CreateAuthenticatedClientAsync();
+        using var ownerClient = ownerSession.Client;
+        var node = await CreateNodeAsync(ownerClient, "Protected order", null);
+        var otherSession = await CreateAuthenticatedClientAsync();
+        using var otherClient = otherSession.Client;
+
+        using var crossUserResponse = await otherClient.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/order",
+            new ReorderKnowledgeNodeRequest(0));
+        using var archiveResponse = await ownerClient.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            null);
+        archiveResponse.EnsureSuccessStatusCode();
+        using var archivedResponse = await ownerClient.PutAsJsonAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/order",
+            new ReorderKnowledgeNodeRequest(0));
+
+        crossUserResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        archivedResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
     public async Task GetTree_ShouldReturnOnlyAuthenticatedUsersNodes()
     {
         var firstSession = await CreateAuthenticatedClientAsync();
@@ -782,5 +877,14 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         using var response = await client.GetAsync($"/api/v1/knowledge-nodes/{id}");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<KnowledgeNodeDetailResponse>())!;
+    }
+
+    private static async Task<IReadOnlyList<KnowledgeTreeNodeResponse>> GetTreeAsync(
+        HttpClient client)
+    {
+        using var response = await client.GetAsync("/api/v1/knowledge-nodes/tree");
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>())!;
     }
 }
