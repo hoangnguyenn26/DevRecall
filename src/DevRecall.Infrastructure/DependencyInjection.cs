@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
         services.AddScoped<IKnowledgeNodeRepository, KnowledgeNodeRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
+        services.AddScoped<IKnowledgeNodeTagRepository, KnowledgeNodeTagRepository>();
 
         return services;
     }

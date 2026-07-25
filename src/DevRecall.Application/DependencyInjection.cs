@@ -8,8 +8,10 @@ using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Application.Knowledge.Move;
 using DevRecall.Application.Knowledge.Reorder;
 using DevRecall.Application.Knowledge.Tags.Archive;
+using DevRecall.Application.Knowledge.Tags.Assign;
 using DevRecall.Application.Knowledge.Tags.Create;
 using DevRecall.Application.Knowledge.Tags.GetList;
+using DevRecall.Application.Knowledge.Tags.Remove;
 using DevRecall.Application.Knowledge.Tags.Rename;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
@@ -39,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<GetTagsHandler>();
         services.AddScoped<RenameTagHandler>();
         services.AddScoped<ArchiveTagHandler>();
+        services.AddScoped<AssignTagToKnowledgeNodeHandler>();
+        services.AddScoped<RemoveTagFromKnowledgeNodeHandler>();
 
         return services;
     }

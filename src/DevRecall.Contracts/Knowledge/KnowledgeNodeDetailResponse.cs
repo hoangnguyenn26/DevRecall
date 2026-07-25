@@ -10,4 +10,5 @@ public sealed record KnowledgeNodeDetailResponse(
     string Status,
     int SortOrder,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    IReadOnlyList<KnowledgeNodeTagResponse> Tags);

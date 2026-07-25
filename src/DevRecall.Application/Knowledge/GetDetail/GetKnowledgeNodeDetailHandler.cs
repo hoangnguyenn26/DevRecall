@@ -1,11 +1,13 @@
 using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Identity;
+using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Domain.Knowledge;
 
 namespace DevRecall.Application.Knowledge.GetDetail;
 
 public sealed class GetKnowledgeNodeDetailHandler(
     IKnowledgeNodeRepository repository,
+    IKnowledgeNodeTagRepository tagRepository,
     ICurrentUser currentUser)
 {
     public async Task<GetKnowledgeNodeDetailResult> HandleAsync(
@@ -22,6 +24,10 @@ public sealed class GetKnowledgeNodeDetailHandler(
                 KnowledgeErrors.NodeNotFound.Message);
         }
 
+        var tags = await tagRepository.GetTagsByKnowledgeNodeIdAsync(
+            node.Id,
+            cancellationToken);
+
         return new GetKnowledgeNodeDetailResult(
             node.Id,
             node.ParentId,
@@ -32,7 +38,8 @@ public sealed class GetKnowledgeNodeDetailHandler(
             node.Status.ToString(),
             node.SortOrder,
             node.CreatedAtUtc,
-            node.UpdatedAtUtc);
+            node.UpdatedAtUtc,
+            tags);
     }
 
     private Guid GetCurrentUserId()

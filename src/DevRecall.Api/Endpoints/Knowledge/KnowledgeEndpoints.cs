@@ -5,6 +5,8 @@ using DevRecall.Application.Knowledge.GetDetail;
 using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Application.Knowledge.Move;
 using DevRecall.Application.Knowledge.Reorder;
+using DevRecall.Application.Knowledge.Tags.Assign;
+using DevRecall.Application.Knowledge.Tags.Remove;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
@@ -31,6 +33,8 @@ public static class KnowledgeEndpoints
         group.MapPut("/{id:guid}/content", UpdateContentAsync);
         group.MapPut("/{id:guid}/metadata", UpdateMetadataAsync);
         group.MapPut("/{id:guid}/order", ReorderAsync);
+        group.MapPut("/{nodeId:guid}/tags/{tagId:guid}", AssignTagAsync);
+        group.MapDelete("/{nodeId:guid}/tags/{tagId:guid}", RemoveTagAsync);
 
         return endpoints;
     }
@@ -54,7 +58,36 @@ public static class KnowledgeEndpoints
             result.Status,
             result.SortOrder,
             result.CreatedAtUtc,
-            result.UpdatedAtUtc));
+            result.UpdatedAtUtc,
+            result.Tags.Select(tag =>
+                new KnowledgeNodeTagResponse(tag.Id, tag.Name))
+                .ToList()));
+    }
+
+    private static async Task<IResult> AssignTagAsync(
+        Guid nodeId,
+        Guid tagId,
+        AssignTagToKnowledgeNodeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            new AssignTagToKnowledgeNodeCommand(nodeId, tagId),
+            cancellationToken);
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> RemoveTagAsync(
+        Guid nodeId,
+        Guid tagId,
+        RemoveTagFromKnowledgeNodeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            new RemoveTagFromKnowledgeNodeCommand(nodeId, tagId),
+            cancellationToken);
+
+        return Results.NoContent();
     }
 
     private static async Task<IResult> UpdateAsync(
