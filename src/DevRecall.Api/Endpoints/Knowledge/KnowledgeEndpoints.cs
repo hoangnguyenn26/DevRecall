@@ -1,6 +1,7 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Knowledge.Archive;
 using DevRecall.Application.Knowledge.Create;
+using DevRecall.Application.Knowledge.GetByTags;
 using DevRecall.Application.Knowledge.GetDetail;
 using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Application.Knowledge.Move;
@@ -26,6 +27,7 @@ public static class KnowledgeEndpoints
 
         group.MapPost("", CreateAsync);
         group.MapGet("/tree", GetTreeAsync);
+        group.MapGet("/by-tags", GetByTagsAsync);
         group.MapGet("/{id:guid}", GetDetailAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
         group.MapPost("/{id:guid}/archive", ArchiveAsync);
@@ -62,6 +64,27 @@ public static class KnowledgeEndpoints
             result.Tags.Select(tag =>
                 new KnowledgeNodeTagResponse(tag.Id, tag.Name))
                 .ToList()));
+    }
+
+    private static async Task<IResult> GetByTagsAsync(
+        [AsParameters] GetKnowledgeByTagsRequest request,
+        GetKnowledgeByTagsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new GetKnowledgeByTagsQuery(request.TagIds ?? []),
+            cancellationToken);
+
+        return Results.Ok(result.Select(node =>
+            new KnowledgeNodeListItemResponse(
+                node.Id,
+                node.ParentId,
+                node.Title,
+                node.Description,
+                node.SortOrder,
+                node.Tags.Select(tag =>
+                    new KnowledgeNodeTagResponse(tag.Id, tag.Name))
+                    .ToList())));
     }
 
     private static async Task<IResult> AssignTagAsync(

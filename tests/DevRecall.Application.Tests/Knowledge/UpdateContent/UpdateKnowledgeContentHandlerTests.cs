@@ -100,6 +100,11 @@ public sealed class UpdateKnowledgeContentHandlerTests
             Guid userId, Guid? parentId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<KnowledgeNode>>([]);
 
+        public Task<IReadOnlyList<KnowledgeNodeWithTagsItem>> GetActiveByTagIdsAsync(
+            Guid userId, IReadOnlyCollection<Guid> tagIds,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<KnowledgeNodeWithTagsItem>>([]);
+
         public void Add(KnowledgeNode knowledgeNode) => throw new NotSupportedException();
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)

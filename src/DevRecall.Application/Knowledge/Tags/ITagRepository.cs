@@ -13,6 +13,11 @@ public interface ITagRepository
         Guid userId,
         CancellationToken cancellationToken);
 
+    Task<int> CountActiveByIdsAsync(
+        Guid userId,
+        IReadOnlyCollection<Guid> tagIds,
+        CancellationToken cancellationToken);
+
     void Add(Tag tag);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

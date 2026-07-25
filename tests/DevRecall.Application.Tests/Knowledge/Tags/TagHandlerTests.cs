@@ -146,6 +146,14 @@ public sealed class TagHandlerTests
                     && tag.Status == TagStatus.Active)
                     .ToList());
 
+        public Task<int> CountActiveByIdsAsync(
+            Guid userId,
+            IReadOnlyCollection<Guid> tagIds,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(tags.Count(tag => tag.UserId == userId
+                && tag.Status == TagStatus.Active
+                && tagIds.Contains(tag.Id)));
+
         public void Add(Tag tag) => AddedTag = tag;
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)

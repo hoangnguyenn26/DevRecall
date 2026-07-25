@@ -31,6 +31,11 @@ public interface IKnowledgeNodeRepository
         Guid? parentId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<KnowledgeNodeWithTagsItem>> GetActiveByTagIdsAsync(
+        Guid userId,
+        IReadOnlyCollection<Guid> tagIds,
+        CancellationToken cancellationToken);
+
     void Add(KnowledgeNode node);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

@@ -36,6 +36,16 @@ internal sealed class TagRepository(DevRecallDbContext dbContext)
             .ToListAsync(cancellationToken);
     }
 
+    public Task<int> CountActiveByIdsAsync(
+        Guid userId,
+        IReadOnlyCollection<Guid> tagIds,
+        CancellationToken cancellationToken) =>
+        dbContext.Tags.CountAsync(
+            tag => tag.UserId == userId
+                && tag.Status == TagStatus.Active
+                && tagIds.Contains(tag.Id),
+            cancellationToken);
+
     public void Add(Tag tag) => dbContext.Tags.Add(tag);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
