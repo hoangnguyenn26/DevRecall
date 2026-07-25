@@ -1,6 +1,7 @@
 using DevRecall.Domain.Common;
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Knowledge;
+using DevRecall.Domain.Knowledge.Tags;
 using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Infrastructure.Persistence;
@@ -17,6 +18,12 @@ public sealed class DevRecallDbContext(
 
     public DbSet<KnowledgeNode> KnowledgeNodes =>
         Set<KnowledgeNode>();
+
+    public DbSet<Tag> Tags =>
+        Set<Tag>();
+
+    public DbSet<KnowledgeNodeTag> KnowledgeNodeTags =>
+        Set<KnowledgeNodeTag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
