@@ -105,10 +105,17 @@ public sealed class KnowledgePositionEndpointsTests(AuthApiFactory factory)
             client, root.Id, grandchild.Id, 0);
         using var document = JsonDocument.Parse(
             await response.Content.ReadAsStringAsync());
+        var tree = await GetTreeAsync(client);
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         document.RootElement.GetProperty("errorCode").GetString()
             .Should().Be("KNOWLEDGE_CIRCULAR_HIERARCHY");
+        tree.Should().ContainSingle();
+        tree[0].Title.Should().Be("A");
+        tree[0].Children.Should().ContainSingle();
+        tree[0].Children[0].Title.Should().Be("B");
+        tree[0].Children[0].Children.Should().ContainSingle();
+        tree[0].Children[0].Children[0].Title.Should().Be("C");
     }
 
     [Fact]
@@ -124,6 +131,85 @@ public sealed class KnowledgePositionEndpointsTests(AuthApiFactory factory)
             client, node.Id, target.Id, 2);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ChangePosition_RootToChild_ShouldPreserveMovedSubtree()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var rootA = await CreateNodeAsync(client, "Root A");
+        var a1 = await CreateNodeAsync(client, "A1", rootA.Id);
+        await CreateNodeAsync(client, "A1.1", a1.Id);
+        var rootB = await CreateNodeAsync(client, "Root B");
+        await CreateNodeAsync(client, "B1", rootB.Id);
+        await CreateNodeAsync(client, "B2", rootB.Id);
+
+        using var response = await ChangePositionAsync(
+            client, rootB.Id, a1.Id, 1);
+        var tree = await GetTreeAsync(client);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        tree.Should().ContainSingle(node => node.Id == rootA.Id);
+        var movedRoot = tree[0].Children[0].Children[1];
+        movedRoot.Id.Should().Be(rootB.Id);
+        movedRoot.Children.Select(node => node.Title).Should().Equal("B1", "B2");
+    }
+
+    [Fact]
+    public async Task ChangePosition_WithCrossUserParent_ShouldReturnNotFound()
+    {
+        using var firstClient = await CreateAuthenticatedClientAsync();
+        var foreignParent = await CreateNodeAsync(firstClient, "Foreign Parent");
+        using var secondClient = await CreateAuthenticatedClientAsync();
+        var node = await CreateNodeAsync(secondClient, "Owned Node");
+
+        using var response = await ChangePositionAsync(
+            secondClient, node.Id, foreignParent.Id, 0);
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_PARENT_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task ChangePosition_WithArchivedNode_ShouldReturnConflict()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var node = await CreateNodeAsync(client, "Archived Node");
+        await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            content: null);
+
+        using var response = await ChangePositionAsync(
+            client, node.Id, targetParentId: null, targetIndex: 0);
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_NODE_ARCHIVED");
+    }
+
+    [Fact]
+    public async Task ChangePosition_WithArchivedParent_ShouldReturnConflict()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var parent = await CreateNodeAsync(client, "Archived Parent");
+        var node = await CreateNodeAsync(client, "Node");
+        await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{parent.Id}/archive",
+            content: null);
+
+        using var response = await ChangePositionAsync(
+            client, node.Id, parent.Id, 0);
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_INVALID_PARENT");
     }
 
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
