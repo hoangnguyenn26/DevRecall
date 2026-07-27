@@ -1,6 +1,7 @@
 using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
+using DevRecall.Application.Interview.Archive;
 using DevRecall.Application.Interview.Create;
 using DevRecall.Application.Interview.GetDetail;
 using DevRecall.Application.Interview.GetList;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<LoginUserHandler>();
         services.AddScoped<GetCurrentUserHandler>();
         services.AddScoped<CreateInterviewQuestionHandler>();
+        services.AddScoped<ArchiveInterviewQuestionHandler>();
         services.AddScoped<GetInterviewQuestionsHandler>();
         services.AddScoped<GetInterviewQuestionDetailHandler>();
         services.AddScoped<UpdateInterviewQuestionHandler>();

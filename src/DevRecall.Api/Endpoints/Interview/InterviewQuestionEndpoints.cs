@@ -1,4 +1,5 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.Interview.Archive;
 using DevRecall.Application.Interview.Create;
 using DevRecall.Application.Interview.GetDetail;
 using DevRecall.Application.Interview.GetList;
@@ -22,7 +23,20 @@ public static class InterviewQuestionEndpoints
         group.MapGet("", GetListAsync);
         group.MapGet("/{id:guid}", GetDetailAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
+        group.MapPost("/{id:guid}/archive", ArchiveAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> ArchiveAsync(
+        Guid id,
+        ArchiveInterviewQuestionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            new ArchiveInterviewQuestionCommand(id),
+            cancellationToken);
+
+        return Results.NoContent();
     }
 
     private static async Task<IResult> UpdateAsync(

@@ -284,6 +284,82 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task QuestionLifecycle_ShouldArchiveAndPreserveReadableDetail()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var created = await CreateQuestionAsync(
+            client, "LINQ question", "LINQ", "Medium");
+        using var initialListResponse = await client.GetAsync(
+            "/api/v1/interview-questions");
+        var initialList = await initialListResponse.Content.ReadFromJsonAsync<
+            PagedResponse<InterviewQuestionListItemResponse>>();
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{created.Id}",
+            new UpdateInterviewQuestionRequest(
+                "Updated LINQ question", "Updated question text",
+                ".NET LINQ", "Hard", "Updated notes."));
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/interview-questions/{created.Id}/archive",
+            content: null);
+        var archivedDetail = await GetDetailAsync(client, created.Id);
+        using var activeListResponse = await client.GetAsync(
+            "/api/v1/interview-questions");
+        var activeList = await activeListResponse.Content.ReadFromJsonAsync<
+            PagedResponse<InterviewQuestionListItemResponse>>();
+        using var archivedUpdateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{created.Id}",
+            new UpdateInterviewQuestionRequest(
+                "Forbidden", "Forbidden", "LINQ", "Easy", null));
+        using var secondArchiveResponse = await client.PostAsync(
+            $"/api/v1/interview-questions/{created.Id}/archive",
+            content: null);
+        var secondArchivedDetail = await GetDetailAsync(client, created.Id);
+
+        initialList!.Items.Should().Contain(item => item.Id == created.Id);
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        archiveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        archivedDetail.Status.Should().Be("Archived");
+        archivedDetail.Difficulty.Should().Be("Hard");
+        activeList!.Items.Should().NotContain(item => item.Id == created.Id);
+        archivedUpdateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        secondArchiveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        secondArchivedDetail.UpdatedAtUtc.Should().Be(
+            archivedDetail.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public async Task Archive_ForAnotherUsersQuestion_ShouldReturnNotFound()
+    {
+        var firstSession = await CreateAuthenticatedClientAsync();
+        using var firstClient = firstSession.Client;
+        var question = await CreateQuestionAsync(
+            firstClient, "Owned question", "LINQ", "Medium");
+        var secondSession = await CreateAuthenticatedClientAsync();
+        using var secondClient = secondSession.Client;
+
+        using var response = await secondClient.PostAsync(
+            $"/api/v1/interview-questions/{question.Id}/archive",
+            content: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Archive_MissingQuestion_ShouldReturnNotFound()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+
+        using var response = await client.PostAsync(
+            $"/api/v1/interview-questions/{Guid.NewGuid()}/archive",
+            content: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private async Task<(HttpClient Client, RegisterResponse User)>
         CreateAuthenticatedClientAsync()
     {
@@ -337,5 +413,16 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
         response.EnsureSuccessStatusCode();
         return (await response.Content
             .ReadFromJsonAsync<CreateInterviewQuestionResponse>())!;
+    }
+
+    private static async Task<InterviewQuestionDetailResponse> GetDetailAsync(
+        HttpClient client,
+        Guid id)
+    {
+        using var response = await client.GetAsync(
+            $"/api/v1/interview-questions/{id}");
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<InterviewQuestionDetailResponse>())!;
     }
 }
