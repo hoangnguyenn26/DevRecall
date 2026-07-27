@@ -2,6 +2,7 @@ using DevRecall.Api.Authorization;
 using DevRecall.Application.Interview.Create;
 using DevRecall.Application.Interview.GetDetail;
 using DevRecall.Application.Interview.GetList;
+using DevRecall.Application.Interview.Update;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Interview;
 
@@ -20,7 +21,26 @@ public static class InterviewQuestionEndpoints
         group.MapPost("", CreateAsync);
         group.MapGet("", GetListAsync);
         group.MapGet("/{id:guid}", GetDetailAsync);
+        group.MapPut("/{id:guid}", UpdateAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> UpdateAsync(
+        Guid id,
+        UpdateInterviewQuestionRequest request,
+        UpdateInterviewQuestionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new UpdateInterviewQuestionCommand(
+                id, request.Title, request.Question, request.Topic,
+                request.Difficulty, request.Notes),
+            cancellationToken);
+
+        return Results.Ok(new UpdateInterviewQuestionResponse(
+            result.Id, result.Title, result.Question, result.Topic,
+            result.Difficulty, result.Notes, result.Status,
+            result.CreatedAtUtc, result.UpdatedAtUtc));
     }
 
     private static async Task<IResult> GetListAsync(

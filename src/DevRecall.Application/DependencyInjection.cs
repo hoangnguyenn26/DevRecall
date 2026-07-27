@@ -4,6 +4,7 @@ using DevRecall.Application.Identity.Register;
 using DevRecall.Application.Interview.Create;
 using DevRecall.Application.Interview.GetDetail;
 using DevRecall.Application.Interview.GetList;
+using DevRecall.Application.Interview.Update;
 using DevRecall.Application.Knowledge.Archive;
 using DevRecall.Application.Knowledge.ChangePosition;
 using DevRecall.Application.Knowledge.Create;
@@ -36,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<CreateInterviewQuestionHandler>();
         services.AddScoped<GetInterviewQuestionsHandler>();
         services.AddScoped<GetInterviewQuestionDetailHandler>();
+        services.AddScoped<UpdateInterviewQuestionHandler>();
         services.AddScoped<CreateKnowledgeNodeHandler>();
         services.AddScoped<GetKnowledgeNodeDetailHandler>();
         services.AddScoped<GetKnowledgeByTagsHandler>();

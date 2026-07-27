@@ -208,6 +208,82 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task Update_AsOwner_ShouldPersistChangesInDetail()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var created = await CreateQuestionAsync(
+            client, "IEnumerable vs IQueryable", "LINQ", "Medium");
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{created.Id}",
+            new UpdateInterviewQuestionRequest(
+                "IEnumerable and IQueryable",
+                "Compare IEnumerable and IQueryable in .NET.",
+                ".NET LINQ",
+                "hard",
+                "Explain expression trees."));
+        var updated = await updateResponse.Content
+            .ReadFromJsonAsync<UpdateInterviewQuestionResponse>();
+        using var detailResponse = await client.GetAsync(
+            $"/api/v1/interview-questions/{created.Id}");
+        var detail = await detailResponse.Content
+            .ReadFromJsonAsync<InterviewQuestionDetailResponse>();
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        updated!.UpdatedAtUtc.Should().BeAfter(created.UpdatedAtUtc);
+        detail!.Title.Should().Be("IEnumerable and IQueryable");
+        detail.Topic.Should().Be(".NET LINQ");
+        detail.Difficulty.Should().Be("Hard");
+        detail.Notes.Should().Be("Explain expression trees.");
+    }
+
+    [Fact]
+    public async Task Update_WithEquivalentValues_ShouldPreserveTimestamp()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var created = await CreateQuestionAsync(
+            client, "IEnumerable vs IQueryable", "LINQ", "Medium");
+        using var originalDetailResponse = await client.GetAsync(
+            $"/api/v1/interview-questions/{created.Id}");
+        var originalDetail = await originalDetailResponse.Content
+            .ReadFromJsonAsync<InterviewQuestionDetailResponse>();
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{created.Id}",
+            new UpdateInterviewQuestionRequest(
+                "  IEnumerable   vs IQueryable ",
+                " What is IEnumerable vs IQueryable? ",
+                " LINQ ",
+                "medium",
+                " Interview notes. "));
+        var updated = await response.Content
+            .ReadFromJsonAsync<UpdateInterviewQuestionResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        updated!.UpdatedAtUtc.Should().Be(originalDetail!.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public async Task Update_ForAnotherUsersQuestion_ShouldReturnNotFound()
+    {
+        var firstSession = await CreateAuthenticatedClientAsync();
+        using var firstClient = firstSession.Client;
+        var question = await CreateQuestionAsync(
+            firstClient, "Owned question", "LINQ", "Medium");
+        var secondSession = await CreateAuthenticatedClientAsync();
+        using var secondClient = secondSession.Client;
+
+        using var response = await secondClient.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{question.Id}",
+            new UpdateInterviewQuestionRequest(
+                "Changed", "Changed question", "Changed", "Hard", null));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private async Task<(HttpClient Client, RegisterResponse User)>
         CreateAuthenticatedClientAsync()
     {
