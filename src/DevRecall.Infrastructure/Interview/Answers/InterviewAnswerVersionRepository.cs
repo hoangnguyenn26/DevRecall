@@ -51,6 +51,17 @@ internal sealed class InterviewAnswerVersionRepository(
             : maximumVersionNumber.Value + 1;
     }
 
+    public Task<InterviewAnswerVersion?> GetCurrentPublishedAsync(
+        Guid interviewQuestionId,
+        CancellationToken cancellationToken) =>
+        dbContext.InterviewAnswerVersions
+            .AsNoTracking()
+            .Where(answer =>
+                answer.InterviewQuestionId == interviewQuestionId
+                && answer.Status == InterviewAnswerVersionStatus.Published)
+            .OrderByDescending(answer => answer.VersionNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public void Add(InterviewAnswerVersion answerVersion) =>
         dbContext.InterviewAnswerVersions.Add(answerVersion);
 

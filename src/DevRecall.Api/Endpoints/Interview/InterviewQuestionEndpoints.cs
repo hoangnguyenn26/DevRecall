@@ -1,5 +1,6 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Interview.Answers.CreateDraft;
+using DevRecall.Application.Interview.Answers.Publish;
 using DevRecall.Application.Interview.Answers.UpdateDraft;
 using DevRecall.Application.Interview.Archive;
 using DevRecall.Application.Interview.Create;
@@ -33,7 +34,26 @@ public static class InterviewQuestionEndpoints
         group.MapPut(
             "/{questionId:guid}/answer-versions/{versionId:guid}",
             UpdateAnswerDraftAsync);
+        group.MapPost(
+            "/{questionId:guid}/answer-versions/{versionId:guid}/publish",
+            PublishAnswerVersionAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> PublishAnswerVersionAsync(
+        Guid questionId,
+        Guid versionId,
+        PublishInterviewAnswerVersionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new PublishInterviewAnswerVersionCommand(questionId, versionId),
+            cancellationToken);
+
+        return Results.Ok(MapAnswerResponse(
+            result.Id, result.InterviewQuestionId, result.VersionNumber,
+            result.Content, result.Status, result.CreatedAtUtc,
+            result.UpdatedAtUtc, result.PublishedAtUtc));
     }
 
     private static async Task<IResult> CreateAnswerDraftAsync(

@@ -2,11 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DevRecall.Api.Tests.Infrastructure;
+using DevRecall.Application.Interview.Answers;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Interview;
 using DevRecall.Contracts.Interview.Answers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Api.Tests.Interview;
 
@@ -138,6 +140,99 @@ public sealed class InterviewAnswerVersionEndpointsTests(AuthApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task PublishWorkflow_ShouldKeepHistoryAndSelectNewestPublished()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var question = await CreateQuestionAsync(client);
+        var first = await CreateDraftAsync(client, question.Id);
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{question.Id}/answer-versions/{first.Id}",
+            new UpdateInterviewAnswerDraftRequest("Stable v1."));
+        updateResponse.EnsureSuccessStatusCode();
+
+        var publishedFirst = await PublishAsync(client, question.Id, first.Id);
+        using var immutableResponse = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{question.Id}/answer-versions/{first.Id}",
+            new UpdateInterviewAnswerDraftRequest("Forbidden."));
+        var repeatedPublish = await PublishAsync(client, question.Id, first.Id);
+        var second = await CreateDraftAsync(client, question.Id);
+        var publishedSecond = await PublishAsync(
+            client, question.Id, second.Id);
+
+        publishedFirst.Status.Should().Be("Published");
+        publishedFirst.PublishedAtUtc.Should().NotBeNull();
+        await AssertErrorAsync(
+            immutableResponse, HttpStatusCode.Conflict,
+            "INTERVIEW_ANSWER_VERSION_PUBLISHED");
+        repeatedPublish.PublishedAtUtc.Should().Be(
+            TruncateToMicroseconds(publishedFirst.PublishedAtUtc!.Value));
+        repeatedPublish.UpdatedAtUtc.Should().Be(
+            TruncateToMicroseconds(publishedFirst.UpdatedAtUtc));
+        second.VersionNumber.Should().Be(2);
+        publishedSecond.Status.Should().Be("Published");
+
+        using var scope = factory.Services.CreateScope();
+        var repository = scope.ServiceProvider
+            .GetRequiredService<IInterviewAnswerVersionRepository>();
+        var current = await repository.GetCurrentPublishedAsync(
+            question.Id, CancellationToken.None);
+        current!.Id.Should().Be(second.Id);
+        current.VersionNumber.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Publish_ForArchivedQuestion_ShouldReturnConflict()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var question = await CreateQuestionAsync(client);
+        var answer = await CreateDraftAsync(client, question.Id);
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/interview-questions/{question.Id}/archive", null);
+        archiveResponse.EnsureSuccessStatusCode();
+
+        using var response = await client.PostAsync(
+            $"/api/v1/interview-questions/{question.Id}/answer-versions/{answer.Id}/publish",
+            null);
+
+        await AssertErrorAsync(
+            response, HttpStatusCode.Conflict, "INTERVIEW_QUESTION_ARCHIVED");
+    }
+
+    [Fact]
+    public async Task Publish_WithWrongQuestionVersion_ShouldReturnNotFound()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var firstQuestion = await CreateQuestionAsync(client, "First");
+        var secondQuestion = await CreateQuestionAsync(client, "Second");
+        var answer = await CreateDraftAsync(client, secondQuestion.Id);
+
+        using var response = await client.PostAsync(
+            $"/api/v1/interview-questions/{firstQuestion.Id}/answer-versions/{answer.Id}/publish",
+            null);
+
+        await AssertErrorAsync(
+            response, HttpStatusCode.NotFound,
+            "INTERVIEW_ANSWER_VERSION_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task Publish_CrossUser_ShouldReturnQuestionNotFound()
+    {
+        using var owner = await CreateAuthenticatedClientAsync();
+        var question = await CreateQuestionAsync(owner);
+        var answer = await CreateDraftAsync(owner, question.Id);
+        using var otherUser = await CreateAuthenticatedClientAsync();
+
+        using var response = await otherUser.PostAsync(
+            $"/api/v1/interview-questions/{question.Id}/answer-versions/{answer.Id}/publish",
+            null);
+
+        await AssertErrorAsync(
+            response, HttpStatusCode.NotFound,
+            "INTERVIEW_QUESTION_NOT_FOUND");
+    }
+
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
     {
         var client = CreateClient();
@@ -180,6 +275,19 @@ public sealed class InterviewAnswerVersionEndpointsTests(AuthApiFactory factory)
         using var response = await client.PostAsJsonAsync(
             $"/api/v1/interview-questions/{questionId}/answer-versions",
             new CreateInterviewAnswerDraftRequest("Draft answer."));
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<InterviewAnswerVersionResponse>())!;
+    }
+
+    private static async Task<InterviewAnswerVersionResponse> PublishAsync(
+        HttpClient client,
+        Guid questionId,
+        Guid versionId)
+    {
+        using var response = await client.PostAsync(
+            $"/api/v1/interview-questions/{questionId}/answer-versions/{versionId}/publish",
+            null);
         response.EnsureSuccessStatusCode();
         return (await response.Content
             .ReadFromJsonAsync<InterviewAnswerVersionResponse>())!;

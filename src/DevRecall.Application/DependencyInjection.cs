@@ -2,6 +2,7 @@ using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
 using DevRecall.Application.Interview.Answers.CreateDraft;
+using DevRecall.Application.Interview.Answers.Publish;
 using DevRecall.Application.Interview.Answers.UpdateDraft;
 using DevRecall.Application.Interview.Archive;
 using DevRecall.Application.Interview.Create;
@@ -39,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<GetCurrentUserHandler>();
         services.AddScoped<CreateInterviewQuestionHandler>();
         services.AddScoped<CreateInterviewAnswerDraftHandler>();
+        services.AddScoped<PublishInterviewAnswerVersionHandler>();
         services.AddScoped<UpdateInterviewAnswerDraftHandler>();
         services.AddScoped<ArchiveInterviewQuestionHandler>();
         services.AddScoped<GetInterviewQuestionsHandler>();

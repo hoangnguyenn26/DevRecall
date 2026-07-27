@@ -21,6 +21,10 @@ public interface IInterviewAnswerVersionRepository
         Guid interviewQuestionId,
         CancellationToken cancellationToken);
 
+    Task<InterviewAnswerVersion?> GetCurrentPublishedAsync(
+        Guid interviewQuestionId,
+        CancellationToken cancellationToken);
+
     void Add(InterviewAnswerVersion answerVersion);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
