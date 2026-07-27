@@ -1,5 +1,6 @@
 using DevRecall.Domain.Common;
 using DevRecall.Domain.Identity;
+using DevRecall.Domain.Interview;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,9 @@ public sealed class DevRecallDbContext(
 
     public DbSet<User> Users =>
         Set<User>();
+
+    public DbSet<InterviewQuestion> InterviewQuestions =>
+        Set<InterviewQuestion>();
 
     public DbSet<KnowledgeNode> KnowledgeNodes =>
         Set<KnowledgeNode>();
