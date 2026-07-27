@@ -6,6 +6,7 @@ using DevRecall.Application.Interview.Answers;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Interview;
 using DevRecall.Contracts.Interview.Answers;
+using DevRecall.Contracts.Interview.FollowUps;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -233,6 +234,60 @@ public sealed class InterviewAnswerVersionEndpointsTests(AuthApiFactory factory)
             "INTERVIEW_QUESTION_NOT_FOUND");
     }
 
+    [Fact]
+    public async Task Detail_WithoutChildren_ShouldReturnNullAndEmptyValues()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var question = await CreateQuestionAsync(client);
+
+        using var response = await client.GetAsync(
+            $"/api/v1/interview-questions/{question.Id}");
+        var detail = await response.Content
+            .ReadFromJsonAsync<InterviewQuestionDetailResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        detail!.CurrentPublishedAnswer.Should().BeNull();
+        detail.LatestDraft.Should().BeNull();
+        detail.AnswerHistory.Should().BeEmpty();
+        detail.FollowUps.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CompleteDetail_ShouldSelectAnswersAndActiveFollowUps()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var question = await CreateQuestionAsync(client);
+        var first = await CreateDraftAsync(client, question.Id);
+        await PublishAsync(client, question.Id, first.Id);
+        var second = await CreateDraftAsync(client, question.Id);
+        await PublishAsync(client, question.Id, second.Id);
+        var third = await CreateDraftAsync(client, question.Id);
+        var firstFollowUp = await CreateFollowUpAsync(
+            client, question.Id, "First follow-up");
+        var secondFollowUp = await CreateFollowUpAsync(
+            client, question.Id, "Second follow-up");
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/interview-questions/{question.Id}/follow-ups/{firstFollowUp.Id}/archive",
+            null);
+        archiveResponse.EnsureSuccessStatusCode();
+
+        using var response = await client.GetAsync(
+            $"/api/v1/interview-questions/{question.Id}");
+        var detail = await response.Content
+            .ReadFromJsonAsync<InterviewQuestionDetailResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        detail!.CurrentPublishedAnswer!.VersionNumber.Should().Be(2);
+        detail.CurrentPublishedAnswer.Content.Should().Be("Draft answer.");
+        detail.LatestDraft!.Id.Should().Be(third.Id);
+        detail.LatestDraft.VersionNumber.Should().Be(3);
+        detail.AnswerHistory.Select(item => (item.VersionNumber, item.Status))
+            .Should().Equal((3, "Draft"), (2, "Published"), (1, "Published"));
+        detail.FollowUps.Should().ContainSingle();
+        detail.FollowUps[0].Id.Should().Be(secondFollowUp.Id);
+        detail.FollowUps[0].SortOrder.Should().Be(0);
+    }
+
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
     {
         var client = CreateClient();
@@ -291,6 +346,19 @@ public sealed class InterviewAnswerVersionEndpointsTests(AuthApiFactory factory)
         response.EnsureSuccessStatusCode();
         return (await response.Content
             .ReadFromJsonAsync<InterviewAnswerVersionResponse>())!;
+    }
+
+    private static async Task<InterviewFollowUpResponse> CreateFollowUpAsync(
+        HttpClient client,
+        Guid questionId,
+        string prompt)
+    {
+        using var response = await client.PostAsJsonAsync(
+            $"/api/v1/interview-questions/{questionId}/follow-ups",
+            new CreateInterviewFollowUpRequest(prompt));
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<InterviewFollowUpResponse>())!;
     }
 
     private static async Task AssertErrorAsync(

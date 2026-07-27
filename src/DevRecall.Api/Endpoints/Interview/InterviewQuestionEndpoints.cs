@@ -225,7 +225,20 @@ public static class InterviewQuestionEndpoints
         return Results.Ok(new InterviewQuestionDetailResponse(
             result.Id, result.Title, result.Question, result.Topic,
             result.Difficulty, result.Notes, result.Status,
-            result.CreatedAtUtc, result.UpdatedAtUtc));
+            result.CreatedAtUtc, result.UpdatedAtUtc,
+            MapAnswerSummary(result.CurrentPublishedAnswer),
+            MapAnswerSummary(result.LatestDraft),
+            result.AnswerHistory.Select(answer =>
+                new InterviewAnswerHistoryItemResponse(
+                    answer.Id, answer.VersionNumber, answer.Status,
+                    answer.CreatedAtUtc, answer.UpdatedAtUtc,
+                    answer.PublishedAtUtc))
+                .ToList(),
+            result.FollowUps.Select(followUp =>
+                new InterviewFollowUpItemResponse(
+                    followUp.Id, followUp.Prompt, followUp.SortOrder,
+                    followUp.CreatedAtUtc, followUp.UpdatedAtUtc))
+                .ToList()));
     }
 
     private static async Task<IResult> CreateAsync(
@@ -266,4 +279,13 @@ public static class InterviewQuestionEndpoints
             followUp.Id, followUp.InterviewQuestionId, followUp.Prompt,
             followUp.SortOrder, followUp.Status, followUp.CreatedAtUtc,
             followUp.UpdatedAtUtc);
+
+    private static InterviewAnswerSummaryResponse? MapAnswerSummary(
+        InterviewAnswerDetailItem? answer) =>
+        answer is null
+            ? null
+            : new InterviewAnswerSummaryResponse(
+                answer.Id, answer.VersionNumber, answer.Content, answer.Status,
+                answer.CreatedAtUtc, answer.UpdatedAtUtc,
+                answer.PublishedAtUtc);
 }

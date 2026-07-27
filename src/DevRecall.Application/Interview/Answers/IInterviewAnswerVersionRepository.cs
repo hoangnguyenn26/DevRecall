@@ -25,6 +25,10 @@ public interface IInterviewAnswerVersionRepository
         Guid interviewQuestionId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<InterviewAnswerVersion>> GetByQuestionIdAsync(
+        Guid interviewQuestionId,
+        CancellationToken cancellationToken);
+
     void Add(InterviewAnswerVersion answerVersion);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

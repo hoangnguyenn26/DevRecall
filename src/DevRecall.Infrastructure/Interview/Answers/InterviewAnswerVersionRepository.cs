@@ -62,6 +62,17 @@ internal sealed class InterviewAnswerVersionRepository(
             .OrderByDescending(answer => answer.VersionNumber)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<InterviewAnswerVersion>>
+        GetByQuestionIdAsync(
+            Guid interviewQuestionId,
+            CancellationToken cancellationToken) =>
+        await dbContext.InterviewAnswerVersions
+            .AsNoTracking()
+            .Where(answer =>
+                answer.InterviewQuestionId == interviewQuestionId)
+            .OrderByDescending(answer => answer.VersionNumber)
+            .ToListAsync(cancellationToken);
+
     public void Add(InterviewAnswerVersion answerVersion) =>
         dbContext.InterviewAnswerVersions.Add(answerVersion);
 

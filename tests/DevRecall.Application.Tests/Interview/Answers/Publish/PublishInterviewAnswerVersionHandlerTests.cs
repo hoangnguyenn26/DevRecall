@@ -75,6 +75,12 @@ public sealed class PublishInterviewAnswerVersionHandlerTests
             CancellationToken cancellationToken) =>
             Task.FromResult<InterviewAnswerVersion?>(answer);
 
+        public Task<IReadOnlyList<InterviewAnswerVersion>>
+            GetByQuestionIdAsync(
+                Guid interviewQuestionId,
+                CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<InterviewAnswerVersion>>([answer]);
+
         public void Add(InterviewAnswerVersion answerVersion) =>
             throw new NotSupportedException();
 

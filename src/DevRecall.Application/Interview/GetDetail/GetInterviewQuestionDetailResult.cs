@@ -9,4 +9,8 @@ public sealed record GetInterviewQuestionDetailResult(
     string? Notes,
     string Status,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    InterviewAnswerDetailItem? CurrentPublishedAnswer,
+    InterviewAnswerDetailItem? LatestDraft,
+    IReadOnlyList<InterviewAnswerHistoryItem> AnswerHistory,
+    IReadOnlyList<InterviewFollowUpDetailItem> FollowUps);
