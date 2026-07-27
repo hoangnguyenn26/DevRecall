@@ -19,4 +19,8 @@ public static class InterviewAnswerVersionErrors
     public static readonly DomainError InvalidVersionNumber = new(
         "INTERVIEW_ANSWER_INVALID_VERSION_NUMBER",
         "The answer version number must be greater than zero.");
+
+    public static readonly DomainError VersionConflict = new(
+        "INTERVIEW_ANSWER_VERSION_CONFLICT",
+        "The answer version could not be created because the answer history changed.");
 }

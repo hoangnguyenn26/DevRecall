@@ -1,4 +1,6 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.Interview.Answers.CreateDraft;
+using DevRecall.Application.Interview.Answers.UpdateDraft;
 using DevRecall.Application.Interview.Archive;
 using DevRecall.Application.Interview.Create;
 using DevRecall.Application.Interview.GetDetail;
@@ -6,6 +8,7 @@ using DevRecall.Application.Interview.GetList;
 using DevRecall.Application.Interview.Update;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Interview;
+using DevRecall.Contracts.Interview.Answers;
 
 namespace DevRecall.Api.Endpoints.Interview;
 
@@ -24,7 +27,49 @@ public static class InterviewQuestionEndpoints
         group.MapGet("/{id:guid}", GetDetailAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
         group.MapPost("/{id:guid}/archive", ArchiveAsync);
+        group.MapPost(
+            "/{questionId:guid}/answer-versions",
+            CreateAnswerDraftAsync);
+        group.MapPut(
+            "/{questionId:guid}/answer-versions/{versionId:guid}",
+            UpdateAnswerDraftAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> CreateAnswerDraftAsync(
+        Guid questionId,
+        CreateInterviewAnswerDraftRequest request,
+        CreateInterviewAnswerDraftHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new CreateInterviewAnswerDraftCommand(questionId, request.Content),
+            cancellationToken);
+
+        return Results.Created(
+            $"/api/v1/interview-questions/{questionId}/answer-versions/{result.Id}",
+            MapAnswerResponse(
+                result.Id, result.InterviewQuestionId, result.VersionNumber,
+                result.Content, result.Status, result.CreatedAtUtc,
+                result.UpdatedAtUtc, result.PublishedAtUtc));
+    }
+
+    private static async Task<IResult> UpdateAnswerDraftAsync(
+        Guid questionId,
+        Guid versionId,
+        UpdateInterviewAnswerDraftRequest request,
+        UpdateInterviewAnswerDraftHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new UpdateInterviewAnswerDraftCommand(
+                questionId, versionId, request.Content),
+            cancellationToken);
+
+        return Results.Ok(MapAnswerResponse(
+            result.Id, result.InterviewQuestionId, result.VersionNumber,
+            result.Content, result.Status, result.CreatedAtUtc,
+            result.UpdatedAtUtc, result.PublishedAtUtc));
     }
 
     private static async Task<IResult> ArchiveAsync(
@@ -111,4 +156,17 @@ public static class InterviewQuestionEndpoints
                 result.Difficulty, result.Notes, result.Status,
                 result.CreatedAtUtc, result.UpdatedAtUtc));
     }
+
+    private static InterviewAnswerVersionResponse MapAnswerResponse(
+        Guid id,
+        Guid interviewQuestionId,
+        int versionNumber,
+        string content,
+        string status,
+        DateTimeOffset createdAtUtc,
+        DateTimeOffset updatedAtUtc,
+        DateTimeOffset? publishedAtUtc) =>
+        new(
+            id, interviewQuestionId, versionNumber, content, status,
+            createdAtUtc, updatedAtUtc, publishedAtUtc);
 }
