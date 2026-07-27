@@ -1,0 +1,12 @@
+namespace DevRecall.Application.Interview.Create;
+
+public sealed record CreateInterviewQuestionResult(
+    Guid Id,
+    string Title,
+    string Question,
+    string Topic,
+    string Difficulty,
+    string? Notes,
+    string Status,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
