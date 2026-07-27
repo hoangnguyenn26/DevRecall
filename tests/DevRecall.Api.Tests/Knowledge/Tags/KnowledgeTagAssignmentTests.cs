@@ -111,6 +111,29 @@ public sealed class KnowledgeTagAssignmentTests(AuthApiFactory factory)
             .Should().Be("TAG_ARCHIVED");
     }
 
+    [Fact]
+    public async Task Remove_FromArchivedNode_ShouldReturnConflict()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var node = await CreateNodeAsync(client, "TryGetValue");
+        var tag = await CreateTagAsync(client, "Interview");
+        await client.PutAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/tags/{tag.Id}",
+            content: null);
+        await client.PostAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/archive",
+            content: null);
+
+        using var response = await client.DeleteAsync(
+            $"/api/v1/knowledge-nodes/{node.Id}/tags/{tag.Id}");
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_NODE_ARCHIVED");
+    }
+
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions

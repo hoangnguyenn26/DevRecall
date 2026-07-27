@@ -114,6 +114,34 @@ public sealed class KnowledgeByTagsTests(AuthApiFactory factory)
             .Should().Be("At least one tag is required.");
     }
 
+    [Fact]
+    public async Task Filter_WithEmptyTagId_ShouldReturnValidationError()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+
+        using var response = await client.GetAsync(
+            $"/api/v1/knowledge-nodes/by-tags?tagIds={Guid.Empty}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Filter_WithArchivedTag_ShouldReturnNotFound()
+    {
+        using var client = await CreateAuthenticatedClientAsync();
+        var tag = await CreateTagAsync(client, "Archived");
+        await client.PostAsync($"/api/v1/tags/{tag.Id}/archive", content: null);
+
+        using var response = await client.GetAsync(
+            $"/api/v1/knowledge-nodes/by-tags?tagIds={tag.Id}");
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("TAG_NOT_FOUND");
+    }
+
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions

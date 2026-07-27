@@ -249,6 +249,22 @@ Completed:
 - Root and child reorder workflows
 - Tree ordering based on stored positions
 
+### Week 6 — Knowledge Tags and Tree Interaction
+
+Completed:
+
+- User-scoped tags
+- Tag name normalization and uniqueness
+- Tag create, list, rename, and archive workflows
+- Assign and remove tags from knowledge notes
+- Knowledge detail with tags
+- Knowledge filtering by one or multiple tags
+- AND semantics for multi-tag filtering
+- Unified tree position endpoint
+- Same-parent reorder and cross-parent move
+- Move to root
+- Cycle and ownership protection
+
 ## Health endpoints
 
 Liveness:
