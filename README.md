@@ -265,6 +265,22 @@ Completed:
 - Move to root
 - Cycle and ownership protection
 
+### Week 7 — Interview Question Bank Core
+
+Completed:
+
+- Interview question domain model
+- Difficulty and lifecycle status
+- PostgreSQL persistence and indexes
+- Create question workflow
+- Active question list with pagination
+- Topic and difficulty filtering
+- Question detail
+- Question update
+- Question archive
+- Ownership isolation
+- Archived-question semantics
+
 ## Health endpoints
 
 Liveness:

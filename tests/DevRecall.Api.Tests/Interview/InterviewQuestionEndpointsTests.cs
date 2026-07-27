@@ -110,6 +110,7 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
         await CreateQuestionAsync(client, "Deferred execution", "LINQ", "Easy");
         await CreateQuestionAsync(
             client, "Middleware pipeline", "ASP.NET Core", "Medium");
+        await CreateQuestionAsync(client, "Short topic", "IN", "Medium");
 
         using var listResponse = await client.GetAsync(
             "/api/v1/interview-questions?topic=linq&difficulty=medium");
@@ -194,6 +195,8 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
 
     [Theory]
     [InlineData("?page=0")]
+    [InlineData("?page=-1")]
+    [InlineData("?pageSize=0")]
     [InlineData("?pageSize=101")]
     [InlineData("?difficulty=Intermediate")]
     public async Task List_WithInvalidQuery_ShouldReturnValidationError(
@@ -280,8 +283,12 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
             $"/api/v1/interview-questions/{question.Id}",
             new UpdateInterviewQuestionRequest(
                 "Changed", "Changed question", "Changed", "Hard", null));
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("INTERVIEW_QUESTION_NOT_FOUND");
     }
 
     [Fact]
@@ -343,8 +350,12 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
         using var response = await secondClient.PostAsync(
             $"/api/v1/interview-questions/{question.Id}/archive",
             content: null);
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("INTERVIEW_QUESTION_NOT_FOUND");
     }
 
     [Fact]
