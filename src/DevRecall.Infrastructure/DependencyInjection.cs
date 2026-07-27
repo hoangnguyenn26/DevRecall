@@ -1,9 +1,11 @@
+using DevRecall.Application.Dsa;
 using DevRecall.Application.Identity;
 using DevRecall.Application.Interview;
 using DevRecall.Application.Interview.Answers;
 using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
+using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Identity;
 using DevRecall.Infrastructure.Interview;
 using DevRecall.Infrastructure.Interview.Answers;
@@ -41,6 +43,7 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IDsaProblemRepository, DsaProblemRepository>();
         services.AddScoped<IInterviewQuestionRepository, InterviewQuestionRepository>();
         services.AddScoped<
             IInterviewAnswerVersionRepository,
