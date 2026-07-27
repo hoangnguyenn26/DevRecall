@@ -4,12 +4,14 @@ using DevRecall.Application.Interview.Answers.Publish;
 using DevRecall.Application.Interview.Answers.UpdateDraft;
 using DevRecall.Application.Interview.Archive;
 using DevRecall.Application.Interview.Create;
+using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Interview.GetDetail;
 using DevRecall.Application.Interview.GetList;
 using DevRecall.Application.Interview.Update;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Interview;
 using DevRecall.Contracts.Interview.Answers;
+using DevRecall.Contracts.Interview.FollowUps;
 
 namespace DevRecall.Api.Endpoints.Interview;
 
@@ -37,7 +39,75 @@ public static class InterviewQuestionEndpoints
         group.MapPost(
             "/{questionId:guid}/answer-versions/{versionId:guid}/publish",
             PublishAnswerVersionAsync);
+        group.MapPost("/{questionId:guid}/follow-ups", CreateFollowUpAsync);
+        group.MapGet("/{questionId:guid}/follow-ups", GetFollowUpsAsync);
+        group.MapPut(
+            "/{questionId:guid}/follow-ups/{followUpId:guid}",
+            UpdateFollowUpAsync);
+        group.MapPut(
+            "/{questionId:guid}/follow-ups/{followUpId:guid}/order",
+            ChangeFollowUpOrderAsync);
+        group.MapPost(
+            "/{questionId:guid}/follow-ups/{followUpId:guid}/archive",
+            ArchiveFollowUpAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> CreateFollowUpAsync(
+        Guid questionId,
+        CreateInterviewFollowUpRequest request,
+        CreateInterviewFollowUpHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            questionId, request.Prompt, cancellationToken);
+        return Results.Created(
+            $"/api/v1/interview-questions/{questionId}/follow-ups/{result.Id}",
+            MapFollowUpResponse(result));
+    }
+
+    private static async Task<IResult> GetFollowUpsAsync(
+        Guid questionId,
+        GetInterviewFollowUpsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(questionId, cancellationToken);
+        return Results.Ok(result.Select(MapFollowUpResponse).ToList());
+    }
+
+    private static async Task<IResult> UpdateFollowUpAsync(
+        Guid questionId,
+        Guid followUpId,
+        UpdateInterviewFollowUpRequest request,
+        UpdateInterviewFollowUpHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            questionId, followUpId, request.Prompt, cancellationToken);
+        return Results.Ok(MapFollowUpResponse(result));
+    }
+
+    private static async Task<IResult> ChangeFollowUpOrderAsync(
+        Guid questionId,
+        Guid followUpId,
+        ChangeInterviewFollowUpOrderRequest request,
+        ChangeInterviewFollowUpOrderHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            questionId, followUpId, request.TargetIndex, cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ArchiveFollowUpAsync(
+        Guid questionId,
+        Guid followUpId,
+        ArchiveInterviewFollowUpHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            questionId, followUpId, cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> PublishAnswerVersionAsync(
@@ -189,4 +259,11 @@ public static class InterviewQuestionEndpoints
         new(
             id, interviewQuestionId, versionNumber, content, status,
             createdAtUtc, updatedAtUtc, publishedAtUtc);
+
+    private static InterviewFollowUpResponse MapFollowUpResponse(
+        InterviewFollowUpResponseData followUp) =>
+        new(
+            followUp.Id, followUp.InterviewQuestionId, followUp.Prompt,
+            followUp.SortOrder, followUp.Status, followUp.CreatedAtUtc,
+            followUp.UpdatedAtUtc);
 }

@@ -1,11 +1,13 @@
 using DevRecall.Application.Identity;
 using DevRecall.Application.Interview;
 using DevRecall.Application.Interview.Answers;
+using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Infrastructure.Identity;
 using DevRecall.Infrastructure.Interview;
 using DevRecall.Infrastructure.Interview.Answers;
+using DevRecall.Infrastructure.Interview.FollowUps;
 using DevRecall.Infrastructure.Knowledge;
 using DevRecall.Infrastructure.Knowledge.Tags;
 using DevRecall.Infrastructure.Persistence;
@@ -43,6 +45,9 @@ public static class DependencyInjection
         services.AddScoped<
             IInterviewAnswerVersionRepository,
             InterviewAnswerVersionRepository>();
+        services.AddScoped<
+            IInterviewFollowUpQuestionRepository,
+            InterviewFollowUpQuestionRepository>();
         services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
         services.AddScoped<IKnowledgeNodeRepository, KnowledgeNodeRepository>();
         services.AddScoped<ITagRepository, TagRepository>();

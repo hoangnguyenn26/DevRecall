@@ -2,6 +2,7 @@ using DevRecall.Domain.Common;
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Interview;
 using DevRecall.Domain.Interview.Answers;
+using DevRecall.Domain.Interview.FollowUps;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,9 @@ public sealed class DevRecallDbContext(
 
     public DbSet<InterviewAnswerVersion> InterviewAnswerVersions =>
         Set<InterviewAnswerVersion>();
+
+    public DbSet<InterviewFollowUpQuestion> InterviewFollowUpQuestions =>
+        Set<InterviewFollowUpQuestion>();
 
     public DbSet<KnowledgeNode> KnowledgeNodes =>
         Set<KnowledgeNode>();
