@@ -281,6 +281,25 @@ Completed:
 - Ownership isolation
 - Archived-question semantics
 
+### Week 8 — Interview Answers and Follow-ups
+
+Completed:
+
+- Versioned interview answers
+- Draft and published answer lifecycle
+- One active draft per question
+- Automatic answer version numbering
+- Published-answer immutability
+- Answer publishing workflow
+- Current published answer selection
+- Latest draft selection
+- Answer version history
+- Interview follow-up questions
+- Follow-up update and ordering
+- Follow-up archive workflow
+- Complete interview question detail
+- Ownership and archived-question protection
+
 ## Health endpoints
 
 Liveness:

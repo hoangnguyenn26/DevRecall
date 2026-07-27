@@ -258,6 +258,10 @@ public sealed class InterviewAnswerVersionEndpointsTests(AuthApiFactory factory)
         using var client = await CreateAuthenticatedClientAsync();
         var question = await CreateQuestionAsync(client);
         var first = await CreateDraftAsync(client, question.Id);
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{question.Id}/answer-versions/{first.Id}",
+            new UpdateInterviewAnswerDraftRequest("Improved v1."));
+        updateResponse.EnsureSuccessStatusCode();
         await PublishAsync(client, question.Id, first.Id);
         var second = await CreateDraftAsync(client, question.Id);
         await PublishAsync(client, question.Id, second.Id);
@@ -266,6 +270,10 @@ public sealed class InterviewAnswerVersionEndpointsTests(AuthApiFactory factory)
             client, question.Id, "First follow-up");
         var secondFollowUp = await CreateFollowUpAsync(
             client, question.Id, "Second follow-up");
+        using var reorderResponse = await client.PutAsJsonAsync(
+            $"/api/v1/interview-questions/{question.Id}/follow-ups/{secondFollowUp.Id}/order",
+            new ChangeInterviewFollowUpOrderRequest(0));
+        reorderResponse.EnsureSuccessStatusCode();
         using var archiveResponse = await client.PostAsync(
             $"/api/v1/interview-questions/{question.Id}/follow-ups/{firstFollowUp.Id}/archive",
             null);
