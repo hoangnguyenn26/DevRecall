@@ -1,5 +1,6 @@
 using DevRecall.Domain.Common;
 using DevRecall.Domain.Dsa;
+using DevRecall.Domain.Dsa.Attempts;
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Interview;
 using DevRecall.Domain.Interview.Answers;
@@ -22,6 +23,9 @@ public sealed class DevRecallDbContext(
 
     public DbSet<DsaProblem> DsaProblems =>
         Set<DsaProblem>();
+
+    public DbSet<DsaAttempt> DsaAttempts =>
+        Set<DsaAttempt>();
 
     public DbSet<InterviewQuestion> InterviewQuestions =>
         Set<InterviewQuestion>();
