@@ -3,6 +3,8 @@ using DevRecall.Application.Study;
 using DevRecall.Application.Study.Cancel;
 using DevRecall.Application.Study.Complete;
 using DevRecall.Application.Study.Create;
+using DevRecall.Application.Study.GetDetail;
+using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Items.Add;
 using DevRecall.Application.Study.Items.Complete;
 using DevRecall.Application.Study.Items.Remove;
@@ -11,6 +13,7 @@ using DevRecall.Application.Study.Items.Skip;
 using DevRecall.Application.Study.Items.Start;
 using DevRecall.Application.Study.Start;
 using DevRecall.Application.Study.Update;
+using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Study;
 
 namespace DevRecall.Api.Endpoints.Study;
@@ -24,6 +27,8 @@ public static class StudySessionEndpoints
             .WithTags("Study Sessions")
             .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
         group.MapPost("/", CreateAsync);
+        group.MapGet("/", GetListAsync);
+        group.MapGet("/{id:guid}", GetDetailAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
         group.MapPost("/{id:guid}/items", AddItemAsync);
         group.MapDelete("/{id:guid}/items/{itemId:guid}", RemoveItemAsync);
@@ -51,6 +56,55 @@ public static class StudySessionEndpoints
             cancellationToken);
         return Results.Created(
             $"/api/v1/study-sessions/{result.Id}", MapSession(result));
+    }
+
+    private static async Task<IResult> GetListAsync(
+        [AsParameters] GetStudySessionsRequest request,
+        GetStudySessionsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new GetStudySessionsQuery(
+                request.Status, request.Page, request.PageSize),
+            cancellationToken);
+        return Results.Ok(new PagedResponse<StudySessionListItemResponse>(
+            result.Items.Select(item => new StudySessionListItemResponse(
+                item.Id, item.Title, item.Status,
+                item.PlannedDurationMinutes, item.ActualDurationMinutes,
+                item.StartedAtUtc, item.CompletedAtUtc, item.TotalItems,
+                item.CompletedItems, item.SkippedItems, item.Version,
+                item.CreatedAtUtc, item.UpdatedAtUtc)).ToList(),
+            result.Page, result.PageSize, result.TotalCount,
+            result.TotalPages));
+    }
+
+    private static async Task<IResult> GetDetailAsync(
+        Guid id, GetStudySessionDetailHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new GetStudySessionDetailQuery(id), cancellationToken);
+        return Results.Ok(new StudySessionDetailResponse(
+            result.Id, result.Title, result.Status,
+            result.PlannedDurationMinutes, result.ActualDurationMinutes,
+            result.StartedAtUtc, result.CompletedAtUtc, result.Notes,
+            result.Version, result.CreatedAtUtc, result.UpdatedAtUtc,
+            new StudySessionProgressSummaryResponse(
+                result.Progress.TotalItems, result.Progress.PendingItems,
+                result.Progress.InProgressItems,
+                result.Progress.CompletedItems,
+                result.Progress.SkippedItems,
+                result.Progress.CompletionPercentage,
+                result.Progress.KnowledgeItems,
+                result.Progress.InterviewItems,
+                result.Progress.DsaItems,
+                result.Progress.ReviewItems),
+            result.Items.Select(item => new StudySessionDetailItemResponse(
+                item.Id, item.ResourceType, item.ResourceId,
+                item.ResourceTitle, item.ResourcePreview,
+                item.IsResourceAvailable, item.Position, item.Status,
+                item.StartedAtUtc, item.CompletedAtUtc, item.Notes,
+                item.CreatedAtUtc, item.UpdatedAtUtc)).ToList()));
     }
 
     private static async Task<IResult> UpdateAsync(

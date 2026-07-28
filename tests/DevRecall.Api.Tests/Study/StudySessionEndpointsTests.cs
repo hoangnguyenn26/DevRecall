@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
+using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Dsa;
 using DevRecall.Contracts.Study;
 using DevRecall.Domain.Study;
@@ -17,6 +18,169 @@ namespace DevRecall.Api.Tests.Study;
 [Collection(AuthApiTestSuite.Name)]
 public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
 {
+    [Fact]
+    public async Task Complete_ShouldCalculateDurationPreserveItemsAndReturnSummary()
+    {
+        var auth = await CreateAuthenticatedClientAsync();
+        using var client = auth.Client;
+        var session = await CreateSessionAsync(client);
+        var pending = await AddProblemItemAsync(client, session.Id, "Pending");
+        using var start = await client.PostAsync(
+            $"/api/v1/study-sessions/{session.Id}/start", null);
+        var detail = await GetDetailAsync(client, session.Id);
+
+        using var complete = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/complete",
+            new CompleteStudySessionRequest(detail.Version));
+        var result = await complete.Content
+            .ReadFromJsonAsync<CompleteStudySessionResponse>();
+        var persisted = await GetDetailAsync(client, session.Id);
+
+        complete.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Status.Should().Be("Completed");
+        result.ActualDurationMinutes.Should().BeGreaterThanOrEqualTo(0);
+        result.Summary.TotalItems.Should().Be(1);
+        result.Summary.PendingItems.Should().Be(1);
+        persisted.Items.Single(item => item.Id == pending.Id).Status
+            .Should().Be("Pending");
+        persisted.Version.Should().Be(detail.Version + 1);
+    }
+
+    [Fact]
+    public async Task Complete_ShouldRejectPlannedStaleAndCrossUserSessions()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var ownerClient = owner.Client;
+        var planned = await CreateSessionAsync(ownerClient);
+        using var notStarted = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{planned.Id}/complete",
+            new CompleteStudySessionRequest(1));
+        using var start = await ownerClient.PostAsync(
+            $"/api/v1/study-sessions/{planned.Id}/start", null);
+        using var stale = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{planned.Id}/complete",
+            new CompleteStudySessionRequest(1));
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+        using var crossUser = await otherClient.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{planned.Id}/complete",
+            new CompleteStudySessionRequest(2));
+
+        notStarted.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ErrorCodeAsync(notStarted)).Should()
+            .Be("STUDY_SESSION_NOT_STARTED");
+        stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ErrorCodeAsync(stale)).Should().Be("STUDY_SESSION_CONFLICT");
+        crossUser.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Cancel_ShouldSupportPlannedInProgressAndIdempotentRetry()
+    {
+        var auth = await CreateAuthenticatedClientAsync();
+        using var client = auth.Client;
+        var planned = await CreateSessionAsync(client);
+        using var cancel = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{planned.Id}/cancel",
+            new CancelStudySessionRequest(1));
+        var first = await cancel.Content
+            .ReadFromJsonAsync<CancelStudySessionResponse>();
+        using var retry = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{planned.Id}/cancel",
+            new CancelStudySessionRequest(first!.Version));
+        var second = await retry.Content
+            .ReadFromJsonAsync<CancelStudySessionResponse>();
+        var active = await CreateSessionAsync(client);
+        using var start = await client.PostAsync(
+            $"/api/v1/study-sessions/{active.Id}/start", null);
+        var started = await GetDetailAsync(client, active.Id);
+        using var cancelActive = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{active.Id}/cancel",
+            new CancelStudySessionRequest(started.Version));
+        var activeResult = await cancelActive.Content
+            .ReadFromJsonAsync<CancelStudySessionResponse>();
+
+        first.Status.Should().Be("Cancelled");
+        second!.Version.Should().Be(first.Version);
+        second.UpdatedAtUtc.Should()
+            .BeCloseTo(first.UpdatedAtUtc, TimeSpan.FromMilliseconds(1));
+        activeResult!.Status.Should().Be("Cancelled");
+        activeResult.StartedAtUtc.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task List_ShouldScopeFilterAndPaginateNewestFirst()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var client = owner.Client;
+        var first = await CreateSessionAsync(client);
+        var second = await CreateSessionAsync(client);
+        using var cancel = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{first.Id}/cancel",
+            new CancelStudySessionRequest(1));
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+        _ = await CreateSessionAsync(otherClient);
+
+        using var response = await client.GetAsync(
+            "/api/v1/study-sessions?status=Planned&page=1&pageSize=1");
+        var result = await response.Content.ReadFromJsonAsync<
+            PagedResponse<StudySessionListItemResponse>>();
+        using var invalid = await client.GetAsync(
+            "/api/v1/study-sessions?status=Running");
+
+        result!.TotalCount.Should().Be(1);
+        result.Items.Single().Id.Should().Be(second.Id);
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Detail_ShouldReturnOrderedItemsResourceSummariesAndProgress()
+    {
+        var auth = await CreateAuthenticatedClientAsync();
+        using var client = auth.Client;
+        var session = await CreateSessionAsync(client);
+        var first = await AddProblemItemAsync(client, session.Id, "First");
+        var second = await AddProblemItemAsync(client, session.Id, "Second");
+        using var reorder = await client.PutAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/items/reorder",
+            new ReorderStudySessionItemsRequest([second.Id, first.Id]));
+        using var start = await client.PostAsync(
+            $"/api/v1/study-sessions/{session.Id}/start", null);
+        using var complete = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/items/{second.Id}/complete",
+            new CompleteStudySessionItemRequest("Done"));
+
+        var detail = await GetDetailAsync(client, session.Id);
+
+        detail.Items.Select(item => item.Id)
+            .Should().Equal(second.Id, first.Id);
+        detail.Items[0].ResourceTitle.Should().Be("Second");
+        detail.Items.Should().OnlyContain(item => item.IsResourceAvailable);
+        detail.Progress.TotalItems.Should().Be(2);
+        detail.Progress.CompletedItems.Should().Be(1);
+        detail.Progress.PendingItems.Should().Be(1);
+        detail.Progress.CompletionPercentage.Should().Be(50);
+        detail.Progress.DsaItems.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Detail_ShouldHideCrossUserSession()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var ownerClient = owner.Client;
+        var session = await CreateSessionAsync(ownerClient);
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+
+        using var response = await otherClient.GetAsync(
+            $"/api/v1/study-sessions/{session.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await ErrorCodeAsync(response)).Should()
+            .Be("STUDY_SESSION_NOT_FOUND");
+    }
+
     [Fact]
     public async Task CreateAndUpdate_ShouldPersistPlannedSessionAndPreserveNoOpTime()
     {
@@ -264,5 +428,15 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         return document.RootElement.TryGetProperty("errorCode", out var code)
             ? code.GetString()
             : null;
+    }
+
+    private static async Task<StudySessionDetailResponse> GetDetailAsync(
+        HttpClient client, Guid sessionId)
+    {
+        using var response = await client.GetAsync(
+            $"/api/v1/study-sessions/{sessionId}");
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<StudySessionDetailResponse>())!;
     }
 }

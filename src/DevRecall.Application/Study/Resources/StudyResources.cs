@@ -25,3 +25,17 @@ public interface IStudyReviewItemResourceReader
     Task<StudyResourceResolution?> FindAsync(
         Guid userId, Guid resourceId, CancellationToken cancellationToken);
 }
+
+public sealed record StudyResourceReference(
+    StudyResourceType ResourceType, Guid ResourceId);
+public sealed record StudyResourceSummary(
+    StudyResourceType ResourceType, Guid ResourceId,
+    string Title, string? Preview);
+
+public interface IStudyResourceSummaryReader
+{
+    Task<IReadOnlyList<StudyResourceSummary>> ReadManyAsync(
+        Guid userId,
+        IReadOnlyCollection<StudyResourceReference> resources,
+        CancellationToken cancellationToken);
+}

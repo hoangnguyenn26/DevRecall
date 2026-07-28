@@ -11,6 +11,7 @@ using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Study;
+using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
@@ -90,6 +91,10 @@ public static class DependencyInjection
         services.AddScoped<
             IStudyReviewItemResourceReader,
             StudyReviewItemResourceReader>();
+        services.AddScoped<IStudySessionListReader, StudySessionListReader>();
+        services.AddScoped<
+            IStudyResourceSummaryReader,
+            StudyResourceSummaryReader>();
 
         return services;
     }
