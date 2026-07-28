@@ -4,6 +4,7 @@ using DevRecall.Api.Endpoints.Auth;
 using DevRecall.Api.Endpoints.Dsa;
 using DevRecall.Api.Endpoints.Interview;
 using DevRecall.Api.Endpoints.Knowledge;
+using DevRecall.Api.Endpoints.Reviews;
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.Endpoints.Tags;
 using DevRecall.Api.ExceptionHandling;
@@ -121,6 +122,7 @@ app.MapDsaAttemptEndpoints();
 app.MapDsaProblemEndpoints();
 app.MapInterviewQuestionEndpoints();
 app.MapKnowledgeEndpoints();
+app.MapReviewItemEndpoints();
 app.MapSystemEndpoints();
 app.MapTagEndpoints();
 

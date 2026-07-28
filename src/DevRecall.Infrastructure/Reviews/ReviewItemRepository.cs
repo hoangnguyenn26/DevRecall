@@ -1,7 +1,11 @@
+using DevRecall.Application.Common.Exceptions;
+using DevRecall.Application.Common.Pagination;
 using DevRecall.Application.Reviews;
+using DevRecall.Application.Reviews.GetDue;
 using DevRecall.Domain.Reviews;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace DevRecall.Infrastructure.Reviews;
 
@@ -36,6 +40,53 @@ internal sealed class ReviewItemRepository(DevRecallDbContext dbContext)
     public void Add(ReviewItem reviewItem) =>
         dbContext.ReviewItems.Add(reviewItem);
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException
+            {
+                ConstraintName: "ux_review_items_active_resource"
+            })
+        {
+            throw new ConflictException(
+                ReviewErrors.ItemAlreadyExists.Code,
+                ReviewErrors.ItemAlreadyExists.Message);
+        }
+    }
+
+    public async Task<PagedReadResult<DueReviewItemReadModel>> GetDueAsync(
+        Guid userId, DateTimeOffset dueAtOrBeforeUtc,
+        ReviewResourceType? resourceType, int skip, int take,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.ReviewItems
+            .AsNoTracking()
+            .Where(item =>
+                item.UserId == userId
+                && item.Status == ReviewItemStatus.Active
+                && item.DueAtUtc <= dueAtOrBeforeUtc);
+
+        if (resourceType is not null)
+        {
+            query = query.Where(
+                item => item.ResourceType == resourceType.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(item => item.DueAtUtc)
+            .ThenBy(item => item.CreatedAtUtc)
+            .ThenBy(item => item.Id)
+            .Skip(skip)
+            .Take(take)
+            .Select(item => new DueReviewItemReadModel(
+                item.Id, item.ResourceType, item.ResourceId, item.DueAtUtc,
+                item.LastReviewedAtUtc, item.IntervalDays, item.ReviewCount))
+            .ToListAsync(cancellationToken);
+        return new PagedReadResult<DueReviewItemReadModel>(items, totalCount);
+    }
 }

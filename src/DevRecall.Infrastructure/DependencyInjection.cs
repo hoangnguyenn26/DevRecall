@@ -9,6 +9,7 @@ using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Application.Reviews;
+using DevRecall.Application.Reviews.Resources;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
 using DevRecall.Infrastructure.Identity;
@@ -19,6 +20,7 @@ using DevRecall.Infrastructure.Knowledge;
 using DevRecall.Infrastructure.Knowledge.Tags;
 using DevRecall.Infrastructure.Persistence;
 using DevRecall.Infrastructure.Reviews;
+using DevRecall.Infrastructure.Reviews.Resources;
 using DevRecall.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -68,6 +70,17 @@ public static class DependencyInjection
         services.AddScoped<IKnowledgeNodeTagRepository, KnowledgeNodeTagRepository>();
         services.AddScoped<IReviewItemRepository, ReviewItemRepository>();
         services.AddScoped<IReviewHistoryRepository, ReviewHistoryRepository>();
+        services.AddScoped<
+            IReviewKnowledgeResourceReader,
+            ReviewKnowledgeResourceReader>();
+        services.AddScoped<
+            IReviewInterviewResourceReader,
+            ReviewInterviewResourceReader>();
+        services.AddScoped<IReviewDsaResourceReader, ReviewDsaResourceReader>();
+        services.AddScoped<IReviewResourceResolver, ReviewResourceResolver>();
+        services.AddScoped<
+            IReviewResourceSummaryReader,
+            ReviewResourceSummaryReader>();
         services.AddSingleton<IUtcClock, SystemUtcClock>();
 
         return services;

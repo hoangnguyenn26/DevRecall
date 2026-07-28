@@ -1,3 +1,5 @@
+using DevRecall.Application.Common.Pagination;
+using DevRecall.Application.Reviews.GetDue;
 using DevRecall.Domain.Reviews;
 
 namespace DevRecall.Application.Reviews;
@@ -16,4 +18,9 @@ public interface IReviewItemRepository
 
     void Add(ReviewItem reviewItem);
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    Task<PagedReadResult<DueReviewItemReadModel>> GetDueAsync(
+        Guid userId, DateTimeOffset dueAtOrBeforeUtc,
+        ReviewResourceType? resourceType, int skip, int take,
+        CancellationToken cancellationToken);
 }

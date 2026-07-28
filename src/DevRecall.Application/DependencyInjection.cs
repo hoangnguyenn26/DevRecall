@@ -37,6 +37,8 @@ using DevRecall.Application.Knowledge.Tags.Rename;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
+using DevRecall.Application.Reviews.Create;
+using DevRecall.Application.Reviews.GetDue;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Application;
@@ -89,6 +91,8 @@ public static class DependencyInjection
         services.AddScoped<ArchiveTagHandler>();
         services.AddScoped<AssignTagToKnowledgeNodeHandler>();
         services.AddScoped<RemoveTagFromKnowledgeNodeHandler>();
+        services.AddScoped<CreateReviewItemHandler>();
+        services.AddScoped<GetDueReviewItemsHandler>();
 
         return services;
     }
