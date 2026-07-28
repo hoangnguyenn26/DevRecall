@@ -1,3 +1,4 @@
+using DevRecall.Application.Common.Time;
 using DevRecall.Application.Dsa;
 using DevRecall.Application.Dsa.Attempts;
 using DevRecall.Application.Dsa.GetDetail;
@@ -7,6 +8,7 @@ using DevRecall.Application.Interview.Answers;
 using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
+using DevRecall.Application.Reviews;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
 using DevRecall.Infrastructure.Identity;
@@ -16,6 +18,8 @@ using DevRecall.Infrastructure.Interview.FollowUps;
 using DevRecall.Infrastructure.Knowledge;
 using DevRecall.Infrastructure.Knowledge.Tags;
 using DevRecall.Infrastructure.Persistence;
+using DevRecall.Infrastructure.Reviews;
+using DevRecall.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,6 +66,9 @@ public static class DependencyInjection
         services.AddScoped<IKnowledgeNodeRepository, KnowledgeNodeRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IKnowledgeNodeTagRepository, KnowledgeNodeTagRepository>();
+        services.AddScoped<IReviewItemRepository, ReviewItemRepository>();
+        services.AddScoped<IReviewHistoryRepository, ReviewHistoryRepository>();
+        services.AddSingleton<IUtcClock, SystemUtcClock>();
 
         return services;
     }

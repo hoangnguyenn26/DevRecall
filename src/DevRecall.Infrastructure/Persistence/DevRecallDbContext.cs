@@ -7,6 +7,7 @@ using DevRecall.Domain.Interview.Answers;
 using DevRecall.Domain.Interview.FollowUps;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
+using DevRecall.Domain.Reviews;
 using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Infrastructure.Persistence;
@@ -44,6 +45,12 @@ public sealed class DevRecallDbContext(
 
     public DbSet<KnowledgeNodeTag> KnowledgeNodeTags =>
         Set<KnowledgeNodeTag>();
+
+    public DbSet<ReviewItem> ReviewItems =>
+        Set<ReviewItem>();
+
+    public DbSet<ReviewHistory> ReviewHistories =>
+        Set<ReviewHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
