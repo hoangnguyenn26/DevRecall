@@ -112,6 +112,45 @@ public sealed class ReviewPersistenceTests(PostgreSqlFixture fixture)
         persistedHistory.PreviousDueAtUtc.Should().Be(Now);
     }
 
+    [Fact]
+    public async Task ShouldRejectConcurrentScheduleOverwrite()
+    {
+        Guid itemId;
+        await using (var setup = fixture.CreateDbContext())
+        {
+            var user = CreateUser();
+            var item = CreateItem(user.Id);
+            itemId = item.Id;
+            setup.Users.Add(user);
+            setup.ReviewItems.Add(item);
+            await setup.SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using var firstContext = fixture.CreateDbContext();
+        await using var secondContext = fixture.CreateDbContext();
+        var first = await firstContext.ReviewItems.SingleAsync(
+            item => item.Id == itemId, CancellationToken.None);
+        var second = await secondContext.ReviewItems.SingleAsync(
+            item => item.Id == itemId, CancellationToken.None);
+        first.Evaluate(ReviewEvaluation.Good, 0, Now.AddHours(1));
+        second.Evaluate(ReviewEvaluation.Easy, 0, Now.AddHours(2));
+
+        await firstContext.SaveChangesAsync(CancellationToken.None);
+        var action = async () =>
+            await secondContext.SaveChangesAsync(CancellationToken.None);
+
+        await action.Should().ThrowAsync<DbUpdateConcurrencyException>();
+
+        await using var verification = fixture.CreateDbContext();
+        var persisted = await verification.ReviewItems
+            .AsNoTracking()
+            .SingleAsync(
+                item => item.Id == itemId, CancellationToken.None);
+        persisted.ReviewCount.Should().Be(1);
+        persisted.IntervalDays.Should().Be(2);
+        persisted.DueAtUtc.Should().Be(Now.AddHours(1).AddDays(2));
+    }
+
     private static ReviewItem CreateItem(
         Guid userId, Guid? resourceId = null) =>
         ReviewItem.Create(

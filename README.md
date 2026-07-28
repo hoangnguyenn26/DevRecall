@@ -336,6 +336,25 @@ Completed:
 - Recent-attempt overview
 - Ownership and archived-problem protection
 
+### Week 11 — Review Scheduling Engine
+
+Completed:
+
+- Unified review items for Knowledge, Interview, and DSA resources
+- Deterministic Again, Hard, Good, and Easy scheduler
+- UTC clock abstraction
+- Review item and immutable review history persistence
+- One active review item per resource
+- Resource ownership and availability validation
+- Add-resource-to-review workflow
+- Paginated due review queue
+- Batched resource summaries
+- Review evaluation workflow
+- Optimistic schedule conflict protection
+- Review item detail
+- Paginated review history
+- Archived and cross-user behavior
+
 ## Health endpoints
 
 Liveness:

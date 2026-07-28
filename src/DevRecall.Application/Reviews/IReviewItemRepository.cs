@@ -6,9 +6,6 @@ namespace DevRecall.Application.Reviews;
 
 public interface IReviewItemRepository
 {
-    Task<ReviewItem?> GetByIdAsync(
-        Guid id, CancellationToken cancellationToken);
-
     Task<ReviewItem?> GetByIdAndUserIdForUpdateAsync(
         Guid id, Guid userId, CancellationToken cancellationToken);
 

@@ -12,11 +12,6 @@ namespace DevRecall.Infrastructure.Reviews;
 internal sealed class ReviewItemRepository(DevRecallDbContext dbContext)
     : IReviewItemRepository
 {
-    public Task<ReviewItem?> GetByIdAsync(
-        Guid id, CancellationToken cancellationToken) =>
-        dbContext.ReviewItems.SingleOrDefaultAsync(
-            item => item.Id == id, cancellationToken);
-
     public Task<ReviewItem?> GetByIdAndUserIdForUpdateAsync(
         Guid id, Guid userId, CancellationToken cancellationToken) =>
         dbContext.ReviewItems.SingleOrDefaultAsync(
@@ -61,6 +56,12 @@ internal sealed class ReviewItemRepository(DevRecallDbContext dbContext)
             throw new ConflictException(
                 ReviewErrors.ItemAlreadyExists.Code,
                 ReviewErrors.ItemAlreadyExists.Message);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException(
+                ReviewErrors.ScheduleConflict.Code,
+                ReviewErrors.ScheduleConflict.Message);
         }
     }
 

@@ -145,10 +145,6 @@ public sealed class ReviewHandlerTests
         public PagedReadResult<DueReviewItemReadModel> DueResult { get; init; } =
             new([], 0);
 
-        public Task<ReviewItem?> GetByIdAsync(
-            Guid id, CancellationToken cancellationToken) =>
-            Task.FromResult<ReviewItem?>(null);
-
         public Task<ReviewItem?> GetByIdAndUserIdAsync(
             Guid id, Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult<ReviewItem?>(null);

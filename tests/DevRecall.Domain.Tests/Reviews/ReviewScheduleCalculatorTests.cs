@@ -37,6 +37,33 @@ public sealed class ReviewScheduleCalculatorTests
         result.NextIntervalDays.Should().Be(expectedInterval);
     }
 
+    [Theory]
+    [InlineData(ReviewEvaluation.Again, 0, 1)]
+    [InlineData(ReviewEvaluation.Again, 4, 1)]
+    [InlineData(ReviewEvaluation.Hard, 0, 1)]
+    [InlineData(ReviewEvaluation.Hard, 1, 2)]
+    [InlineData(ReviewEvaluation.Hard, 2, 3)]
+    [InlineData(ReviewEvaluation.Hard, 3, 5)]
+    [InlineData(ReviewEvaluation.Hard, 4, 6)]
+    [InlineData(ReviewEvaluation.Good, 0, 2)]
+    [InlineData(ReviewEvaluation.Good, 1, 2)]
+    [InlineData(ReviewEvaluation.Good, 2, 4)]
+    [InlineData(ReviewEvaluation.Good, 4, 8)]
+    [InlineData(ReviewEvaluation.Easy, 0, 4)]
+    [InlineData(ReviewEvaluation.Easy, 1, 4)]
+    [InlineData(ReviewEvaluation.Easy, 2, 6)]
+    [InlineData(ReviewEvaluation.Easy, 4, 12)]
+    public void Calculate_ShouldProtectSchedulerMatrix(
+        ReviewEvaluation evaluation,
+        int currentInterval,
+        int expectedInterval)
+    {
+        var result = ReviewScheduleCalculator.Calculate(
+            currentInterval, Now, evaluation, Now);
+
+        result.NextIntervalDays.Should().Be(expectedInterval);
+    }
+
     [Fact]
     public void Calculate_ShouldUseActualReviewTimeForNextDueDate()
     {

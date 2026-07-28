@@ -30,7 +30,9 @@ internal sealed class ReviewItemConfiguration
         builder.Property(item => item.DueAtUtc).IsRequired();
         builder.Property(item => item.LastReviewedAtUtc);
         builder.Property(item => item.IntervalDays).IsRequired();
-        builder.Property(item => item.ReviewCount).IsRequired();
+        builder.Property(item => item.ReviewCount)
+            .IsRequired()
+            .IsConcurrencyToken();
         builder.Property(item => item.CreatedAtUtc).IsRequired();
         builder.Property(item => item.UpdatedAtUtc).IsRequired();
 
