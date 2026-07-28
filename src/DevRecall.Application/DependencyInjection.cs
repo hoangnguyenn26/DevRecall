@@ -44,8 +44,12 @@ using DevRecall.Application.Reviews.GetDue;
 using DevRecall.Application.Reviews.GetHistory;
 using DevRecall.Application.Study.Create;
 using DevRecall.Application.Study.Items.Add;
+using DevRecall.Application.Study.Items.Complete;
 using DevRecall.Application.Study.Items.Remove;
 using DevRecall.Application.Study.Items.Reorder;
+using DevRecall.Application.Study.Items.Skip;
+using DevRecall.Application.Study.Items.Start;
+using DevRecall.Application.Study.Start;
 using DevRecall.Application.Study.Update;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -109,6 +113,10 @@ public static class DependencyInjection
         services.AddScoped<AddStudySessionItemHandler>();
         services.AddScoped<RemoveStudySessionItemHandler>();
         services.AddScoped<ReorderStudySessionItemsHandler>();
+        services.AddScoped<StartStudySessionHandler>();
+        services.AddScoped<StartStudySessionItemHandler>();
+        services.AddScoped<CompleteStudySessionItemHandler>();
+        services.AddScoped<SkipStudySessionItemHandler>();
 
         return services;
     }
