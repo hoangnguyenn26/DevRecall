@@ -300,6 +300,23 @@ Completed:
 - Complete interview question detail
 - Ownership and archived-question protection
 
+### Week 9 — DSA Problem Bank Core
+
+Completed:
+
+- DSA problem domain model
+- Difficulty and lifecycle status
+- PostgreSQL problem persistence
+- Owned topic collection persistence
+- Create DSA problem workflow
+- Active problem list with pagination
+- Difficulty, topic and source filtering
+- DSA problem detail
+- Problem update and topic replacement
+- Problem archive workflow
+- Ownership isolation
+- Archived-problem semantics
+
 ## Health endpoints
 
 Liveness:

@@ -69,6 +69,32 @@ public sealed class DsaProblemEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task Create_WithMissingRequiredFields_ShouldReturnValidationErrors()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/dsa-problems",
+            new CreateDsaProblemRequest(
+                " ", "", "Easy", null, null, []));
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+        var errors = document.RootElement.GetProperty("errors");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        errors.TryGetProperty("title", out _).Should().BeTrue();
+        errors.TryGetProperty("description", out _).Should().BeTrue();
+
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>();
+        var problemCount = await context.DsaProblems.CountAsync(
+            problem => problem.UserId == session.User.Id);
+        problemCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Create_WithNullTopics_ShouldReturnEmptyTopics()
     {
         var session = await CreateAuthenticatedClientAsync();

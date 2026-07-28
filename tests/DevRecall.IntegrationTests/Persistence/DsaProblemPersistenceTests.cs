@@ -34,7 +34,7 @@ public sealed class DsaProblemPersistenceTests(PostgreSqlFixture fixture)
     }
 
     [Fact]
-    public async Task ShouldReplaceProblemTopics()
+    public async Task ShouldReplaceAndPreserveProblemTopicsWhenArchived()
     {
         await using var context = fixture.CreateDbContext();
         var user = CreateUser();
@@ -46,6 +46,8 @@ public sealed class DsaProblemPersistenceTests(PostgreSqlFixture fixture)
         problem.ReplaceTopics(
             ["Array", "Two Pointers"], DateTimeOffset.UtcNow.AddMinutes(1));
         await context.SaveChangesAsync(CancellationToken.None);
+        problem.Archive(DateTimeOffset.UtcNow.AddMinutes(2));
+        await context.SaveChangesAsync(CancellationToken.None);
         context.ChangeTracker.Clear();
 
         var persisted = await context.DsaProblems
@@ -54,6 +56,7 @@ public sealed class DsaProblemPersistenceTests(PostgreSqlFixture fixture)
             .SingleAsync(
                 item => item.Id == problem.Id, CancellationToken.None);
 
+        persisted.Status.Should().Be(DsaProblemStatus.Archived);
         persisted.Topics.Select(topic => topic.Name)
             .Should().BeEquivalentTo(["Array", "Two Pointers"]);
     }
