@@ -1,7 +1,10 @@
+using DevRecall.Application.Common.Exceptions;
+using DevRecall.Application.Common.Pagination;
 using DevRecall.Application.Dsa.Attempts;
 using DevRecall.Domain.Dsa.Attempts;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace DevRecall.Infrastructure.Dsa.Attempts;
 
@@ -30,9 +33,62 @@ internal sealed class DsaAttemptRepository(DevRecallDbContext dbContext)
             : maximumAttemptNumber.Value + 1;
     }
 
+    public async Task<PagedReadResult<DsaAttemptListReadItem>> GetListAsync(
+        Guid dsaProblemId, DsaAttemptResult? result, int skip, int take,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.DsaAttempts
+            .AsNoTracking()
+            .Where(attempt => attempt.DsaProblemId == dsaProblemId);
+        if (result is not null)
+        {
+            query = query.Where(attempt => attempt.Result == result.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(attempt => attempt.AttemptNumber)
+            .ThenBy(attempt => attempt.Id)
+            .Skip(skip)
+            .Take(take)
+            .Select(attempt => new DsaAttemptListReadItem(
+                attempt.Id, attempt.AttemptNumber, attempt.Result,
+                attempt.Language, attempt.TimeComplexity,
+                attempt.SpaceComplexity, attempt.DurationMinutes,
+                attempt.AttemptedAtUtc, attempt.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
+        return new PagedReadResult<DsaAttemptListReadItem>(
+            items, totalCount);
+    }
+
+    public Task<DsaAttempt?> GetLatestSuccessfulAsync(
+        Guid dsaProblemId, CancellationToken cancellationToken) =>
+        dbContext.DsaAttempts
+            .AsNoTracking()
+            .Where(attempt => attempt.DsaProblemId == dsaProblemId
+                && attempt.Result == DsaAttemptResult.Solved)
+            .OrderByDescending(attempt => attempt.AttemptNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public void Add(DsaAttempt attempt) =>
         dbContext.DsaAttempts.Add(attempt);
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException
+            {
+                ConstraintName:
+                    "ux_dsa_attempts_problem_attempt_number"
+            })
+        {
+            throw new ConflictException(
+                DsaAttemptErrors.VersionConflict.Code,
+                DsaAttemptErrors.VersionConflict.Message);
+        }
+    }
 }

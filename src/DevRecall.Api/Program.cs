@@ -117,6 +117,7 @@ app.MapHealthChecks(
         Predicate = registration => registration.Tags.Contains("ready")
     });
 app.MapAuthEndpoints();
+app.MapDsaAttemptEndpoints();
 app.MapDsaProblemEndpoints();
 app.MapInterviewQuestionEndpoints();
 app.MapKnowledgeEndpoints();
