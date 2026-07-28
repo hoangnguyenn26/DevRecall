@@ -42,6 +42,8 @@ using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
 using DevRecall.Application.Reviews.GetDue;
 using DevRecall.Application.Reviews.GetHistory;
+using DevRecall.Application.Study.Cancel;
+using DevRecall.Application.Study.Complete;
 using DevRecall.Application.Study.Create;
 using DevRecall.Application.Study.Items.Add;
 using DevRecall.Application.Study.Items.Complete;
@@ -117,6 +119,8 @@ public static class DependencyInjection
         services.AddScoped<StartStudySessionItemHandler>();
         services.AddScoped<CompleteStudySessionItemHandler>();
         services.AddScoped<SkipStudySessionItemHandler>();
+        services.AddScoped<CompleteStudySessionHandler>();
+        services.AddScoped<CancelStudySessionHandler>();
 
         return services;
     }

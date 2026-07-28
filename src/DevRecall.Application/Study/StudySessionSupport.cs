@@ -1,6 +1,7 @@
 using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Identity;
 using DevRecall.Domain.Study;
+using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Application.Study;
 
@@ -60,6 +61,39 @@ internal static class StudySessionSupport
                     ["notes"] =
                         [$"Notes cannot exceed {StudySessionText.ItemNotesMaxLength} characters."]
                 });
+        }
+    }
+
+    public static void ValidateExpectedVersion(int expectedVersion)
+    {
+        if (expectedVersion <= 0)
+        {
+            throw new ValidationException(
+                new Dictionary<string, string[]>
+                {
+                    ["expectedVersion"] =
+                        ["Expected version must be greater than zero."]
+                });
+        }
+    }
+
+    public static ConflictException MapDomainConflict(
+        StudySessionDomainException exception) =>
+        new(exception.Error.Code, exception.Error.Message);
+
+    public static async Task SaveWithConcurrencyMappingAsync(
+        IStudySessionRepository repository,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException(
+                StudySessionErrors.Conflict.Code,
+                StudySessionErrors.Conflict.Message);
         }
     }
 
@@ -137,4 +171,28 @@ internal static class StudyResourceTypeParser
         {
             ["resourceType"] = [message]
         });
+}
+
+internal static class StudySessionStatusParser
+{
+    public static StudySessionStatus Parse(string value)
+    {
+        var normalized = value.Trim()
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace("_", string.Empty, StringComparison.Ordinal);
+        if (!Enum.TryParse<StudySessionStatus>(
+                normalized, true, out var status)
+            || !Enum.IsDefined(status))
+        {
+            throw new ValidationException(
+                new Dictionary<string, string[]>
+                {
+                    ["status"] =
+                        ["Status must be Planned, InProgress, Completed, or Cancelled."]
+                });
+        }
+
+        return status;
+    }
 }

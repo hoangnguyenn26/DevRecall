@@ -14,6 +14,8 @@ public sealed record ReorderStudySessionItemsRequest(
 
 public sealed record CompleteStudySessionItemRequest(string? Notes);
 public sealed record SkipStudySessionItemRequest(string? Notes);
+public sealed record CompleteStudySessionRequest(int ExpectedVersion);
+public sealed record CancelStudySessionRequest(int ExpectedVersion);
 
 public sealed record StudySessionResponse(
     Guid Id, string Title, string Status, int PlannedDurationMinutes,
@@ -39,3 +41,55 @@ public sealed record StudySessionItemStateResponse(
     Guid Id, string Status, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? Notes,
     DateTimeOffset UpdatedAtUtc);
+
+public sealed record StudySessionCompletionSummaryResponse(
+    int TotalItems, int PendingItems, int InProgressItems,
+    int CompletedItems, int SkippedItems,
+    int KnowledgeItemsCompleted, int InterviewItemsCompleted,
+    int DsaItemsCompleted, int ReviewItemsCompleted);
+
+public sealed record CompleteStudySessionResponse(
+    Guid Id, string Status, DateTimeOffset StartedAtUtc,
+    DateTimeOffset CompletedAtUtc, int ActualDurationMinutes,
+    int PlannedDurationMinutes, int Version,
+    StudySessionCompletionSummaryResponse Summary,
+    DateTimeOffset UpdatedAtUtc);
+
+public sealed record CancelStudySessionResponse(
+    Guid Id, string Status, DateTimeOffset? StartedAtUtc,
+    int Version, DateTimeOffset UpdatedAtUtc);
+
+public sealed class GetStudySessionsRequest
+{
+    public string? Status { get; init; }
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
+}
+
+public sealed record StudySessionListItemResponse(
+    Guid Id, string Title, string Status, int PlannedDurationMinutes,
+    int? ActualDurationMinutes, DateTimeOffset? StartedAtUtc,
+    DateTimeOffset? CompletedAtUtc, int TotalItems,
+    int CompletedItems, int SkippedItems, int Version,
+    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
+
+public sealed record StudySessionProgressSummaryResponse(
+    int TotalItems, int PendingItems, int InProgressItems,
+    int CompletedItems, int SkippedItems, double CompletionPercentage,
+    int KnowledgeItems, int InterviewItems, int DsaItems, int ReviewItems);
+
+public sealed record StudySessionDetailItemResponse(
+    Guid Id, string ResourceType, Guid ResourceId,
+    string ResourceTitle, string? ResourcePreview,
+    bool IsResourceAvailable, int Position, string Status,
+    DateTimeOffset? StartedAtUtc, DateTimeOffset? CompletedAtUtc,
+    string? Notes, DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
+
+public sealed record StudySessionDetailResponse(
+    Guid Id, string Title, string Status, int PlannedDurationMinutes,
+    int? ActualDurationMinutes, DateTimeOffset? StartedAtUtc,
+    DateTimeOffset? CompletedAtUtc, string? Notes, int Version,
+    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
+    StudySessionProgressSummaryResponse Progress,
+    IReadOnlyList<StudySessionDetailItemResponse> Items);

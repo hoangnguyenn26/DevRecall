@@ -1,5 +1,7 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Study;
+using DevRecall.Application.Study.Cancel;
+using DevRecall.Application.Study.Complete;
 using DevRecall.Application.Study.Create;
 using DevRecall.Application.Study.Items.Add;
 using DevRecall.Application.Study.Items.Complete;
@@ -33,6 +35,8 @@ public static class StudySessionEndpoints
             "/{id:guid}/items/{itemId:guid}/complete", CompleteItemAsync);
         group.MapPost(
             "/{id:guid}/items/{itemId:guid}/skip", SkipItemAsync);
+        group.MapPost("/{id:guid}/complete", CompleteSessionAsync);
+        group.MapPost("/{id:guid}/cancel", CancelSessionAsync);
         return endpoints;
     }
 
@@ -141,6 +145,43 @@ public static class StudySessionEndpoints
             new SkipStudySessionItemCommand(id, itemId, request.Notes),
             cancellationToken);
         return Results.Ok(MapItemState(result));
+    }
+
+    private static async Task<IResult> CompleteSessionAsync(
+        Guid id, CompleteStudySessionRequest request,
+        CompleteStudySessionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new CompleteStudySessionCommand(id, request.ExpectedVersion),
+            cancellationToken);
+        return Results.Ok(new CompleteStudySessionResponse(
+            result.Id, result.Status, result.StartedAtUtc,
+            result.CompletedAtUtc, result.ActualDurationMinutes,
+            result.PlannedDurationMinutes, result.Version,
+            new StudySessionCompletionSummaryResponse(
+                result.Summary.TotalItems, result.Summary.PendingItems,
+                result.Summary.InProgressItems,
+                result.Summary.CompletedItems,
+                result.Summary.SkippedItems,
+                result.Summary.KnowledgeItemsCompleted,
+                result.Summary.InterviewItemsCompleted,
+                result.Summary.DsaItemsCompleted,
+                result.Summary.ReviewItemsCompleted),
+            result.UpdatedAtUtc));
+    }
+
+    private static async Task<IResult> CancelSessionAsync(
+        Guid id, CancelStudySessionRequest request,
+        CancelStudySessionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new CancelStudySessionCommand(id, request.ExpectedVersion),
+            cancellationToken);
+        return Results.Ok(new CancelStudySessionResponse(
+            result.Id, result.Status, result.StartedAtUtc,
+            result.Version, result.UpdatedAtUtc));
     }
 
     private static StudySessionResponse MapSession(StudySessionResult result) =>

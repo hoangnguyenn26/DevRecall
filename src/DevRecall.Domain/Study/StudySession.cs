@@ -18,6 +18,7 @@ public sealed class StudySession
         PlannedDurationMinutes = plannedDurationMinutes;
         Notes = notes;
         Status = StudySessionStatus.Planned;
+        Version = 1;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
     }
@@ -33,6 +34,7 @@ public sealed class StudySession
     public string? Notes { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public int Version { get; private set; }
     public IReadOnlyCollection<StudySessionItem> Items => _items.AsReadOnly();
 
     public static StudySession Create(
@@ -80,6 +82,7 @@ public sealed class StudySession
         PlannedDurationMinutes = duration;
         Notes = normalizedNotes;
         UpdatedAtUtc = updatedAtUtc;
+        IncrementVersion();
         return true;
     }
 
@@ -116,6 +119,7 @@ public sealed class StudySession
             itemId, Id, resourceType, resourceId, position, notes, createdAtUtc);
         _items.Add(item);
         UpdatedAtUtc = createdAtUtc;
+        IncrementVersion();
         return item;
     }
 
@@ -132,6 +136,7 @@ public sealed class StudySession
         _items.Remove(item);
         NormalizePositions();
         UpdatedAtUtc = updatedAtUtc;
+        IncrementVersion();
         return true;
     }
 
@@ -168,6 +173,7 @@ public sealed class StudySession
         if (changed)
         {
             UpdatedAtUtc = updatedAtUtc;
+            IncrementVersion();
         }
 
         return changed;
@@ -182,6 +188,7 @@ public sealed class StudySession
                 Status = StudySessionStatus.InProgress;
                 StartedAtUtc = startedAtUtc;
                 UpdatedAtUtc = startedAtUtc;
+                IncrementVersion();
                 return;
             case StudySessionStatus.InProgress:
                 throw new InvalidOperationException(
@@ -203,6 +210,7 @@ public sealed class StudySession
         EnsureInProgress();
         GetItem(itemId).Start(startedAtUtc);
         UpdatedAtUtc = startedAtUtc;
+        IncrementVersion();
     }
 
     public void CompleteItem(
@@ -211,6 +219,7 @@ public sealed class StudySession
         EnsureInProgress();
         GetItem(itemId).Complete(notes, completedAtUtc);
         UpdatedAtUtc = completedAtUtc;
+        IncrementVersion();
     }
 
     public void SkipItem(
@@ -219,11 +228,17 @@ public sealed class StudySession
         EnsureInProgress();
         GetItem(itemId).Skip(notes, skippedAtUtc);
         UpdatedAtUtc = skippedAtUtc;
+        IncrementVersion();
     }
 
-    public void Complete(DateTimeOffset completedAtUtc)
+    public void Complete(DateTimeOffset completedAtUtc) =>
+        Complete(Version, completedAtUtc);
+
+    public StudySessionCompletionSummary Complete(
+        int expectedVersion, DateTimeOffset completedAtUtc)
     {
         EnsureUtc(completedAtUtc, nameof(completedAtUtc));
+        EnsureExpectedVersion(expectedVersion);
         EnsureInProgress();
         if (StartedAtUtc is null)
         {
@@ -243,11 +258,17 @@ public sealed class StudySession
         ActualDurationMinutes = CalculateActualDurationMinutes(
             completedAtUtc - StartedAtUtc.Value);
         UpdatedAtUtc = completedAtUtc;
+        IncrementVersion();
+        return GetCompletionSummary();
     }
 
-    public bool Cancel(DateTimeOffset cancelledAtUtc)
+    public bool Cancel(DateTimeOffset cancelledAtUtc) =>
+        Cancel(Version, cancelledAtUtc);
+
+    public bool Cancel(int expectedVersion, DateTimeOffset cancelledAtUtc)
     {
         EnsureUtc(cancelledAtUtc, nameof(cancelledAtUtc));
+        EnsureExpectedVersion(expectedVersion);
         if (Status == StudySessionStatus.Cancelled)
         {
             return false;
@@ -261,8 +282,23 @@ public sealed class StudySession
 
         Status = StudySessionStatus.Cancelled;
         UpdatedAtUtc = cancelledAtUtc;
+        IncrementVersion();
         return true;
     }
+
+    public StudySessionCompletionSummary GetCompletionSummary() =>
+        new(
+            _items.Count,
+            _items.Count(item => item.Status == StudySessionItemStatus.Pending),
+            _items.Count(item =>
+                item.Status == StudySessionItemStatus.InProgress),
+            _items.Count(item =>
+                item.Status == StudySessionItemStatus.Completed),
+            _items.Count(item => item.Status == StudySessionItemStatus.Skipped),
+            CountCompleted(StudyResourceType.KnowledgeNode),
+            CountCompleted(StudyResourceType.InterviewQuestion),
+            CountCompleted(StudyResourceType.DsaProblem),
+            CountCompleted(StudyResourceType.ReviewItem));
 
     private StudySessionItem GetItem(Guid itemId) =>
         _items.SingleOrDefault(item => item.Id == itemId)
@@ -326,6 +362,29 @@ public sealed class StudySession
             ? int.MaxValue
             : (int)Math.Floor(elapsed.TotalMinutes);
     }
+
+    private int CountCompleted(StudyResourceType resourceType) =>
+        _items.Count(item =>
+            item.ResourceType == resourceType
+            && item.Status == StudySessionItemStatus.Completed);
+
+    private void EnsureExpectedVersion(int expectedVersion)
+    {
+        if (expectedVersion <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(expectedVersion),
+                "Expected version must be greater than zero.");
+        }
+
+        if (Version != expectedVersion)
+        {
+            throw new StudySessionDomainException(
+                StudySessionErrors.Conflict);
+        }
+    }
+
+    private void IncrementVersion() => Version = checked(Version + 1);
 
     private static int ValidatePlannedDuration(int value)
     {

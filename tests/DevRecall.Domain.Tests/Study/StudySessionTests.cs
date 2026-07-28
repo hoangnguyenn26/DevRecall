@@ -182,6 +182,44 @@ public sealed class StudySessionTests
             .WithMessage($"*{StudySessionErrors.InvalidResourceType.Message}*");
     }
 
+    [Fact]
+    public void Mutations_ShouldIncrementVersionAndCompletionShouldBuildSummary()
+    {
+        var session = CreateSession();
+        var knowledge = AddItem(
+            session, StudyResourceType.KnowledgeNode, Now);
+        _ = AddItem(session, StudyResourceType.DsaProblem, Now);
+        session.Start(Now.AddMinutes(1));
+        session.CompleteItem(
+            knowledge.Id, null, Now.AddMinutes(2));
+        var expectedVersion = session.Version;
+
+        var summary = session.Complete(
+            expectedVersion, Now.AddMinutes(31));
+
+        session.Version.Should().Be(expectedVersion + 1);
+        summary.TotalItems.Should().Be(2);
+        summary.CompletedItems.Should().Be(1);
+        summary.PendingItems.Should().Be(1);
+        summary.KnowledgeItemsCompleted.Should().Be(1);
+        summary.DsaItemsCompleted.Should().Be(0);
+    }
+
+    [Fact]
+    public void Complete_WithStaleVersion_ShouldRejectWithoutMutation()
+    {
+        var session = CreateSession();
+        session.Start(Now);
+
+        var action = () => session.Complete(
+            session.Version - 1, Now.AddMinutes(10));
+
+        action.Should().Throw<StudySessionDomainException>()
+            .Which.Error.Should().Be(StudySessionErrors.Conflict);
+        session.Status.Should().Be(StudySessionStatus.InProgress);
+        session.CompletedAtUtc.Should().BeNull();
+    }
+
     private static StudySession CreateSession(
         string title = "Study",
         int plannedDuration = 30,

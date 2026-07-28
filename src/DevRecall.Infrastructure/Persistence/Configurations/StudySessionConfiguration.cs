@@ -20,6 +20,8 @@ internal sealed class StudySessionConfiguration
                 table.HasCheckConstraint(
                     "ck_study_sessions_actual_duration_non_negative",
                     "actual_duration_minutes IS NULL OR actual_duration_minutes >= 0");
+                table.HasCheckConstraint(
+                    "ck_study_sessions_version_positive", "version > 0");
             });
         builder.HasKey(session => session.Id);
         builder.Property(session => session.Id).ValueGeneratedNever();
@@ -37,6 +39,9 @@ internal sealed class StudySessionConfiguration
         builder.Property(session => session.Notes).HasColumnType("text");
         builder.Property(session => session.CreatedAtUtc).IsRequired();
         builder.Property(session => session.UpdatedAtUtc).IsRequired();
+        builder.Property(session => session.Version)
+            .IsRequired()
+            .IsConcurrencyToken();
 
         builder.HasOne<User>()
             .WithMany()

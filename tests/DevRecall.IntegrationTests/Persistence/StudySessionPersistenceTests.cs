@@ -131,6 +131,37 @@ public sealed class StudySessionPersistenceTests(PostgreSqlFixture fixture)
         itemExists.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task ShouldRejectConcurrentSessionMutation()
+    {
+        Guid sessionId;
+        await using (var setup = fixture.CreateDbContext())
+        {
+            var user = CreateUser();
+            var session = CreateSession(user.Id);
+            session.Start(Now.AddMinutes(1));
+            sessionId = session.Id;
+            setup.Users.Add(user);
+            setup.StudySessions.Add(session);
+            await setup.SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using var firstContext = fixture.CreateDbContext();
+        await using var secondContext = fixture.CreateDbContext();
+        var first = await firstContext.StudySessions.SingleAsync(
+            session => session.Id == sessionId);
+        var second = await secondContext.StudySessions.SingleAsync(
+            session => session.Id == sessionId);
+        first.Complete(first.Version, Now.AddMinutes(31));
+        second.Cancel(second.Version, Now.AddMinutes(20));
+
+        await firstContext.SaveChangesAsync(CancellationToken.None);
+        var action = async () =>
+            await secondContext.SaveChangesAsync(CancellationToken.None);
+
+        await action.Should().ThrowAsync<DbUpdateConcurrencyException>();
+    }
+
     private static StudySession CreateSession(Guid userId) =>
         StudySession.Create(
             Guid.NewGuid(), userId, "Evening study", 45, null, Now);
