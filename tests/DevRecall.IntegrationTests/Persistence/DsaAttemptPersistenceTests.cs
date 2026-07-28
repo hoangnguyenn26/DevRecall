@@ -75,19 +75,66 @@ public sealed class DsaAttemptPersistenceTests(PostgreSqlFixture fixture)
         attemptCount.Should().Be(2);
     }
 
+    [Fact]
+    public async Task ShouldPreserveHistoryAndQueryLatestSolvedAndSummary()
+    {
+        await using var context = fixture.CreateDbContext();
+        var user = CreateUser();
+        var problem = CreateProblem(user.Id);
+        var first = CreateAttempt(
+            problem.Id, 1, DsaAttemptResult.Failed, 40, "failed code");
+        var second = CreateAttempt(
+            problem.Id, 2, DsaAttemptResult.Solved, 20, "solved code");
+        var third = CreateAttempt(
+            problem.Id, 3, DsaAttemptResult.PartiallySolved, 30);
+        var fourth = CreateAttempt(
+            problem.Id, 4, DsaAttemptResult.Skipped, 0);
+        context.Users.Add(user);
+        context.DsaProblems.Add(problem);
+        context.DsaAttempts.AddRange(first, second, third, fourth);
+        await context.SaveChangesAsync(CancellationToken.None);
+        context.ChangeTracker.Clear();
+
+        var history = await context.DsaAttempts
+            .AsNoTracking()
+            .Where(attempt => attempt.DsaProblemId == problem.Id)
+            .OrderByDescending(attempt => attempt.AttemptNumber)
+            .ToListAsync(CancellationToken.None);
+        var latestSolved = await context.DsaAttempts
+            .AsNoTracking()
+            .Where(attempt => attempt.DsaProblemId == problem.Id
+                && attempt.Result == DsaAttemptResult.Solved)
+            .OrderByDescending(attempt => attempt.AttemptNumber)
+            .SingleAsync(CancellationToken.None);
+        var persistedFirst = history.Single(attempt => attempt.Id == first.Id);
+
+        history.Select(attempt => attempt.AttemptNumber)
+            .Should().Equal(4, 3, 2, 1);
+        history.Count(attempt => attempt.Result == DsaAttemptResult.Solved)
+            .Should().Be(1);
+        history.Sum(attempt => attempt.DurationMinutes).Should().Be(90);
+        latestSolved.Id.Should().Be(second.Id);
+        persistedFirst.Result.Should().Be(DsaAttemptResult.Failed);
+        persistedFirst.DurationMinutes.Should().Be(40);
+        persistedFirst.SolutionCode.Should().Be("failed code");
+    }
+
     private static DsaAttempt CreateAttempt(
         Guid problemId,
         int attemptNumber,
-        DsaAttemptResult result = DsaAttemptResult.Failed) =>
+        DsaAttemptResult result = DsaAttemptResult.Failed,
+        int durationMinutes = 35,
+        string? solutionCode = null) =>
         DsaAttempt.Create(
             Guid.NewGuid(), problemId, attemptNumber, result, "C#",
-            """
-            public int[] TwoSum(int[] nums, int target)
-            {
-                return [];
-            }
-            """,
-            "Tried a hash map approach.", "O(n)", "O(n)", 35,
+            solutionCode ??
+                """
+                public int[] TwoSum(int[] nums, int target)
+                {
+                    return [];
+                }
+                """,
+            "Tried a hash map approach.", "O(n)", "O(n)", durationMinutes,
             "Forgot to insert the current value.",
             DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
 

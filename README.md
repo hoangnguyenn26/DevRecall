@@ -317,6 +317,25 @@ Completed:
 - Ownership isolation
 - Archived-problem semantics
 
+### Week 10 — DSA Attempt History
+
+Completed:
+
+- Immutable DSA attempt snapshots
+- Attempt result and duration validation
+- Automatic attempt numbering per problem
+- PostgreSQL attempt persistence
+- Unique problem-attempt sequence constraint
+- Attempt creation workflow
+- Paginated attempt history
+- Result filtering
+- Full attempt detail
+- Latest successful attempt
+- Attempt comparison
+- Complete DSA problem progress summary
+- Recent-attempt overview
+- Ownership and archived-problem protection
+
 ## Health endpoints
 
 Liveness:
