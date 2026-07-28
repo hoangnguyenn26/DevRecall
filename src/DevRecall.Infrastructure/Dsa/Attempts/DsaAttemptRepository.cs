@@ -70,6 +70,22 @@ internal sealed class DsaAttemptRepository(DevRecallDbContext dbContext)
             .OrderByDescending(attempt => attempt.AttemptNumber)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<DsaAttempt>> GetByIdsAndProblemIdAsync(
+        Guid dsaProblemId, IReadOnlyCollection<Guid> attemptIds,
+        CancellationToken cancellationToken)
+    {
+        if (attemptIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await dbContext.DsaAttempts
+            .AsNoTracking()
+            .Where(attempt => attempt.DsaProblemId == dsaProblemId
+                && attemptIds.Contains(attempt.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public void Add(DsaAttempt attempt) =>
         dbContext.DsaAttempts.Add(attempt);
 

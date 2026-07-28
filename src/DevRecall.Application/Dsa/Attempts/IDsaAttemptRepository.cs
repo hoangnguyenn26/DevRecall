@@ -18,6 +18,10 @@ public interface IDsaAttemptRepository
     Task<DsaAttempt?> GetLatestSuccessfulAsync(
         Guid dsaProblemId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<DsaAttempt>> GetByIdsAndProblemIdAsync(
+        Guid dsaProblemId, IReadOnlyCollection<Guid> attemptIds,
+        CancellationToken cancellationToken);
+
     void Add(DsaAttempt attempt);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
