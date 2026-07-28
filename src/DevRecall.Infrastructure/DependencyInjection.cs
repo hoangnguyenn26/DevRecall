@@ -11,6 +11,7 @@ using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Study;
+using DevRecall.Application.Study.Resources;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
 using DevRecall.Infrastructure.Identity;
@@ -22,8 +23,8 @@ using DevRecall.Infrastructure.Knowledge.Tags;
 using DevRecall.Infrastructure.Persistence;
 using DevRecall.Infrastructure.Reviews;
 using DevRecall.Infrastructure.Reviews.Resources;
-using DevRecall.Infrastructure.Time;
 using DevRecall.Infrastructure.Study;
+using DevRecall.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,6 +86,10 @@ public static class DependencyInjection
             ReviewResourceSummaryReader>();
         services.AddSingleton<IUtcClock, SystemUtcClock>();
         services.AddScoped<IStudySessionRepository, StudySessionRepository>();
+        services.AddScoped<IStudyResourceResolver, StudyResourceResolver>();
+        services.AddScoped<
+            IStudyReviewItemResourceReader,
+            StudyReviewItemResourceReader>();
 
         return services;
     }

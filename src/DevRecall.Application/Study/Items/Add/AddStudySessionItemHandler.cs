@@ -1,0 +1,92 @@
+using DevRecall.Application.Common.Exceptions;
+using DevRecall.Application.Common.Time;
+using DevRecall.Application.Identity;
+using DevRecall.Application.Study.Resources;
+using DevRecall.Domain.Study;
+using Microsoft.EntityFrameworkCore;
+
+namespace DevRecall.Application.Study.Items.Add;
+
+public sealed record AddStudySessionItemCommand(
+    Guid StudySessionId, string ResourceType,
+    Guid ResourceId, string? Notes);
+
+public sealed class AddStudySessionItemHandler(
+    IStudySessionRepository repository,
+    IStudyResourceResolver resourceResolver,
+    ICurrentUser currentUser,
+    IUtcClock utcClock)
+{
+    public async Task<StudySessionItemResult> HandleAsync(
+        AddStudySessionItemCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (command.ResourceId == Guid.Empty)
+        {
+            throw new ValidationException(
+                new Dictionary<string, string[]>
+                {
+                    ["resourceId"] = ["Resource id is required."]
+                });
+        }
+
+        StudySessionSupport.ValidateItemNotes(command.Notes);
+        var resourceType = StudyResourceTypeParser.Parse(command.ResourceType);
+        var userId = StudySessionSupport.GetUserId(currentUser);
+        var session = await repository.GetByIdAndUserIdForUpdateAsync(
+            command.StudySessionId, userId, cancellationToken);
+        if (session is null)
+        {
+            throw new NotFoundException(
+                StudySessionErrors.SessionNotFound.Code,
+                StudySessionErrors.SessionNotFound.Message);
+        }
+
+        StudySessionSupport.EnsureCanEditPlan(session);
+        var resource = await resourceResolver.ResolveAsync(
+            userId, resourceType, command.ResourceId, cancellationToken);
+        if (resource is null)
+        {
+            throw new NotFoundException(
+                StudySessionErrors.ResourceNotFound.Code,
+                StudySessionErrors.ResourceNotFound.Message);
+        }
+
+        if (resource.Availability == StudyResourceAvailability.Archived)
+        {
+            throw new ConflictException(
+                StudySessionErrors.ResourceArchived.Code,
+                StudySessionErrors.ResourceArchived.Message);
+        }
+
+        StudySessionItem item;
+        try
+        {
+            item = session.AddItem(
+                Guid.NewGuid(), resourceType, resource.ResourceId,
+                command.Notes, utcClock.UtcNow);
+        }
+        catch (InvalidOperationException)
+        {
+            throw new ConflictException(
+                StudySessionErrors.ItemAlreadyExists.Code,
+                StudySessionErrors.ItemAlreadyExists.Message);
+        }
+
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException?.Message.Contains(
+                "ux_study_session_items_session_resource",
+                StringComparison.Ordinal) == true)
+        {
+            throw new ConflictException(
+                StudySessionErrors.ItemAlreadyExists.Code,
+                StudySessionErrors.ItemAlreadyExists.Message);
+        }
+
+        return StudyResultMapper.Map(item);
+    }
+}
