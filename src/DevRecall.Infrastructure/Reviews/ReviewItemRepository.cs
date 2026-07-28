@@ -17,6 +17,12 @@ internal sealed class ReviewItemRepository(DevRecallDbContext dbContext)
         dbContext.ReviewItems.SingleOrDefaultAsync(
             item => item.Id == id, cancellationToken);
 
+    public Task<ReviewItem?> GetByIdAndUserIdForUpdateAsync(
+        Guid id, Guid userId, CancellationToken cancellationToken) =>
+        dbContext.ReviewItems.SingleOrDefaultAsync(
+            item => item.Id == id && item.UserId == userId,
+            cancellationToken);
+
     public Task<ReviewItem?> GetByIdAndUserIdAsync(
         Guid id, Guid userId, CancellationToken cancellationToken) =>
         dbContext.ReviewItems

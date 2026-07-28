@@ -153,6 +153,10 @@ public sealed class ReviewHandlerTests
             Guid id, Guid userId, CancellationToken cancellationToken) =>
             Task.FromResult<ReviewItem?>(null);
 
+        public Task<ReviewItem?> GetByIdAndUserIdForUpdateAsync(
+            Guid id, Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<ReviewItem?>(null);
+
         public Task<bool> ActiveExistsAsync(
             Guid userId, ReviewResourceType resourceType, Guid resourceId,
             CancellationToken cancellationToken) =>

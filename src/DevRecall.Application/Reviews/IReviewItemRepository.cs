@@ -9,6 +9,9 @@ public interface IReviewItemRepository
     Task<ReviewItem?> GetByIdAsync(
         Guid id, CancellationToken cancellationToken);
 
+    Task<ReviewItem?> GetByIdAndUserIdForUpdateAsync(
+        Guid id, Guid userId, CancellationToken cancellationToken);
+
     Task<ReviewItem?> GetByIdAndUserIdAsync(
         Guid id, Guid userId, CancellationToken cancellationToken);
 

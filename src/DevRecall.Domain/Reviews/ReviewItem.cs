@@ -62,9 +62,15 @@ public sealed class ReviewItem
     }
 
     public ReviewSchedule Evaluate(
-        ReviewEvaluation evaluation, DateTimeOffset reviewedAtUtc)
+        ReviewEvaluation evaluation, int expectedReviewCount,
+        DateTimeOffset reviewedAtUtc)
     {
         EnsureActive();
+        if (expectedReviewCount != ReviewCount)
+        {
+            throw new ReviewScheduleConflictException();
+        }
+
         var schedule = ReviewScheduleCalculator.Calculate(
             IntervalDays, DueAtUtc, evaluation, reviewedAtUtc);
 
@@ -93,7 +99,7 @@ public sealed class ReviewItem
     {
         if (Status == ReviewItemStatus.Archived)
         {
-            throw new InvalidOperationException(ReviewErrors.ItemArchived.Message);
+            throw new ReviewItemArchivedException();
         }
     }
 

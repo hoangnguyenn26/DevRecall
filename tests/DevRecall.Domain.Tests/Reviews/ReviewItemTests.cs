@@ -28,7 +28,7 @@ public sealed class ReviewItemTests
         var item = CreateItem();
         var reviewedAt = CreatedAt.AddHours(1);
 
-        var schedule = item.Evaluate(ReviewEvaluation.Good, reviewedAt);
+        var schedule = item.Evaluate(ReviewEvaluation.Good, 0, reviewedAt);
 
         schedule.PreviousIntervalDays.Should().Be(0);
         schedule.PreviousDueAtUtc.Should().Be(CreatedAt);
@@ -59,10 +59,27 @@ public sealed class ReviewItemTests
         item.Archive(CreatedAt.AddHours(1));
 
         var action = () => item.Evaluate(
-            ReviewEvaluation.Good, CreatedAt.AddHours(2));
+            ReviewEvaluation.Good, 0, CreatedAt.AddHours(2));
 
         action.Should().Throw<InvalidOperationException>()
             .WithMessage(ReviewErrors.ItemArchived.Message);
+    }
+
+    [Fact]
+    public void Evaluate_WithStaleReviewCount_ShouldNotChangeState()
+    {
+        var item = CreateItem();
+
+        var action = () => item.Evaluate(
+            ReviewEvaluation.Good, 1, CreatedAt.AddHours(1));
+
+        action.Should().Throw<ReviewScheduleConflictException>()
+            .WithMessage(ReviewErrors.ScheduleConflict.Message);
+        item.IntervalDays.Should().Be(0);
+        item.ReviewCount.Should().Be(0);
+        item.DueAtUtc.Should().Be(CreatedAt);
+        item.LastReviewedAtUtc.Should().BeNull();
+        item.UpdatedAtUtc.Should().Be(CreatedAt);
     }
 
     [Fact]

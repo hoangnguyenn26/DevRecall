@@ -85,7 +85,7 @@ public sealed class ReviewPersistenceTests(PostgreSqlFixture fixture)
         await context.SaveChangesAsync(CancellationToken.None);
 
         var reviewedAt = Now.AddHours(2);
-        var schedule = item.Evaluate(ReviewEvaluation.Good, reviewedAt);
+        var schedule = item.Evaluate(ReviewEvaluation.Good, 0, reviewedAt);
         var history = ReviewHistory.Create(
             Guid.NewGuid(), item.Id, ReviewEvaluation.Good,
             schedule, reviewedAt);
