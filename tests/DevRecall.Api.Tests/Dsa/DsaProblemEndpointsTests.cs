@@ -213,6 +213,127 @@ public sealed class DsaProblemEndpointsTests(AuthApiFactory factory)
         list!.Items.Should().NotContain(item => item.Id == problem.Id);
     }
 
+    [Fact]
+    public async Task Update_AsOwner_ShouldReplaceTopicsAndAffectFilters()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var created = await CreateProblemAsync(
+            client, "Two Sum", "Easy", "LeetCode",
+            ["Array", "Hash Table"]);
+        var persistedBeforeUpdate = await GetDetailAsync(client, created.Id);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/dsa-problems/{created.Id}",
+            new UpdateDsaProblemRequest(
+                "Two Sum Optimized", "Use one pass.", "Hard",
+                null, null, ["Array", "Two Pointers"]));
+        var updated = await updateResponse.Content
+            .ReadFromJsonAsync<DsaProblemResponse>();
+        using var filterResponse = await client.GetAsync(
+            "/api/v1/dsa-problems?difficulty=Hard&topic=two%20pointers");
+        var filtered = await filterResponse.Content.ReadFromJsonAsync<
+            PagedResponse<DsaProblemListItemResponse>>();
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        updated!.CreatedAtUtc.Should().Be(persistedBeforeUpdate.CreatedAtUtc);
+        updated.UpdatedAtUtc.Should()
+            .BeAfter(persistedBeforeUpdate.UpdatedAtUtc);
+        updated.Source.Should().BeNull();
+        updated.ExternalUrl.Should().BeNull();
+        updated.Topics.Should().Equal("Array", "Two Pointers");
+        filtered!.Items.Should().ContainSingle(item => item.Id == created.Id);
+    }
+
+    [Fact]
+    public async Task Update_WithEquivalentValues_ShouldPreserveTimestamp()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var created = await CreateProblemAsync(
+            client, "Two Sum", "Easy", "LeetCode",
+            ["Array", "Hash Table"]);
+        var persistedBeforeUpdate = await GetDetailAsync(client, created.Id);
+
+        using var response = await client.PutAsJsonAsync(
+            $"/api/v1/dsa-problems/{created.Id}",
+            new UpdateDsaProblemRequest(
+                " Two   Sum ", " Description for Two Sum. ", "easy",
+                " LeetCode ", created.ExternalUrl,
+                ["hash table", " ARRAY "]));
+        var updated = await response.Content
+            .ReadFromJsonAsync<DsaProblemResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        updated!.UpdatedAtUtc.Should().Be(persistedBeforeUpdate.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public async Task ProblemLifecycle_ShouldArchiveIdempotentlyAndBlockUpdate()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var created = await CreateProblemAsync(
+            client, "Lifecycle problem", "Easy", "LeetCode",
+            ["Array", "Hash Table"]);
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/dsa-problems/{created.Id}",
+            new UpdateDsaProblemRequest(
+                "Updated lifecycle problem", "Updated description.", "Medium",
+                "LeetCode", null, ["Array", "Sorting"]));
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/dsa-problems/{created.Id}/archive", null);
+        var archived = await GetDetailAsync(client, created.Id);
+        using var secondArchiveResponse = await client.PostAsync(
+            $"/api/v1/dsa-problems/{created.Id}/archive", null);
+        var secondArchived = await GetDetailAsync(client, created.Id);
+        using var listResponse = await client.GetAsync(
+            "/api/v1/dsa-problems?topic=Sorting");
+        var list = await listResponse.Content.ReadFromJsonAsync<
+            PagedResponse<DsaProblemListItemResponse>>();
+        using var archivedUpdateResponse = await client.PutAsJsonAsync(
+            $"/api/v1/dsa-problems/{created.Id}",
+            new UpdateDsaProblemRequest(
+                "Forbidden", "Forbidden.", "Hard", null, null, []));
+        using var errorDocument = JsonDocument.Parse(
+            await archivedUpdateResponse.Content.ReadAsStringAsync());
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        archiveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        archived.Status.Should().Be("Archived");
+        archived.Topics.Should().Equal("Array", "Sorting");
+        secondArchiveResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        secondArchived.UpdatedAtUtc.Should().Be(archived.UpdatedAtUtc);
+        list!.Items.Should().NotContain(item => item.Id == created.Id);
+        archivedUpdateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        errorDocument.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("DSA_PROBLEM_ARCHIVED");
+    }
+
+    [Fact]
+    public async Task CrossUserUpdateAndArchive_ShouldReturnNotFound()
+    {
+        var firstSession = await CreateAuthenticatedClientAsync();
+        using var firstClient = firstSession.Client;
+        var problem = await CreateProblemAsync(
+            firstClient, "Owned problem", "Easy", "Internal", ["Array"]);
+        var secondSession = await CreateAuthenticatedClientAsync();
+        using var secondClient = secondSession.Client;
+
+        using var updateResponse = await secondClient.PutAsJsonAsync(
+            $"/api/v1/dsa-problems/{problem.Id}",
+            new UpdateDsaProblemRequest(
+                "Changed", "Changed.", "Hard", null, null, []));
+        using var archiveResponse = await secondClient.PostAsync(
+            $"/api/v1/dsa-problems/{problem.Id}/archive", null);
+
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        archiveResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var unchanged = await GetDetailAsync(firstClient, problem.Id);
+        unchanged.Title.Should().Be("Owned problem");
+        unchanged.Status.Should().Be("Active");
+    }
+
     [Theory]
     [InlineData("?page=0")]
     [InlineData("?pageSize=0")]
@@ -277,6 +398,17 @@ public sealed class DsaProblemEndpointsTests(AuthApiFactory factory)
                 title, $"Description for {title}.", difficulty, source,
                 $"https://example.com/problems/{title.ToLowerInvariant().Replace(' ', '-')}",
                 topics));
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<DsaProblemResponse>())!;
+    }
+
+    private static async Task<DsaProblemResponse> GetDetailAsync(
+        HttpClient client,
+        Guid id)
+    {
+        using var response = await client.GetAsync(
+            $"/api/v1/dsa-problems/{id}");
         response.EnsureSuccessStatusCode();
         return (await response.Content
             .ReadFromJsonAsync<DsaProblemResponse>())!;

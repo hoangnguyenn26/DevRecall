@@ -1,7 +1,9 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.Dsa.Archive;
 using DevRecall.Application.Dsa.Create;
 using DevRecall.Application.Dsa.GetDetail;
 using DevRecall.Application.Dsa.GetList;
+using DevRecall.Application.Dsa.Update;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Dsa;
 
@@ -20,6 +22,8 @@ public static class DsaProblemEndpoints
         group.MapPost("", CreateAsync);
         group.MapGet("", GetListAsync);
         group.MapGet("/{id:guid}", GetDetailAsync);
+        group.MapPut("/{id:guid}", UpdateAsync);
+        group.MapPost("/{id:guid}/archive", ArchiveAsync);
         return endpoints;
     }
 
@@ -72,6 +76,33 @@ public static class DsaProblemEndpoints
             result.Id, result.Title, result.Description, result.Difficulty,
             result.Source, result.ExternalUrl, result.Topics, result.Status,
             result.CreatedAtUtc, result.UpdatedAtUtc));
+    }
+
+    private static async Task<IResult> UpdateAsync(
+        Guid id,
+        UpdateDsaProblemRequest request,
+        UpdateDsaProblemHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new UpdateDsaProblemCommand(
+                id, request.Title, request.Description, request.Difficulty,
+                request.Source, request.ExternalUrl, request.Topics),
+            cancellationToken);
+        return Results.Ok(MapResponse(
+            result.Id, result.Title, result.Description, result.Difficulty,
+            result.Source, result.ExternalUrl, result.Topics, result.Status,
+            result.CreatedAtUtc, result.UpdatedAtUtc));
+    }
+
+    private static async Task<IResult> ArchiveAsync(
+        Guid id,
+        ArchiveDsaProblemHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(
+            new ArchiveDsaProblemCommand(id), cancellationToken);
+        return Results.NoContent();
     }
 
     private static DsaProblemResponse MapResponse(

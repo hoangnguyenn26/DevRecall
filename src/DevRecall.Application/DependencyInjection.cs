@@ -1,6 +1,8 @@
+using DevRecall.Application.Dsa.Archive;
 using DevRecall.Application.Dsa.Create;
 using DevRecall.Application.Dsa.GetDetail;
 using DevRecall.Application.Dsa.GetList;
+using DevRecall.Application.Dsa.Update;
 using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
@@ -39,9 +41,11 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(
         this IServiceCollection services)
     {
+        services.AddScoped<ArchiveDsaProblemHandler>();
         services.AddScoped<CreateDsaProblemHandler>();
         services.AddScoped<GetDsaProblemsHandler>();
         services.AddScoped<GetDsaProblemDetailHandler>();
+        services.AddScoped<UpdateDsaProblemHandler>();
         services.AddScoped<RegisterUserHandler>();
         services.AddScoped<LoginUserHandler>();
         services.AddScoped<GetCurrentUserHandler>();
