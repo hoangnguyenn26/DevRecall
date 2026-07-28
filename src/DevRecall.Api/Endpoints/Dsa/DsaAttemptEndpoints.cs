@@ -1,4 +1,5 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.Dsa.Attempts.Compare;
 using DevRecall.Application.Dsa.Attempts.Create;
 using DevRecall.Application.Dsa.Attempts.GetDetail;
 using DevRecall.Application.Dsa.Attempts.GetLatestSuccessful;
@@ -22,6 +23,7 @@ public static class DsaAttemptEndpoints
         group.MapPost("", CreateAsync);
         group.MapGet("", GetListAsync);
         group.MapGet("/latest-successful", GetLatestSuccessfulAsync);
+        group.MapGet("/compare", CompareAsync);
         group.MapGet("/{attemptId:guid}", GetDetailAsync);
         return endpoints;
     }
@@ -96,6 +98,42 @@ public static class DsaAttemptEndpoints
             ? Results.NoContent()
             : Results.Ok(MapResponse(result));
     }
+
+    private static async Task<IResult> CompareAsync(
+        Guid problemId,
+        [AsParameters] CompareDsaAttemptsRequest request,
+        CompareDsaAttemptsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new CompareDsaAttemptsQuery(
+                problemId, request.LeftAttemptId, request.RightAttemptId),
+            cancellationToken);
+        return Results.Ok(new CompareDsaAttemptsResponse(
+            result.DsaProblemId,
+            MapComparisonSnapshot(result.Left),
+            MapComparisonSnapshot(result.Right),
+            new DsaAttemptComparisonDifferenceResponse(
+                result.Difference.AttemptNumberDifference,
+                result.Difference.DurationDifferenceMinutes,
+                result.Difference.ResultTransition,
+                result.Difference.ResultChanged,
+                result.Difference.LanguageChanged,
+                result.Difference.SolutionCodeChanged,
+                result.Difference.ApproachChanged,
+                result.Difference.TimeComplexityChanged,
+                result.Difference.SpaceComplexityChanged,
+                result.Difference.NotesChanged)));
+    }
+
+    private static DsaAttemptComparisonSnapshotResponse MapComparisonSnapshot(
+        DsaAttemptComparisonSnapshot attempt) =>
+        new(
+            attempt.Id, attempt.AttemptNumber, attempt.Result,
+            attempt.Language, attempt.SolutionCode, attempt.Approach,
+            attempt.TimeComplexity, attempt.SpaceComplexity,
+            attempt.DurationMinutes, attempt.Notes, attempt.AttemptedAtUtc,
+            attempt.CreatedAtUtc);
 
     private static DsaAttemptResponse MapResponse(
         GetDsaAttemptDetailResult result) =>

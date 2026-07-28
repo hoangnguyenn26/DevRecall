@@ -160,7 +160,10 @@ public sealed class DsaAttemptEndpointsTests(AuthApiFactory factory)
         var session = await CreateAuthenticatedClientAsync();
         using var client = session.Client;
         var problem = await CreateProblemAsync(client);
-        await CreateAttemptAsync(client, problem.Id, "Failed", null);
+        var first = await CreateAttemptAsync(
+            client, problem.Id, "Failed", null);
+        var second = await CreateAttemptAsync(
+            client, problem.Id, "Solved", "solved code");
         using var archiveResponse = await client.PostAsync(
             $"/api/v1/dsa-problems/{problem.Id}/archive", null);
 
@@ -168,9 +171,67 @@ public sealed class DsaAttemptEndpointsTests(AuthApiFactory factory)
             $"/api/v1/dsa-problems/{problem.Id}/attempts");
         var history = await response.Content.ReadFromJsonAsync<
             PagedResponse<DsaAttemptListItemResponse>>();
+        using var compareResponse = await client.GetAsync(
+            $"/api/v1/dsa-problems/{problem.Id}/attempts/compare"
+            + $"?leftAttemptId={first.Id}&rightAttemptId={second.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        history!.Items.Should().ContainSingle();
+        history!.Items.Should().HaveCount(2);
+        compareResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Compare_ShouldReturnFullSnapshotsAndRightMinusLeftDifferences()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var problem = await CreateProblemAsync(client);
+        var left = await CreateAttemptAsync(
+            client, problem.Id,
+            new CreateDsaAttemptRequest(
+                "Failed", "C#", "left code", "Nested loops", "O(n²)",
+                "O(1)", 35, "Left notes", DateTimeOffset.UtcNow));
+        var right = await CreateAttemptAsync(
+            client, problem.Id,
+            new CreateDsaAttemptRequest(
+                "Solved", "c#", "right code", "Dictionary", "O(n)",
+                "O(n)", 18, "Right notes", DateTimeOffset.UtcNow));
+
+        using var response = await client.GetAsync(
+            $"/api/v1/dsa-problems/{problem.Id}/attempts/compare"
+            + $"?leftAttemptId={left.Id}&rightAttemptId={right.Id}");
+        var comparison = await response.Content
+            .ReadFromJsonAsync<CompareDsaAttemptsResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        comparison!.Left.SolutionCode.Should().Be("left code");
+        comparison.Right.SolutionCode.Should().Be("right code");
+        comparison.Difference.AttemptNumberDifference.Should().Be(1);
+        comparison.Difference.DurationDifferenceMinutes.Should().Be(-17);
+        comparison.Difference.ResultTransition.Should().Be("Failed -> Solved");
+        comparison.Difference.LanguageChanged.Should().BeFalse();
+        comparison.Difference.SolutionCodeChanged.Should().BeTrue();
+        comparison.Difference.NotesChanged.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Compare_WithSameAttempt_ShouldReturnValidationError()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var problem = await CreateProblemAsync(client);
+        var attempt = await CreateAttemptAsync(
+            client, problem.Id, "Failed", null);
+
+        using var response = await client.GetAsync(
+            $"/api/v1/dsa-problems/{problem.Id}/attempts/compare"
+            + $"?leftAttemptId={attempt.Id}&rightAttemptId={attempt.Id}");
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        document.RootElement.GetProperty("errors")
+            .TryGetProperty("rightAttemptId", out _).Should().BeTrue();
     }
 
     [Fact]
@@ -193,11 +254,15 @@ public sealed class DsaAttemptEndpointsTests(AuthApiFactory factory)
             $"/api/v1/dsa-problems/{problem.Id}/attempts/{attempt.Id}");
         using var latestResponse = await secondClient.GetAsync(
             $"/api/v1/dsa-problems/{problem.Id}/attempts/latest-successful");
+        using var compareResponse = await secondClient.GetAsync(
+            $"/api/v1/dsa-problems/{problem.Id}/attempts/compare"
+            + $"?leftAttemptId={attempt.Id}&rightAttemptId={Guid.NewGuid()}");
 
         createResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         historyResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         detailResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         latestResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        compareResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -280,10 +345,17 @@ public sealed class DsaAttemptEndpointsTests(AuthApiFactory factory)
         Guid problemId,
         string result,
         string? solutionCode)
+        => await CreateAttemptAsync(
+            client, problemId, ValidAttemptRequest(result, solutionCode));
+
+    private static async Task<DsaAttemptResponse> CreateAttemptAsync(
+        HttpClient client,
+        Guid problemId,
+        CreateDsaAttemptRequest request)
     {
         using var response = await client.PostAsJsonAsync(
             $"/api/v1/dsa-problems/{problemId}/attempts",
-            ValidAttemptRequest(result, solutionCode));
+            request);
         response.EnsureSuccessStatusCode();
         var attempt = (await response.Content
             .ReadFromJsonAsync<DsaAttemptResponse>())!;

@@ -5,6 +5,7 @@ using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Dsa;
+using DevRecall.Contracts.Dsa.Attempts;
 using DevRecall.Domain.Dsa;
 using DevRecall.Infrastructure.Persistence;
 using FluentAssertions;
@@ -360,6 +361,69 @@ public sealed class DsaProblemEndpointsTests(AuthApiFactory factory)
         unchanged.Status.Should().Be("Active");
     }
 
+    [Fact]
+    public async Task CompleteDetail_WithoutAttempts_ShouldReturnZeroSummary()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var problem = await CreateProblemAsync(
+            client, "Empty history", "Easy", "Internal", ["Array"]);
+
+        var detail = await GetCompleteDetailAsync(client, problem.Id);
+
+        detail.AttemptSummary.TotalAttempts.Should().Be(0);
+        detail.AttemptSummary.AverageDurationMinutes.Should().Be(0);
+        detail.AttemptSummary.LastAttemptedAtUtc.Should().BeNull();
+        detail.LatestAttempt.Should().BeNull();
+        detail.LatestSuccessfulAttempt.Should().BeNull();
+        detail.RecentAttempts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CompleteDetail_ShouldSummarizeAndLimitRecentAttempts()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var problem = await CreateProblemAsync(
+            client, "Progress problem", "Medium", "Internal", ["Graph"]);
+        var results = new[]
+        {
+            ("Solved", 10),
+            ("Failed", 20),
+            ("PartiallySolved", 30),
+            ("Skipped", 0),
+            ("Failed", 40),
+            ("PartiallySolved", 50),
+            ("Failed", 60)
+        };
+        foreach (var (result, duration) in results)
+        {
+            using var response = await client.PostAsJsonAsync(
+                $"/api/v1/dsa-problems/{problem.Id}/attempts",
+                new CreateDsaAttemptRequest(
+                    result, "C#", "long code", "approach", "O(n)", "O(n)",
+                    duration, "notes", DateTimeOffset.UtcNow));
+            response.EnsureSuccessStatusCode();
+        }
+
+        using var archiveResponse = await client.PostAsync(
+            $"/api/v1/dsa-problems/{problem.Id}/archive", null);
+        var detail = await GetCompleteDetailAsync(client, problem.Id);
+
+        detail.Status.Should().Be("Archived");
+        detail.AttemptSummary.TotalAttempts.Should().Be(7);
+        detail.AttemptSummary.SolvedAttempts.Should().Be(1);
+        detail.AttemptSummary.PartiallySolvedAttempts.Should().Be(2);
+        detail.AttemptSummary.FailedAttempts.Should().Be(3);
+        detail.AttemptSummary.SkippedAttempts.Should().Be(1);
+        detail.AttemptSummary.TotalDurationMinutes.Should().Be(210);
+        detail.AttemptSummary.AverageDurationMinutes.Should().Be(30);
+        detail.LatestAttempt!.AttemptNumber.Should().Be(7);
+        detail.LatestSuccessfulAttempt!.AttemptNumber.Should().Be(1);
+        detail.RecentAttempts.Select(attempt => attempt.AttemptNumber)
+            .Should().Equal(7, 6, 5, 4, 3);
+    }
+
     [Theory]
     [InlineData("?page=0")]
     [InlineData("?pageSize=0")]
@@ -438,5 +502,16 @@ public sealed class DsaProblemEndpointsTests(AuthApiFactory factory)
         response.EnsureSuccessStatusCode();
         return (await response.Content
             .ReadFromJsonAsync<DsaProblemResponse>())!;
+    }
+
+    private static async Task<DsaProblemDetailResponse> GetCompleteDetailAsync(
+        HttpClient client,
+        Guid id)
+    {
+        using var response = await client.GetAsync(
+            $"/api/v1/dsa-problems/{id}");
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<DsaProblemDetailResponse>())!;
     }
 }

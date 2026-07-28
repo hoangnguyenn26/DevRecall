@@ -72,10 +72,22 @@ public static class DsaProblemEndpoints
     {
         var result = await handler.HandleAsync(
             new GetDsaProblemDetailQuery(id), cancellationToken);
-        return Results.Ok(MapResponse(
+        return Results.Ok(new DsaProblemDetailResponse(
             result.Id, result.Title, result.Description, result.Difficulty,
             result.Source, result.ExternalUrl, result.Topics, result.Status,
-            result.CreatedAtUtc, result.UpdatedAtUtc));
+            result.CreatedAtUtc, result.UpdatedAtUtc,
+            new DsaAttemptSummaryResponse(
+                result.AttemptSummary.TotalAttempts,
+                result.AttemptSummary.SolvedAttempts,
+                result.AttemptSummary.PartiallySolvedAttempts,
+                result.AttemptSummary.FailedAttempts,
+                result.AttemptSummary.SkippedAttempts,
+                result.AttemptSummary.TotalDurationMinutes,
+                result.AttemptSummary.AverageDurationMinutes,
+                result.AttemptSummary.LastAttemptedAtUtc),
+            MapOptionalOverview(result.LatestAttempt),
+            MapOptionalOverview(result.LatestSuccessfulAttempt),
+            result.RecentAttempts.Select(MapOverview).ToList()));
     }
 
     private static async Task<IResult> UpdateAsync(
@@ -113,4 +125,16 @@ public static class DsaProblemEndpoints
         new(
             id, title, description, difficulty, source, externalUrl, topics,
             status, createdAtUtc, updatedAtUtc);
+
+    private static DsaAttemptOverviewResponse MapOverview(
+        DsaAttemptOverview attempt) =>
+        new(
+            attempt.Id, attempt.AttemptNumber, attempt.Result,
+            attempt.Language, attempt.TimeComplexity,
+            attempt.SpaceComplexity, attempt.DurationMinutes,
+            attempt.AttemptedAtUtc);
+
+    private static DsaAttemptOverviewResponse? MapOptionalOverview(
+        DsaAttemptOverview? attempt) =>
+        attempt is null ? null : MapOverview(attempt);
 }

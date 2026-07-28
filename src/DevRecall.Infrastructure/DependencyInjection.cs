@@ -1,5 +1,6 @@
 using DevRecall.Application.Dsa;
 using DevRecall.Application.Dsa.Attempts;
+using DevRecall.Application.Dsa.GetDetail;
 using DevRecall.Application.Identity;
 using DevRecall.Application.Interview;
 using DevRecall.Application.Interview.Answers;
@@ -46,6 +47,9 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IDsaProblemRepository, DsaProblemRepository>();
+        services.AddScoped<
+            IDsaProblemAttemptDetailReader,
+            DsaProblemAttemptDetailReader>();
         services.AddScoped<IDsaAttemptRepository, DsaAttemptRepository>();
         services.AddScoped<IInterviewQuestionRepository, InterviewQuestionRepository>();
         services.AddScoped<

@@ -10,4 +10,8 @@ public sealed record GetDsaProblemDetailResult(
     IReadOnlyList<string> Topics,
     string Status,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    DsaAttemptSummary AttemptSummary,
+    DsaAttemptOverview? LatestAttempt,
+    DsaAttemptOverview? LatestSuccessfulAttempt,
+    IReadOnlyList<DsaAttemptOverview> RecentAttempts);

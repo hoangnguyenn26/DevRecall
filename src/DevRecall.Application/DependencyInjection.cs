@@ -1,4 +1,5 @@
 using DevRecall.Application.Dsa.Archive;
+using DevRecall.Application.Dsa.Attempts.Compare;
 using DevRecall.Application.Dsa.Attempts.Create;
 using DevRecall.Application.Dsa.Attempts.GetDetail;
 using DevRecall.Application.Dsa.Attempts.GetLatestSuccessful;
@@ -45,6 +46,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(
         this IServiceCollection services)
     {
+        services.AddScoped<CompareDsaAttemptsHandler>();
         services.AddScoped<CreateDsaAttemptHandler>();
         services.AddScoped<GetDsaAttemptsHandler>();
         services.AddScoped<GetDsaAttemptDetailHandler>();
