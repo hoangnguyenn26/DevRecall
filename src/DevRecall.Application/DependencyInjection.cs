@@ -38,7 +38,10 @@ using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
 using DevRecall.Application.Reviews.Create;
+using DevRecall.Application.Reviews.Evaluate;
+using DevRecall.Application.Reviews.GetDetail;
 using DevRecall.Application.Reviews.GetDue;
+using DevRecall.Application.Reviews.GetHistory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Application;
@@ -92,7 +95,10 @@ public static class DependencyInjection
         services.AddScoped<AssignTagToKnowledgeNodeHandler>();
         services.AddScoped<RemoveTagFromKnowledgeNodeHandler>();
         services.AddScoped<CreateReviewItemHandler>();
+        services.AddScoped<EvaluateReviewItemHandler>();
+        services.AddScoped<GetReviewItemDetailHandler>();
         services.AddScoped<GetDueReviewItemsHandler>();
+        services.AddScoped<GetReviewHistoryHandler>();
 
         return services;
     }

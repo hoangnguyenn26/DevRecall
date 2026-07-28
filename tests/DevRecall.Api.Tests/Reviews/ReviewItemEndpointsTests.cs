@@ -10,6 +10,7 @@ using DevRecall.Domain.Reviews;
 using DevRecall.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Api.Tests.Reviews;
@@ -139,6 +140,154 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
         due.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Evaluate_ShouldUpdateScheduleCreateHistoryAndLeaveDueQueue()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var problem = await CreateProblemAsync(client, "Evaluate Problem");
+        var item = await CreateReviewItemAsync(client, problem.Id);
+
+        using var evaluate = await client.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate",
+            new EvaluateReviewItemRequest("Good", 0));
+        var result = await evaluate.Content
+            .ReadFromJsonAsync<EvaluateReviewItemResponse>();
+        using var due = await client.GetAsync("/api/v1/review-items/due");
+        var dueItems = await due.Content.ReadFromJsonAsync<
+            PagedResponse<DueReviewItemResponse>>();
+
+        evaluate.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.NextIntervalDays.Should().Be(2);
+        result.ReviewCount.Should().Be(1);
+        result.NextDueAtUtc.Should()
+            .Be(result.ReviewedAtUtc.AddDays(2));
+        dueItems!.Items.Should()
+            .NotContain(candidate => candidate.ReviewItemId == item.Id);
+
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>();
+        var persisted = await context.ReviewItems
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == item.Id);
+        var history = await context.ReviewHistories
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == result.ReviewHistoryId);
+        persisted.IntervalDays.Should().Be(2);
+        persisted.ReviewCount.Should().Be(1);
+        history.PreviousIntervalDays.Should().Be(0);
+        history.NextDueAtUtc.Should().Be(persisted.DueAtUtc);
+    }
+
+    [Fact]
+    public async Task Evaluate_ShouldRejectStaleArchivedCrossUserAndInvalidValues()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var ownerClient = owner.Client;
+        var problem = await CreateProblemAsync(ownerClient, "Conflict Problem");
+        var item = await CreateReviewItemAsync(ownerClient, problem.Id);
+        using var first = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate",
+            new EvaluateReviewItemRequest("Good", 0));
+        first.EnsureSuccessStatusCode();
+
+        using var stale = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate",
+            new EvaluateReviewItemRequest("Easy", 0));
+        using var invalid = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate",
+            new EvaluateReviewItemRequest("Correct", 1));
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+        using var crossUser = await otherClient.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate",
+            new EvaluateReviewItemRequest("Good", 1));
+
+        stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ReadErrorCodeAsync(stale))
+            .Should().Be("REVIEW_SCHEDULE_CONFLICT");
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        crossUser.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>();
+        (await context.ReviewHistories.CountAsync(
+            history => history.ReviewItemId == item.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task DetailAndHistory_ShouldReturnCurrentStateNewestFirstAndPaginated()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var problem = await CreateProblemAsync(client, "History Problem");
+        var item = await CreateReviewItemAsync(client, problem.Id);
+        var evaluations = new[] { "Good", "Hard", "Easy" };
+        for (var index = 0; index < evaluations.Length; index++)
+        {
+            using var response = await client.PostAsJsonAsync(
+                $"/api/v1/review-items/{item.Id}/evaluate",
+                new EvaluateReviewItemRequest(evaluations[index], index));
+            response.EnsureSuccessStatusCode();
+        }
+
+        using var detailResponse = await client.GetAsync(
+            $"/api/v1/review-items/{item.Id}");
+        var detail = await detailResponse.Content
+            .ReadFromJsonAsync<ReviewItemDetailResponse>();
+        using var historyResponse = await client.GetAsync(
+            $"/api/v1/review-items/{item.Id}/history?page=2&pageSize=2");
+        var history = await historyResponse.Content.ReadFromJsonAsync<
+            PagedResponse<ReviewHistoryItemResponse>>();
+
+        detailResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        detail!.Resource.Title.Should().Be("History Problem");
+        detail.Resource.IsAvailable.Should().BeTrue();
+        detail.ReviewCount.Should().Be(3);
+        detail.IntervalDays.Should().Be(9);
+        detail.RecentHistory.Select(entry => entry.Evaluation)
+            .Should().Equal("Easy", "Hard", "Good");
+        historyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        history!.TotalCount.Should().Be(3);
+        history.TotalPages.Should().Be(2);
+        history.Items.Should().ContainSingle();
+        history.Items[0].Evaluation.Should().Be("Good");
+    }
+
+    [Fact]
+    public async Task DetailAndHistory_ShouldProtectOwnershipAndAllowArchivedRead()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var ownerClient = owner.Client;
+        var problem = await CreateProblemAsync(ownerClient, "Archived Review");
+        var item = await CreateReviewItemAsync(ownerClient, problem.Id);
+        await ArchiveReviewItemAsync(item.Id);
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+
+        using var detail = await ownerClient.GetAsync(
+            $"/api/v1/review-items/{item.Id}");
+        var result = await detail.Content
+            .ReadFromJsonAsync<ReviewItemDetailResponse>();
+        using var history = await ownerClient.GetAsync(
+            $"/api/v1/review-items/{item.Id}/history");
+        using var evaluate = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate",
+            new EvaluateReviewItemRequest("Good", 0));
+        using var crossUser = await otherClient.GetAsync(
+            $"/api/v1/review-items/{item.Id}");
+
+        detail.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Status.Should().Be("Archived");
+        history.StatusCode.Should().Be(HttpStatusCode.OK);
+        evaluate.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ReadErrorCodeAsync(evaluate))
+            .Should().Be("REVIEW_ITEM_ARCHIVED");
+        crossUser.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private async Task AddReviewItemsAsync(
         Guid userId,
         IEnumerable<(Guid ResourceId, DateTimeOffset DueAt, bool Archived)> rows)
@@ -159,6 +308,17 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
             context.ReviewItems.Add(item);
         }
 
+        await context.SaveChangesAsync();
+    }
+
+    private async Task ArchiveReviewItemAsync(Guid id)
+    {
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider
+            .GetRequiredService<DevRecallDbContext>();
+        var item = await context.ReviewItems.SingleAsync(
+            candidate => candidate.Id == id);
+        item.Archive(DateTimeOffset.UtcNow);
         await context.SaveChangesAsync();
     }
 
@@ -198,6 +358,17 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
         response.EnsureSuccessStatusCode();
         return (await response.Content
             .ReadFromJsonAsync<DsaProblemResponse>())!;
+    }
+
+    private static async Task<CreateReviewItemResponse> CreateReviewItemAsync(
+        HttpClient client, Guid resourceId)
+    {
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/review-items",
+            new CreateReviewItemRequest("DsaProblem", resourceId));
+        response.EnsureSuccessStatusCode();
+        return (await response.Content
+            .ReadFromJsonAsync<CreateReviewItemResponse>())!;
     }
 
     private static async Task<string?> ReadErrorCodeAsync(

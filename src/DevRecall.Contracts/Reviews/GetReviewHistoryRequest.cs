@@ -1,8 +1,7 @@
 namespace DevRecall.Contracts.Reviews;
 
-public sealed class GetDueReviewItemsRequest
+public sealed class GetReviewHistoryRequest
 {
-    public string? ResourceType { get; init; }
     public int? Page { get; init; }
     public int? PageSize { get; init; }
 }
