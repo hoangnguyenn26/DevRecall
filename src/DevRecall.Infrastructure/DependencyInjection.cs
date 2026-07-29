@@ -1,3 +1,4 @@
+using DevRecall.Application.Analytics.DailyActivity;
 using DevRecall.Application.Analytics.Overview;
 using DevRecall.Application.Common.Time;
 using DevRecall.Application.Dsa;
@@ -58,6 +59,7 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IDailyActivityReader, DailyActivityReader>();
         services.AddScoped<IProgressOverviewReader, ProgressOverviewReader>();
         services.AddScoped<IDsaProblemRepository, DsaProblemRepository>();
         services.AddScoped<

@@ -1,4 +1,5 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.Analytics.DailyActivity;
 using DevRecall.Application.Analytics.Overview;
 using DevRecall.Contracts.Analytics;
 
@@ -12,6 +13,30 @@ public static class AnalyticsEndpoints
         var group = endpoints.MapGroup("/api/v1/analytics")
             .WithTags("Analytics")
             .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
+        group.MapGet(
+            "/daily-activity",
+            async (
+                [AsParameters] AnalyticsDateRangeRequest request,
+                GetDailyActivityHandler handler,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await handler.HandleAsync(
+                    new GetDailyActivityQuery(
+                        request.FromUtc, request.ToUtc),
+                    cancellationToken);
+                return Results.Ok(new DailyActivityResponse(
+                    result.FromUtc, result.ToUtc,
+                    result.Days.Select(day =>
+                        new DailyActivityDayResponse(
+                            day.Date, day.StudyMinutes,
+                            day.CompletedSessions,
+                            day.CompletedStudyItems, day.Reviews,
+                            day.DsaAttempts)).ToList()));
+            })
+            .WithName("GetAnalyticsDailyActivity")
+            .Produces<DailyActivityResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
         group.MapGet(
             "/progress-overview",
             async (
