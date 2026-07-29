@@ -1,3 +1,4 @@
+using DevRecall.Application.Analytics.Overview;
 using DevRecall.Application.Common.Time;
 using DevRecall.Application.Dsa;
 using DevRecall.Application.Dsa.Attempts;
@@ -13,6 +14,7 @@ using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
+using DevRecall.Infrastructure.Analytics;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
 using DevRecall.Infrastructure.Identity;
@@ -56,6 +58,7 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IProgressOverviewReader, ProgressOverviewReader>();
         services.AddScoped<IDsaProblemRepository, DsaProblemRepository>();
         services.AddScoped<
             IDsaProblemAttemptDetailReader,

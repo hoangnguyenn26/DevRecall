@@ -1,4 +1,5 @@
 using DevRecall.Application.Analytics;
+using DevRecall.Application.Analytics.Overview;
 using DevRecall.Application.Dsa.Archive;
 using DevRecall.Application.Dsa.Attempts.Compare;
 using DevRecall.Application.Dsa.Attempts.Create;
@@ -67,6 +68,7 @@ public static class DependencyInjection
     {
         services.AddScoped<CompareDsaAttemptsHandler>();
         services.AddScoped<AnalyticsDateRangeResolver>();
+        services.AddScoped<GetProgressOverviewHandler>();
         services.AddScoped<CreateDsaAttemptHandler>();
         services.AddScoped<GetDsaAttemptsHandler>();
         services.AddScoped<GetDsaAttemptDetailHandler>();
