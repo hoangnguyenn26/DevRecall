@@ -2,6 +2,7 @@ using DevRecall.Api.Authorization;
 using DevRecall.Application.Analytics.DailyActivity;
 using DevRecall.Application.Analytics.ModuleBreakdown;
 using DevRecall.Application.Analytics.Overview;
+using DevRecall.Application.Analytics.ReviewPerformance;
 using DevRecall.Contracts.Analytics;
 
 namespace DevRecall.Api.Endpoints.Analytics;
@@ -59,6 +60,28 @@ public static class AnalyticsEndpoints
             })
             .WithName("GetAnalyticsModuleBreakdown")
             .Produces<ModuleBreakdownResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+        group.MapGet(
+            "/review-performance",
+            async (
+                [AsParameters] AnalyticsDateRangeRequest request,
+                GetReviewPerformanceHandler handler,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await handler.HandleAsync(
+                    new GetReviewPerformanceQuery(
+                        request.FromUtc, request.ToUtc),
+                    cancellationToken);
+                return Results.Ok(new ReviewPerformanceResponse(
+                    result.FromUtc, result.ToUtc, result.TotalReviews,
+                    result.AgainCount, result.HardCount, result.GoodCount,
+                    result.EasyCount, result.SuccessRate,
+                    result.AveragePreviousIntervalDays,
+                    result.AverageNextIntervalDays));
+            })
+            .WithName("GetAnalyticsReviewPerformance")
+            .Produces<ReviewPerformanceResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
         group.MapGet(

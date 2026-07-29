@@ -2,6 +2,7 @@ using DevRecall.Application.Analytics;
 using DevRecall.Application.Analytics.DailyActivity;
 using DevRecall.Application.Analytics.ModuleBreakdown;
 using DevRecall.Application.Analytics.Overview;
+using DevRecall.Application.Analytics.ReviewPerformance;
 using DevRecall.Application.Dsa.Archive;
 using DevRecall.Application.Dsa.Attempts.Compare;
 using DevRecall.Application.Dsa.Attempts.Create;
@@ -73,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<GetDailyActivityHandler>();
         services.AddScoped<GetModuleBreakdownHandler>();
         services.AddScoped<GetProgressOverviewHandler>();
+        services.AddScoped<GetReviewPerformanceHandler>();
         services.AddScoped<CreateDsaAttemptHandler>();
         services.AddScoped<GetDsaAttemptsHandler>();
         services.AddScoped<GetDsaAttemptDetailHandler>();

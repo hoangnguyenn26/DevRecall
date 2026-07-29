@@ -52,19 +52,11 @@ public sealed class GetModuleBreakdownHandler(
             var completedItems = countByType.GetValueOrDefault(resourceType);
             return new ModuleBreakdownItem(
                 resourceType.ToString(), completedItems,
-                CalculatePercentage(completedItems, total));
+                AnalyticsMath.Percentage(completedItems, total));
         }).ToList();
         return new GetModuleBreakdownResult(
             range.FromUtc, range.ToUtc, total, modules);
     }
-
-    private static decimal CalculatePercentage(
-        int completedItems, int totalCompletedItems) =>
-        totalCompletedItems == 0
-            ? 0m
-            : Math.Round(
-                completedItems / (decimal)totalCompletedItems * 100m,
-                2, MidpointRounding.AwayFromZero);
 
     private Guid GetCurrentUserId()
     {
