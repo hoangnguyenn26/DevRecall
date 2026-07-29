@@ -25,8 +25,9 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         using var client = auth.Client;
         var session = await CreateSessionAsync(client);
         var pending = await AddProblemItemAsync(client, session.Id, "Pending");
-        using var start = await client.PostAsync(
-            $"/api/v1/study-sessions/{session.Id}/start", null);
+        using var start = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/start",
+            new StartStudySessionRequest(pending.Version));
         var detail = await GetDetailAsync(client, session.Id);
 
         using var complete = await client.PostAsJsonAsync(
@@ -55,8 +56,9 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         using var notStarted = await ownerClient.PostAsJsonAsync(
             $"/api/v1/study-sessions/{planned.Id}/complete",
             new CompleteStudySessionRequest(1));
-        using var start = await ownerClient.PostAsync(
-            $"/api/v1/study-sessions/{planned.Id}/start", null);
+        using var start = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{planned.Id}/start",
+            new StartStudySessionRequest(1));
         using var stale = await ownerClient.PostAsJsonAsync(
             $"/api/v1/study-sessions/{planned.Id}/complete",
             new CompleteStudySessionRequest(1));
@@ -91,8 +93,9 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         var second = await retry.Content
             .ReadFromJsonAsync<CancelStudySessionResponse>();
         var active = await CreateSessionAsync(client);
-        using var start = await client.PostAsync(
-            $"/api/v1/study-sessions/{active.Id}/start", null);
+        using var start = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{active.Id}/start",
+            new StartStudySessionRequest(1));
         var started = await GetDetailAsync(client, active.Id);
         using var cancelActive = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{active.Id}/cancel",
@@ -142,14 +145,21 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         var session = await CreateSessionAsync(client);
         var first = await AddProblemItemAsync(client, session.Id, "First");
         var second = await AddProblemItemAsync(client, session.Id, "Second");
+        var beforeReorder = await GetDetailAsync(client, session.Id);
         using var reorder = await client.PutAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items/reorder",
-            new ReorderStudySessionItemsRequest([second.Id, first.Id]));
-        using var start = await client.PostAsync(
-            $"/api/v1/study-sessions/{session.Id}/start", null);
+            new ReorderStudySessionItemsRequest(
+                [second.Id, first.Id], beforeReorder.Version));
+        var reordered = await reorder.Content
+            .ReadFromJsonAsync<ReorderStudySessionItemsResponse>();
+        using var start = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/start",
+            new StartStudySessionRequest(reordered!.Version));
+        var started = await start.Content
+            .ReadFromJsonAsync<StartStudySessionResponse>();
         using var complete = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items/{second.Id}/complete",
-            new CompleteStudySessionItemRequest("Done"));
+            new CompleteStudySessionItemRequest("Done", started!.Version));
 
         var detail = await GetDetailAsync(client, session.Id);
 
@@ -190,17 +200,19 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
 
         using var update = await client.PutAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}",
-            new UpdateStudySessionRequest("Updated plan", 75, "Focus"));
+            new UpdateStudySessionRequest(
+                "Updated plan", 75, "Focus", session.Version));
         var changed = await update.Content
             .ReadFromJsonAsync<StudySessionResponse>();
         using var noOp = await client.PutAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}",
-            new UpdateStudySessionRequest("Updated plan", 75, "Focus"));
+            new UpdateStudySessionRequest(
+                "Updated plan", 75, "Focus", changed!.Version));
         var unchanged = await noOp.Content
             .ReadFromJsonAsync<StudySessionResponse>();
 
         session.Status.Should().Be("Planned");
-        changed!.Title.Should().Be("Updated plan");
+        changed.Title.Should().Be("Updated plan");
         unchanged!.UpdatedAtUtc.Should()
             .BeCloseTo(changed.UpdatedAtUtc, TimeSpan.FromMilliseconds(1));
     }
@@ -215,16 +227,20 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         using var added = await ownerClient.PostAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items",
             new AddStudySessionItemRequest(
-                "dsa_problem", problem.Id, "No hints"));
+                "dsa_problem", problem.Id, "No hints", session.Version));
+        var addedItem = await added.Content
+            .ReadFromJsonAsync<StudySessionItemResponse>();
         using var duplicate = await ownerClient.PostAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items",
-            new AddStudySessionItemRequest("DsaProblem", problem.Id, null));
+            new AddStudySessionItemRequest(
+                "DsaProblem", problem.Id, null, addedItem!.Version));
         var other = await CreateAuthenticatedClientAsync();
         using var otherClient = other.Client;
         var otherSession = await CreateSessionAsync(otherClient);
         using var crossUser = await otherClient.PostAsJsonAsync(
             $"/api/v1/study-sessions/{otherSession.Id}/items",
-            new AddStudySessionItemRequest("DsaProblem", problem.Id, null));
+            new AddStudySessionItemRequest(
+                "DsaProblem", problem.Id, null, otherSession.Version));
         using var archive = await ownerClient.PostAsync(
             $"/api/v1/dsa-problems/{problem.Id}/archive", null);
         var archivedProblem = await CreateProblemAsync(ownerClient, "Archived");
@@ -233,7 +249,8 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         using var archived = await ownerClient.PostAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items",
             new AddStudySessionItemRequest(
-                "DsaProblem", archivedProblem.Id, null));
+                "DsaProblem", archivedProblem.Id, null,
+                addedItem.Version));
 
         added.StatusCode.Should().Be(HttpStatusCode.Created);
         duplicate.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -255,15 +272,20 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         var second = await AddProblemItemAsync(client, session.Id, "Second");
         var third = await AddProblemItemAsync(client, session.Id, "Third");
 
+        var beforeRemove = await GetDetailAsync(client, session.Id);
         using var remove = await client.DeleteAsync(
-            $"/api/v1/study-sessions/{session.Id}/items/{second.Id}");
+            $"/api/v1/study-sessions/{session.Id}/items/{second.Id}" +
+            $"?expectedVersion={beforeRemove.Version}");
+        var removed = await remove.Content
+            .ReadFromJsonAsync<RemoveStudySessionItemResponse>();
         using var reorder = await client.PutAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items/reorder",
-            new ReorderStudySessionItemsRequest([third.Id, first.Id]));
+            new ReorderStudySessionItemsRequest(
+                [third.Id, first.Id], removed!.Version));
         var result = await reorder.Content.ReadFromJsonAsync<
             ReorderStudySessionItemsResponse>();
 
-        remove.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        remove.StatusCode.Should().Be(HttpStatusCode.OK);
         result!.Items.Select(item => (item.Id, item.Position))
             .Should().Equal((third.Id, 0), (first.Id, 1));
     }
@@ -276,17 +298,27 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         var session = await CreateSessionAsync(client);
         var first = await AddProblemItemAsync(client, session.Id, "First");
         var second = await AddProblemItemAsync(client, session.Id, "Second");
-        using var start = await client.PostAsync(
-            $"/api/v1/study-sessions/{session.Id}/start", null);
-        using var startItem = await client.PostAsync(
+        var beforeStart = await GetDetailAsync(client, session.Id);
+        using var start = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/start",
+            new StartStudySessionRequest(beforeStart.Version));
+        var started = await start.Content
+            .ReadFromJsonAsync<StartStudySessionResponse>();
+        using var startItem = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items/{first.Id}/start",
-            null);
+            new StartStudySessionItemRequest(started!.Version));
+        var firstStarted = await startItem.Content
+            .ReadFromJsonAsync<StudySessionItemStateResponse>();
         using var complete = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items/{first.Id}/complete",
-            new CompleteStudySessionItemRequest("Done"));
+            new CompleteStudySessionItemRequest(
+                "Done", firstStarted!.Version));
+        var firstCompleted = await complete.Content
+            .ReadFromJsonAsync<StudySessionItemStateResponse>();
         using var skip = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{session.Id}/items/{second.Id}/skip",
-            new SkipStudySessionItemRequest("Later"));
+            new SkipStudySessionItemRequest(
+                "Later", firstCompleted!.Version));
 
         start.StatusCode.Should().Be(HttpStatusCode.OK);
         startItem.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -315,18 +347,24 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         var secondSession = await CreateSessionAsync(client);
         var item = await AddProblemItemAsync(
             client, secondSession.Id, "Wrong session");
-        using var startFirst = await client.PostAsync(
-            $"/api/v1/study-sessions/{firstSession.Id}/start", null);
-        using var beforeStart = await client.PostAsync(
+        using var startFirst = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{firstSession.Id}/start",
+            new StartStudySessionRequest(firstSession.Version));
+        using var beforeStart = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{secondSession.Id}/items/{item.Id}/start",
-            null);
-        using var start = await client.PostAsync(
-            $"/api/v1/study-sessions/{secondSession.Id}/start", null);
-        using var doubleStart = await client.PostAsync(
-            $"/api/v1/study-sessions/{secondSession.Id}/start", null);
+            new StartStudySessionItemRequest(item.Version));
+        using var start = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{secondSession.Id}/start",
+            new StartStudySessionRequest(item.Version));
+        var started = await start.Content
+            .ReadFromJsonAsync<StartStudySessionResponse>();
+        using var doubleStart = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{secondSession.Id}/start",
+            new StartStudySessionRequest(started!.Version));
         using var wrongItem = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{firstSession.Id}/items/{item.Id}/complete",
-            new CompleteStudySessionItemRequest(null));
+            new CompleteStudySessionItemRequest(
+                null, firstSession.Version + 1));
 
         beforeStart.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ErrorCodeAsync(beforeStart)).Should()
@@ -347,8 +385,9 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         var session = await CreateSessionAsync(ownerClient);
         var other = await CreateAuthenticatedClientAsync();
         using var otherClient = other.Client;
-        using var crossUser = await otherClient.PostAsync(
-            $"/api/v1/study-sessions/{session.Id}/start", null);
+        using var crossUser = await otherClient.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/start",
+            new StartStudySessionRequest(session.Version));
         using var anonymous = CreateClient();
         using var unauthorized = await anonymous.PostAsJsonAsync(
             "/api/v1/study-sessions",
@@ -401,7 +440,8 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         using var response = await client.PostAsJsonAsync(
             $"/api/v1/study-sessions/{sessionId}/items",
             new AddStudySessionItemRequest(
-                "DsaProblem", problem.Id, null));
+                "DsaProblem", problem.Id, null,
+                (await GetDetailAsync(client, sessionId)).Version));
         response.EnsureSuccessStatusCode();
         return (await response.Content
             .ReadFromJsonAsync<StudySessionItemResponse>())!;

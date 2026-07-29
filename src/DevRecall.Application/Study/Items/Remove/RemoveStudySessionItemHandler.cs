@@ -6,14 +6,14 @@ using DevRecall.Domain.Study;
 namespace DevRecall.Application.Study.Items.Remove;
 
 public sealed record RemoveStudySessionItemCommand(
-    Guid StudySessionId, Guid StudySessionItemId);
+    Guid StudySessionId, Guid StudySessionItemId, int ExpectedVersion);
 
 public sealed class RemoveStudySessionItemHandler(
     IStudySessionRepository repository,
     ICurrentUser currentUser,
     IUtcClock utcClock)
 {
-    public async Task HandleAsync(
+    public async Task<int> HandleAsync(
         RemoveStudySessionItemCommand command,
         CancellationToken cancellationToken)
     {
@@ -27,15 +27,32 @@ public sealed class RemoveStudySessionItemHandler(
                 StudySessionErrors.SessionNotFound.Message);
         }
 
-        StudySessionSupport.EnsureCanEditPlan(session);
-        if (!session.RemoveItem(
-            command.StudySessionItemId, utcClock.UtcNow))
+        StudySessionSupport.ValidateExpectedVersion(command.ExpectedVersion);
+        bool removed;
+        try
+        {
+            removed = session.RemoveItem(
+                command.ExpectedVersion, command.StudySessionItemId,
+                utcClock.UtcNow);
+        }
+        catch (StudySessionDomainException exception)
+        {
+            throw StudySessionSupport.MapDomainConflict(exception);
+        }
+        catch (InvalidOperationException)
+        {
+            throw StudySessionSupport.ConflictForSessionStatus(session.Status);
+        }
+
+        if (!removed)
         {
             throw new NotFoundException(
                 StudySessionErrors.ItemNotFound.Code,
                 StudySessionErrors.ItemNotFound.Message);
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
+        await StudySessionSupport.SaveWithConcurrencyMappingAsync(
+            repository, cancellationToken);
+        return session.Version;
     }
 }

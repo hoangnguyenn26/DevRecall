@@ -220,6 +220,25 @@ public sealed class StudySessionTests
         session.CompletedAtUtc.Should().BeNull();
     }
 
+    [Fact]
+    public void NoOpMutations_ShouldPreserveVersionAndUpdatedTime()
+    {
+        var session = CreateSession();
+        var item = AddItem(
+            session, StudyResourceType.KnowledgeNode, Now);
+        var version = session.Version;
+        var updatedAt = session.UpdatedAtUtc;
+
+        session.UpdatePlan(
+            version, session.Title, session.PlannedDurationMinutes,
+            session.Notes, Now.AddMinutes(1)).Should().BeFalse();
+        session.ReorderItems(
+            version, [item.Id], Now.AddMinutes(1)).Should().BeFalse();
+
+        session.Version.Should().Be(version);
+        session.UpdatedAtUtc.Should().Be(updatedAt);
+    }
+
     private static StudySession CreateSession(
         string title = "Study",
         int plannedDuration = 30,

@@ -6,18 +6,18 @@ public sealed record StudySessionResult(
     Guid Id, string Title, string Status, int PlannedDurationMinutes,
     DateTimeOffset? StartedAtUtc, DateTimeOffset? CompletedAtUtc,
     int? ActualDurationMinutes, string? Notes,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
 
 public sealed record StudySessionItemResult(
     Guid Id, string ResourceType, Guid ResourceId, int Position,
     string Status, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? Notes,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
 
 public sealed record StudySessionItemStateResult(
     Guid Id, string Status, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? Notes,
-    DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset UpdatedAtUtc);
 
 public sealed record StudySessionItemPositionResult(Guid Id, int Position);
 
@@ -28,18 +28,20 @@ internal static class StudyResultMapper
             session.Id, session.Title, session.Status.ToString(),
             session.PlannedDurationMinutes, session.StartedAtUtc,
             session.CompletedAtUtc, session.ActualDurationMinutes,
-            session.Notes, session.CreatedAtUtc, session.UpdatedAtUtc);
+            session.Notes, session.Version, session.CreatedAtUtc,
+            session.UpdatedAtUtc);
 
-    public static StudySessionItemResult Map(StudySessionItem item) =>
+    public static StudySessionItemResult Map(
+        StudySessionItem item, int version) =>
         new(
             item.Id, item.ResourceType.ToString(), item.ResourceId,
             item.Position, item.Status.ToString(), item.StartedAtUtc,
-            item.CompletedAtUtc, item.Notes, item.CreatedAtUtc,
+            item.CompletedAtUtc, item.Notes, version, item.CreatedAtUtc,
             item.UpdatedAtUtc);
 
     public static StudySessionItemStateResult MapState(
-        StudySessionItem item) =>
+        StudySessionItem item, int version) =>
         new(
             item.Id, item.Status.ToString(), item.StartedAtUtc,
-            item.CompletedAtUtc, item.Notes, item.UpdatedAtUtc);
+            item.CompletedAtUtc, item.Notes, version, item.UpdatedAtUtc);
 }

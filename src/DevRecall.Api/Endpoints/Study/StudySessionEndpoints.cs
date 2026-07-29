@@ -115,7 +115,7 @@ public static class StudySessionEndpoints
         var result = await handler.HandleAsync(
             new UpdateStudySessionCommand(
                 id, request.Title, request.PlannedDurationMinutes,
-                request.Notes),
+                request.Notes, request.ExpectedVersion),
             cancellationToken);
         return Results.Ok(MapSession(result));
     }
@@ -127,7 +127,8 @@ public static class StudySessionEndpoints
     {
         var result = await handler.HandleAsync(
             new AddStudySessionItemCommand(
-                id, request.ResourceType, request.ResourceId, request.Notes),
+                id, request.ResourceType, request.ResourceId, request.Notes,
+                request.ExpectedVersion),
             cancellationToken);
         return Results.Created(
             $"/api/v1/study-sessions/{id}/items/{result.Id}",
@@ -136,13 +137,15 @@ public static class StudySessionEndpoints
 
     private static async Task<IResult> RemoveItemAsync(
         Guid id, Guid itemId,
+        [AsParameters] RemoveStudySessionItemRequest request,
         RemoveStudySessionItemHandler handler,
         CancellationToken cancellationToken)
     {
-        await handler.HandleAsync(
-            new RemoveStudySessionItemCommand(id, itemId),
+        var version = await handler.HandleAsync(
+            new RemoveStudySessionItemCommand(
+                id, itemId, request.ExpectedVersion),
             cancellationToken);
-        return Results.NoContent();
+        return Results.Ok(new RemoveStudySessionItemResponse(version));
     }
 
     private static async Task<IResult> ReorderItemsAsync(
@@ -151,31 +154,37 @@ public static class StudySessionEndpoints
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
-            new ReorderStudySessionItemsCommand(id, request.OrderedItemIds),
+            new ReorderStudySessionItemsCommand(
+                id, request.OrderedItemIds, request.ExpectedVersion),
             cancellationToken);
         return Results.Ok(new ReorderStudySessionItemsResponse(
-            result.Select(item => new StudySessionItemPositionResponse(
+            result.Version,
+            result.Items.Select(item => new StudySessionItemPositionResponse(
                 item.Id, item.Position)).ToList()));
     }
 
     private static async Task<IResult> StartSessionAsync(
-        Guid id, StartStudySessionHandler handler,
+        Guid id, StartStudySessionRequest request,
+        StartStudySessionHandler handler,
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
-            new StartStudySessionCommand(id), cancellationToken);
+            new StartStudySessionCommand(id, request.ExpectedVersion),
+            cancellationToken);
         return Results.Ok(new StartStudySessionResponse(
             result.Id, result.Status, result.StartedAtUtc,
-            result.UpdatedAtUtc));
+            result.Version, result.UpdatedAtUtc));
     }
 
     private static async Task<IResult> StartItemAsync(
-        Guid id, Guid itemId,
+        Guid id, Guid itemId, StartStudySessionItemRequest request,
         StartStudySessionItemHandler handler,
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
-            new StartStudySessionItemCommand(id, itemId), cancellationToken);
+            new StartStudySessionItemCommand(
+                id, itemId, request.ExpectedVersion),
+            cancellationToken);
         return Results.Ok(MapItemState(result));
     }
 
@@ -185,7 +194,8 @@ public static class StudySessionEndpoints
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
-            new CompleteStudySessionItemCommand(id, itemId, request.Notes),
+            new CompleteStudySessionItemCommand(
+                id, itemId, request.Notes, request.ExpectedVersion),
             cancellationToken);
         return Results.Ok(MapItemState(result));
     }
@@ -196,7 +206,8 @@ public static class StudySessionEndpoints
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
-            new SkipStudySessionItemCommand(id, itemId, request.Notes),
+            new SkipStudySessionItemCommand(
+                id, itemId, request.Notes, request.ExpectedVersion),
             cancellationToken);
         return Results.Ok(MapItemState(result));
     }
@@ -243,19 +254,22 @@ public static class StudySessionEndpoints
             result.Id, result.Title, result.Status,
             result.PlannedDurationMinutes, result.StartedAtUtc,
             result.CompletedAtUtc, result.ActualDurationMinutes,
-            result.Notes, result.CreatedAtUtc, result.UpdatedAtUtc);
+            result.Notes, result.Version, result.CreatedAtUtc,
+            result.UpdatedAtUtc);
 
     private static StudySessionItemResponse MapItem(
         StudySessionItemResult result) =>
         new(
             result.Id, result.ResourceType, result.ResourceId,
             result.Position, result.Status, result.StartedAtUtc,
-            result.CompletedAtUtc, result.Notes, result.CreatedAtUtc,
+            result.CompletedAtUtc, result.Notes, result.Version,
+            result.CreatedAtUtc,
             result.UpdatedAtUtc);
 
     private static StudySessionItemStateResponse MapItemState(
         StudySessionItemStateResult result) =>
         new(
             result.Id, result.Status, result.StartedAtUtc,
-            result.CompletedAtUtc, result.Notes, result.UpdatedAtUtc);
+            result.CompletedAtUtc, result.Notes, result.Version,
+            result.UpdatedAtUtc);
 }

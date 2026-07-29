@@ -5,10 +5,11 @@ using DevRecall.Domain.Study;
 
 namespace DevRecall.Application.Study.Start;
 
-public sealed record StartStudySessionCommand(Guid StudySessionId);
+public sealed record StartStudySessionCommand(
+    Guid StudySessionId, int ExpectedVersion);
 public sealed record StartStudySessionResult(
     Guid Id, string Status, DateTimeOffset StartedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset UpdatedAtUtc);
 
 public sealed class StartStudySessionHandler(
     IStudySessionRepository repository,
@@ -20,6 +21,7 @@ public sealed class StartStudySessionHandler(
         CancellationToken cancellationToken)
     {
         var userId = StudySessionSupport.GetUserId(currentUser);
+        StudySessionSupport.ValidateExpectedVersion(command.ExpectedVersion);
         var session = await repository.GetByIdAndUserIdForUpdateAsync(
             command.StudySessionId, userId, cancellationToken);
         if (session is null)
@@ -29,15 +31,24 @@ public sealed class StartStudySessionHandler(
                 StudySessionErrors.SessionNotFound.Message);
         }
 
-        if (session.Status != StudySessionStatus.Planned)
+        try
+        {
+            session.Start(command.ExpectedVersion, utcClock.UtcNow);
+        }
+        catch (StudySessionDomainException exception)
+        {
+            throw StudySessionSupport.MapDomainConflict(exception);
+        }
+        catch (InvalidOperationException)
         {
             throw StudySessionSupport.ConflictForSessionStatus(session.Status);
         }
 
-        session.Start(utcClock.UtcNow);
-        await repository.SaveChangesAsync(cancellationToken);
+        await StudySessionSupport.SaveWithConcurrencyMappingAsync(
+            repository, cancellationToken);
         return new StartStudySessionResult(
             session.Id, session.Status.ToString(),
-            session.StartedAtUtc!.Value, session.UpdatedAtUtc);
+            session.StartedAtUtc!.Value, session.Version,
+            session.UpdatedAtUtc);
     }
 }

@@ -9,7 +9,7 @@ namespace DevRecall.Application.Study.Items.Add;
 
 public sealed record AddStudySessionItemCommand(
     Guid StudySessionId, string ResourceType,
-    Guid ResourceId, string? Notes);
+    Guid ResourceId, string? Notes, int ExpectedVersion);
 
 public sealed class AddStudySessionItemHandler(
     IStudySessionRepository repository,
@@ -31,6 +31,7 @@ public sealed class AddStudySessionItemHandler(
         }
 
         StudySessionSupport.ValidateItemNotes(command.Notes);
+        StudySessionSupport.ValidateExpectedVersion(command.ExpectedVersion);
         var resourceType = StudyResourceTypeParser.Parse(command.ResourceType);
         var userId = StudySessionSupport.GetUserId(currentUser);
         var session = await repository.GetByIdAndUserIdForUpdateAsync(
@@ -40,6 +41,13 @@ public sealed class AddStudySessionItemHandler(
             throw new NotFoundException(
                 StudySessionErrors.SessionNotFound.Code,
                 StudySessionErrors.SessionNotFound.Message);
+        }
+
+        if (session.Version != command.ExpectedVersion)
+        {
+            throw new ConflictException(
+                StudySessionErrors.Conflict.Code,
+                StudySessionErrors.Conflict.Message);
         }
 
         StudySessionSupport.EnsureCanEditPlan(session);
@@ -63,7 +71,8 @@ public sealed class AddStudySessionItemHandler(
         try
         {
             item = session.AddItem(
-                Guid.NewGuid(), resourceType, resource.ResourceId,
+                command.ExpectedVersion, Guid.NewGuid(),
+                resourceType, resource.ResourceId,
                 command.Notes, utcClock.UtcNow);
         }
         catch (InvalidOperationException)
@@ -77,6 +86,12 @@ public sealed class AddStudySessionItemHandler(
         {
             await repository.SaveChangesAsync(cancellationToken);
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException(
+                StudySessionErrors.Conflict.Code,
+                StudySessionErrors.Conflict.Message);
+        }
         catch (DbUpdateException exception)
             when (exception.InnerException?.Message.Contains(
                 "ux_study_session_items_session_resource",
@@ -87,6 +102,6 @@ public sealed class AddStudySessionItemHandler(
                 StudySessionErrors.ItemAlreadyExists.Message);
         }
 
-        return StudyResultMapper.Map(item);
+        return StudyResultMapper.Map(item, session.Version);
     }
 }

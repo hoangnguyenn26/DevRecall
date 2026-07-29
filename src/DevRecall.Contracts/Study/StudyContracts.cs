@@ -4,16 +4,27 @@ public sealed record CreateStudySessionRequest(
     string Title, int PlannedDurationMinutes, string? Notes);
 
 public sealed record UpdateStudySessionRequest(
-    string Title, int PlannedDurationMinutes, string? Notes);
+    string Title, int PlannedDurationMinutes, string? Notes,
+    int ExpectedVersion);
 
 public sealed record AddStudySessionItemRequest(
-    string ResourceType, Guid ResourceId, string? Notes);
+    string ResourceType, Guid ResourceId, string? Notes,
+    int ExpectedVersion);
 
 public sealed record ReorderStudySessionItemsRequest(
-    IReadOnlyList<Guid> OrderedItemIds);
+    IReadOnlyList<Guid> OrderedItemIds, int ExpectedVersion);
 
-public sealed record CompleteStudySessionItemRequest(string? Notes);
-public sealed record SkipStudySessionItemRequest(string? Notes);
+public sealed record StartStudySessionRequest(int ExpectedVersion);
+public sealed record StartStudySessionItemRequest(int ExpectedVersion);
+public sealed record CompleteStudySessionItemRequest(
+    string? Notes, int ExpectedVersion);
+public sealed record SkipStudySessionItemRequest(
+    string? Notes, int ExpectedVersion);
+
+public sealed class RemoveStudySessionItemRequest
+{
+    public int ExpectedVersion { get; init; }
+}
 public sealed record CompleteStudySessionRequest(int ExpectedVersion);
 public sealed record CancelStudySessionRequest(int ExpectedVersion);
 
@@ -21,26 +32,28 @@ public sealed record StudySessionResponse(
     Guid Id, string Title, string Status, int PlannedDurationMinutes,
     DateTimeOffset? StartedAtUtc, DateTimeOffset? CompletedAtUtc,
     int? ActualDurationMinutes, string? Notes,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
 
 public sealed record StudySessionItemResponse(
     Guid Id, string ResourceType, Guid ResourceId, int Position,
     string Status, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? Notes,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
 
 public sealed record StudySessionItemPositionResponse(Guid Id, int Position);
 public sealed record ReorderStudySessionItemsResponse(
-    IReadOnlyList<StudySessionItemPositionResponse> Items);
+    int Version, IReadOnlyList<StudySessionItemPositionResponse> Items);
 
 public sealed record StartStudySessionResponse(
     Guid Id, string Status, DateTimeOffset StartedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset UpdatedAtUtc);
 
 public sealed record StudySessionItemStateResponse(
     Guid Id, string Status, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? Notes,
-    DateTimeOffset UpdatedAtUtc);
+    int Version, DateTimeOffset UpdatedAtUtc);
+
+public sealed record RemoveStudySessionItemResponse(int Version);
 
 public sealed record StudySessionCompletionSummaryResponse(
     int TotalItems, int PendingItems, int InProgressItems,

@@ -463,6 +463,27 @@ Before implementing a feature:
 
 The project is currently in the **documentation and implementation-planning phase**. AI features are deferred until the non-AI MVP is stable.
 
+### Week 12 — Study Session Foundation
+
+Completed:
+
+- Study Session and Study Session Item domains
+- Planned, InProgress, Completed, and Cancelled lifecycle
+- Pending, InProgress, Completed, and Skipped item lifecycle
+- Study resources for Knowledge, Interview, DSA, and Review
+- Study Session persistence and migrations
+- Session-resource duplicate protection
+- Planned-session create and update workflows
+- Add, remove, and reorder session items
+- Session and item progress workflows
+- Session completion and cancellation
+- Actual study-duration calculation
+- Optimistic concurrency using session version
+- Paginated recent-session list
+- Complete session detail and progress summary
+- Batched study-resource summaries
+- Ownership and terminal-state protection
+
 ## Development commands
 
 ## Integration tests

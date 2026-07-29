@@ -6,7 +6,8 @@ using DevRecall.Domain.Study;
 namespace DevRecall.Application.Study.Items.Complete;
 
 public sealed record CompleteStudySessionItemCommand(
-    Guid StudySessionId, Guid StudySessionItemId, string? Notes);
+    Guid StudySessionId, Guid StudySessionItemId,
+    string? Notes, int ExpectedVersion);
 
 public sealed class CompleteStudySessionItemHandler(
     IStudySessionRepository repository,
@@ -18,6 +19,7 @@ public sealed class CompleteStudySessionItemHandler(
         CancellationToken cancellationToken)
     {
         StudySessionSupport.ValidateItemNotes(command.Notes);
+        StudySessionSupport.ValidateExpectedVersion(command.ExpectedVersion);
         var userId = StudySessionSupport.GetUserId(currentUser);
         var session = await repository.GetByIdAndUserIdForUpdateAsync(
             command.StudySessionId, userId, cancellationToken);
@@ -31,7 +33,12 @@ public sealed class CompleteStudySessionItemHandler(
         try
         {
             session.CompleteItem(
-                command.StudySessionItemId, command.Notes, utcClock.UtcNow);
+                command.ExpectedVersion, command.StudySessionItemId,
+                command.Notes, utcClock.UtcNow);
+        }
+        catch (StudySessionDomainException exception)
+        {
+            throw StudySessionSupport.MapDomainConflict(exception);
         }
         catch (KeyNotFoundException)
         {
@@ -44,8 +51,11 @@ public sealed class CompleteStudySessionItemHandler(
             throw StudySessionSupport.ItemMutationConflict(session);
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
-        return StudyResultMapper.MapState(session.Items.Single(
-            item => item.Id == command.StudySessionItemId));
+        await StudySessionSupport.SaveWithConcurrencyMappingAsync(
+            repository, cancellationToken);
+        return StudyResultMapper.MapState(
+            session.Items.Single(
+                item => item.Id == command.StudySessionItemId),
+            session.Version);
     }
 }

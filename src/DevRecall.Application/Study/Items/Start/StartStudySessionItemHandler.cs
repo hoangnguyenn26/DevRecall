@@ -6,7 +6,7 @@ using DevRecall.Domain.Study;
 namespace DevRecall.Application.Study.Items.Start;
 
 public sealed record StartStudySessionItemCommand(
-    Guid StudySessionId, Guid StudySessionItemId);
+    Guid StudySessionId, Guid StudySessionItemId, int ExpectedVersion);
 
 public sealed class StartStudySessionItemHandler(
     IStudySessionRepository repository,
@@ -18,6 +18,7 @@ public sealed class StartStudySessionItemHandler(
         CancellationToken cancellationToken)
     {
         var userId = StudySessionSupport.GetUserId(currentUser);
+        StudySessionSupport.ValidateExpectedVersion(command.ExpectedVersion);
         var session = await repository.GetByIdAndUserIdForUpdateAsync(
             command.StudySessionId, userId, cancellationToken);
         if (session is null)
@@ -30,7 +31,12 @@ public sealed class StartStudySessionItemHandler(
         try
         {
             session.StartItem(
-                command.StudySessionItemId, utcClock.UtcNow);
+                command.ExpectedVersion, command.StudySessionItemId,
+                utcClock.UtcNow);
+        }
+        catch (StudySessionDomainException exception)
+        {
+            throw StudySessionSupport.MapDomainConflict(exception);
         }
         catch (KeyNotFoundException)
         {
@@ -43,8 +49,11 @@ public sealed class StartStudySessionItemHandler(
             throw StudySessionSupport.ItemMutationConflict(session);
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
-        return StudyResultMapper.MapState(session.Items.Single(
-            item => item.Id == command.StudySessionItemId));
+        await StudySessionSupport.SaveWithConcurrencyMappingAsync(
+            repository, cancellationToken);
+        return StudyResultMapper.MapState(
+            session.Items.Single(
+                item => item.Id == command.StudySessionItemId),
+            session.Version);
     }
 }

@@ -63,9 +63,16 @@ public sealed class StudySession
 
     public bool UpdatePlan(
         string title, int plannedDurationMinutes, string? notes,
-        DateTimeOffset updatedAtUtc)
+        DateTimeOffset updatedAtUtc) =>
+        UpdatePlan(
+            Version, title, plannedDurationMinutes, notes, updatedAtUtc);
+
+    public bool UpdatePlan(
+        int expectedVersion, string title, int plannedDurationMinutes,
+        string? notes, DateTimeOffset updatedAtUtc)
     {
         EnsureUtc(updatedAtUtc, nameof(updatedAtUtc));
+        EnsureExpectedVersion(expectedVersion);
         EnsurePlanned();
         var normalizedTitle = NormalizeTitle(title);
         var duration = ValidatePlannedDuration(plannedDurationMinutes);
@@ -88,9 +95,16 @@ public sealed class StudySession
 
     public StudySessionItem AddItem(
         Guid itemId, StudyResourceType resourceType, Guid resourceId,
-        string? notes, DateTimeOffset createdAtUtc)
+        string? notes, DateTimeOffset createdAtUtc) =>
+        AddItem(
+            Version, itemId, resourceType, resourceId, notes, createdAtUtc);
+
+    public StudySessionItem AddItem(
+        int expectedVersion, Guid itemId, StudyResourceType resourceType,
+        Guid resourceId, string? notes, DateTimeOffset createdAtUtc)
     {
         EnsureUtc(createdAtUtc, nameof(createdAtUtc));
+        EnsureExpectedVersion(expectedVersion);
         EnsurePlanned();
         EnsureValidResourceType(resourceType);
         if (itemId == Guid.Empty)
@@ -123,9 +137,14 @@ public sealed class StudySession
         return item;
     }
 
-    public bool RemoveItem(Guid itemId, DateTimeOffset updatedAtUtc)
+    public bool RemoveItem(Guid itemId, DateTimeOffset updatedAtUtc) =>
+        RemoveItem(Version, itemId, updatedAtUtc);
+
+    public bool RemoveItem(
+        int expectedVersion, Guid itemId, DateTimeOffset updatedAtUtc)
     {
         EnsureUtc(updatedAtUtc, nameof(updatedAtUtc));
+        EnsureExpectedVersion(expectedVersion);
         EnsurePlanned();
         var item = _items.SingleOrDefault(current => current.Id == itemId);
         if (item is null)
@@ -141,10 +160,16 @@ public sealed class StudySession
     }
 
     public bool ReorderItems(
-        IReadOnlyList<Guid> orderedItemIds, DateTimeOffset updatedAtUtc)
+        IReadOnlyList<Guid> orderedItemIds, DateTimeOffset updatedAtUtc) =>
+        ReorderItems(Version, orderedItemIds, updatedAtUtc);
+
+    public bool ReorderItems(
+        int expectedVersion, IReadOnlyList<Guid> orderedItemIds,
+        DateTimeOffset updatedAtUtc)
     {
         ArgumentNullException.ThrowIfNull(orderedItemIds);
         EnsureUtc(updatedAtUtc, nameof(updatedAtUtc));
+        EnsureExpectedVersion(expectedVersion);
         EnsurePlanned();
         if (orderedItemIds.Count != _items.Count
             || orderedItemIds.Distinct().Count() != orderedItemIds.Count)
@@ -179,9 +204,13 @@ public sealed class StudySession
         return changed;
     }
 
-    public void Start(DateTimeOffset startedAtUtc)
+    public void Start(DateTimeOffset startedAtUtc) =>
+        Start(Version, startedAtUtc);
+
+    public void Start(int expectedVersion, DateTimeOffset startedAtUtc)
     {
         EnsureUtc(startedAtUtc, nameof(startedAtUtc));
+        EnsureExpectedVersion(expectedVersion);
         switch (Status)
         {
             case StudySessionStatus.Planned:
@@ -205,8 +234,13 @@ public sealed class StudySession
         }
     }
 
-    public void StartItem(Guid itemId, DateTimeOffset startedAtUtc)
+    public void StartItem(Guid itemId, DateTimeOffset startedAtUtc) =>
+        StartItem(Version, itemId, startedAtUtc);
+
+    public void StartItem(
+        int expectedVersion, Guid itemId, DateTimeOffset startedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureInProgress();
         GetItem(itemId).Start(startedAtUtc);
         UpdatedAtUtc = startedAtUtc;
@@ -214,8 +248,14 @@ public sealed class StudySession
     }
 
     public void CompleteItem(
-        Guid itemId, string? notes, DateTimeOffset completedAtUtc)
+        Guid itemId, string? notes, DateTimeOffset completedAtUtc) =>
+        CompleteItem(Version, itemId, notes, completedAtUtc);
+
+    public void CompleteItem(
+        int expectedVersion, Guid itemId, string? notes,
+        DateTimeOffset completedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureInProgress();
         GetItem(itemId).Complete(notes, completedAtUtc);
         UpdatedAtUtc = completedAtUtc;
@@ -223,8 +263,14 @@ public sealed class StudySession
     }
 
     public void SkipItem(
-        Guid itemId, string? notes, DateTimeOffset skippedAtUtc)
+        Guid itemId, string? notes, DateTimeOffset skippedAtUtc) =>
+        SkipItem(Version, itemId, notes, skippedAtUtc);
+
+    public void SkipItem(
+        int expectedVersion, Guid itemId, string? notes,
+        DateTimeOffset skippedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureInProgress();
         GetItem(itemId).Skip(notes, skippedAtUtc);
         UpdatedAtUtc = skippedAtUtc;

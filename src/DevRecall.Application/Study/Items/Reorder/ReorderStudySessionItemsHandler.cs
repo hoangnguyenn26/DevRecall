@@ -6,14 +6,18 @@ using DevRecall.Domain.Study;
 namespace DevRecall.Application.Study.Items.Reorder;
 
 public sealed record ReorderStudySessionItemsCommand(
-    Guid StudySessionId, IReadOnlyList<Guid> OrderedItemIds);
+    Guid StudySessionId, IReadOnlyList<Guid> OrderedItemIds,
+    int ExpectedVersion);
+
+public sealed record ReorderStudySessionItemsResult(
+    int Version, IReadOnlyList<StudySessionItemPositionResult> Items);
 
 public sealed class ReorderStudySessionItemsHandler(
     IStudySessionRepository repository,
     ICurrentUser currentUser,
     IUtcClock utcClock)
 {
-    public async Task<IReadOnlyList<StudySessionItemPositionResult>> HandleAsync(
+    public async Task<ReorderStudySessionItemsResult> HandleAsync(
         ReorderStudySessionItemsCommand command,
         CancellationToken cancellationToken)
     {
@@ -25,6 +29,7 @@ public sealed class ReorderStudySessionItemsHandler(
                     ["orderedItemIds"] = ["Ordered item ids are required."]
                 });
         }
+        StudySessionSupport.ValidateExpectedVersion(command.ExpectedVersion);
 
         var userId = StudySessionSupport.GetUserId(currentUser);
         var session = await repository.GetByIdAndUserIdForUpdateAsync(
@@ -36,12 +41,20 @@ public sealed class ReorderStudySessionItemsHandler(
                 StudySessionErrors.SessionNotFound.Message);
         }
 
-        StudySessionSupport.EnsureCanEditPlan(session);
         bool changed;
         try
         {
             changed = session.ReorderItems(
-                command.OrderedItemIds, utcClock.UtcNow);
+                command.ExpectedVersion, command.OrderedItemIds,
+                utcClock.UtcNow);
+        }
+        catch (StudySessionDomainException exception)
+        {
+            throw StudySessionSupport.MapDomainConflict(exception);
+        }
+        catch (InvalidOperationException)
+        {
+            throw StudySessionSupport.ConflictForSessionStatus(session.Status);
         }
         catch (ArgumentException exception)
         {
@@ -54,12 +67,14 @@ public sealed class ReorderStudySessionItemsHandler(
 
         if (changed)
         {
-            await repository.SaveChangesAsync(cancellationToken);
+            await StudySessionSupport.SaveWithConcurrencyMappingAsync(
+                repository, cancellationToken);
         }
 
-        return session.Items.OrderBy(item => item.Position)
+        var items = session.Items.OrderBy(item => item.Position)
             .Select(item => new StudySessionItemPositionResult(
                 item.Id, item.Position))
             .ToList();
+        return new ReorderStudySessionItemsResult(session.Version, items);
     }
 }
