@@ -1,5 +1,6 @@
 using DevRecall.Api.Authentication;
 using DevRecall.Api.Authorization;
+using DevRecall.Api.Endpoints.Analytics;
 using DevRecall.Api.Endpoints.Auth;
 using DevRecall.Api.Endpoints.Dsa;
 using DevRecall.Api.Endpoints.Interview;
@@ -119,6 +120,7 @@ app.MapHealthChecks(
         Predicate = registration => registration.Tags.Contains("ready")
     });
 app.MapAuthEndpoints();
+app.MapAnalyticsEndpoints();
 app.MapDsaAttemptEndpoints();
 app.MapDsaProblemEndpoints();
 app.MapInterviewQuestionEndpoints();
