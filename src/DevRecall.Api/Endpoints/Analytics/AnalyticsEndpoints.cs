@@ -1,5 +1,6 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Analytics.DailyActivity;
+using DevRecall.Application.Analytics.ModuleBreakdown;
 using DevRecall.Application.Analytics.Overview;
 using DevRecall.Contracts.Analytics;
 
@@ -35,6 +36,29 @@ public static class AnalyticsEndpoints
             })
             .WithName("GetAnalyticsDailyActivity")
             .Produces<DailyActivityResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+        group.MapGet(
+            "/module-breakdown",
+            async (
+                [AsParameters] AnalyticsDateRangeRequest request,
+                GetModuleBreakdownHandler handler,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await handler.HandleAsync(
+                    new GetModuleBreakdownQuery(
+                        request.FromUtc, request.ToUtc),
+                    cancellationToken);
+                return Results.Ok(new ModuleBreakdownResponse(
+                    result.FromUtc, result.ToUtc,
+                    result.TotalCompletedItems,
+                    result.Modules.Select(module =>
+                        new ModuleBreakdownItemResponse(
+                            module.ResourceType, module.CompletedItems,
+                            module.Percentage)).ToList()));
+            })
+            .WithName("GetAnalyticsModuleBreakdown")
+            .Produces<ModuleBreakdownResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
         group.MapGet(
