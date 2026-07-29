@@ -1,5 +1,6 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Analytics.DailyActivity;
+using DevRecall.Application.Analytics.DsaPerformance;
 using DevRecall.Application.Analytics.ModuleBreakdown;
 using DevRecall.Application.Analytics.Overview;
 using DevRecall.Application.Analytics.ReviewPerformance;
@@ -15,6 +16,29 @@ public static class AnalyticsEndpoints
         var group = endpoints.MapGroup("/api/v1/analytics")
             .WithTags("Analytics")
             .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
+        group.MapGet(
+            "/dsa-performance",
+            async (
+                [AsParameters] AnalyticsDateRangeRequest request,
+                GetDsaPerformanceHandler handler,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await handler.HandleAsync(
+                    new GetDsaPerformanceQuery(
+                        request.FromUtc, request.ToUtc),
+                    cancellationToken);
+                return Results.Ok(new DsaPerformanceResponse(
+                    result.FromUtc, result.ToUtc, result.TotalAttempts,
+                    result.SolvedAttempts,
+                    result.PartiallySolvedAttempts,
+                    result.FailedAttempts, result.SkippedAttempts,
+                    result.ProblemsPracticed, result.SolvedRate,
+                    result.AverageDurationMinutes));
+            })
+            .WithName("GetAnalyticsDsaPerformance")
+            .Produces<DsaPerformanceResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
         group.MapGet(
             "/daily-activity",
             async (
