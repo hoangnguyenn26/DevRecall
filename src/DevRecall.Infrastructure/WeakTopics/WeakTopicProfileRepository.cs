@@ -2,6 +2,7 @@ using DevRecall.Application.WeakTopics;
 using DevRecall.Domain.WeakTopics;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace DevRecall.Infrastructure.WeakTopics;
 
@@ -21,6 +22,23 @@ internal sealed class WeakTopicProfileRepository(
     public void Add(WeakTopicProfile profile) =>
         dbContext.WeakTopicProfiles.Add(profile);
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new WeakTopicProfileConflictException();
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException
+            {
+                ConstraintName: "ux_weak_topic_profiles_user_resource"
+            })
+        {
+            throw new WeakTopicProfileConflictException();
+        }
+    }
 }

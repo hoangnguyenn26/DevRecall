@@ -20,6 +20,9 @@ internal sealed class WeakTopicProfileConfiguration
                 table.HasCheckConstraint(
                     "ck_weak_topic_profiles_signal_count_non_negative",
                     "signal_count >= 0");
+                table.HasCheckConstraint(
+                    "ck_weak_topic_profiles_version_positive",
+                    "version > 0");
             });
         builder.HasKey(profile => profile.Id);
         builder.Property(profile => profile.Id).ValueGeneratedNever();
@@ -35,6 +38,7 @@ internal sealed class WeakTopicProfileConfiguration
             .HasConversion<int>()
             .IsRequired();
         builder.Property(profile => profile.SignalCount).IsRequired();
+        builder.Property(profile => profile.Version).IsRequired().IsConcurrencyToken();
         builder.Property(profile => profile.CalculatedAtUtc).IsRequired();
         builder.Property(profile => profile.CreatedAtUtc).IsRequired();
         builder.Property(profile => profile.UpdatedAtUtc).IsRequired();

@@ -20,6 +20,7 @@ using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
 using DevRecall.Application.WeakTopics;
 using DevRecall.Application.WeakTopics.Signals;
+using DevRecall.Application.WeakTopics.Recalculate;
 using DevRecall.Infrastructure.Analytics;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
@@ -108,6 +109,7 @@ public static class DependencyInjection
         services.AddScoped<IStudySessionListReader, StudySessionListReader>();
         services.AddScoped<IWeakTopicProfileRepository, WeakTopicProfileRepository>();
         services.AddScoped<IWeakTopicSignalReader, WeakTopicSignalReader>();
+        services.AddScoped<IWeakTopicResourceReader, WeakTopicResourceReader>();
         services.AddScoped<
             IStudyResourceSummaryReader,
             StudyResourceSummaryReader>();

@@ -16,6 +16,7 @@ public sealed class WeakTopicProfile
         ResourceType = resourceType;
         ResourceId = resourceId;
         Apply(score);
+        Version = 1;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
     }
@@ -27,6 +28,7 @@ public sealed class WeakTopicProfile
     public decimal Score { get; private set; }
     public WeaknessLevel Level { get; private set; }
     public int SignalCount { get; private set; }
+    public int Version { get; private set; }
     public DateTimeOffset CalculatedAtUtc { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
@@ -81,6 +83,7 @@ public sealed class WeakTopicProfile
         }
 
         Apply(score);
+        Version++;
         UpdatedAtUtc = updatedAtUtc;
         return true;
     }

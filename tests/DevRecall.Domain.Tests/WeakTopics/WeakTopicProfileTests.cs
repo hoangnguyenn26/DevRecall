@@ -21,6 +21,7 @@ public sealed class WeakTopicProfileTests
         profile.Level.Should().Be(WeaknessLevel.High);
         profile.SignalCount.Should().Be(2);
         profile.CalculatedAtUtc.Should().Be(Now);
+        profile.Version.Should().Be(1);
     }
 
     [Fact]
@@ -40,6 +41,7 @@ public sealed class WeakTopicProfileTests
         profile.Score.Should().Be(2m);
         profile.Level.Should().Be(WeaknessLevel.Low);
         profile.UpdatedAtUtc.Should().Be(calculatedAt);
+        profile.Version.Should().Be(2);
     }
 
     [Fact]
@@ -50,6 +52,7 @@ public sealed class WeakTopicProfileTests
 
         profile.Recalculate(score, Now.AddHours(1)).Should().BeFalse();
         profile.UpdatedAtUtc.Should().Be(Now);
+        profile.Version.Should().Be(1);
     }
 
     [Fact]

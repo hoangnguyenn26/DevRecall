@@ -9,6 +9,7 @@ using DevRecall.Api.Endpoints.Reviews;
 using DevRecall.Api.Endpoints.Study;
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.Endpoints.Tags;
+using DevRecall.Api.Endpoints.WeakTopics;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
 using DevRecall.Application;
@@ -129,6 +130,7 @@ app.MapReviewItemEndpoints();
 app.MapSystemEndpoints();
 app.MapStudySessionEndpoints();
 app.MapTagEndpoints();
+app.MapWeakTopicEndpoints();
 
 app.Run();
 

@@ -12,3 +12,5 @@ public interface IWeakTopicProfileRepository
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
+
+public sealed class WeakTopicProfileConflictException : Exception;
