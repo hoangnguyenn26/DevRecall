@@ -9,6 +9,8 @@ public interface IStudyRecommendationRepository
         RecommendationType type, CancellationToken cancellationToken);
     Task<StudyRecommendation?> GetByIdAndUserIdForUpdateAsync(
         Guid recommendationId, Guid userId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<StudyRecommendation>> GetActiveByUserIdForUpdateAsync(
+        Guid userId, CancellationToken cancellationToken);
     void Add(StudyRecommendation recommendation);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

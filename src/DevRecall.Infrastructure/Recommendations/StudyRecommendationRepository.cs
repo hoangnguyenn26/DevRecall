@@ -24,6 +24,14 @@ internal sealed class StudyRecommendationRepository(DevRecallDbContext dbContext
             x => x.Id == recommendationId && x.UserId == userId,
             cancellationToken);
 
+    public async Task<IReadOnlyList<StudyRecommendation>>
+        GetActiveByUserIdForUpdateAsync(
+            Guid userId, CancellationToken cancellationToken) =>
+        await dbContext.StudyRecommendations
+            .Where(x => x.UserId == userId
+                && x.Status == RecommendationStatus.Active)
+            .ToListAsync(cancellationToken);
+
     public void Add(StudyRecommendation recommendation) =>
         dbContext.StudyRecommendations.Add(recommendation);
 

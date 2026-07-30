@@ -96,7 +96,7 @@ public sealed class StudyRecommendation
         }
 
         if (Priority == priority && PriorityScore == reason.WeaknessScore
-            && Reason == reason && ExpiresAtUtc == expiresAtUtc)
+            && Reason == reason)
         {
             return false;
         }
