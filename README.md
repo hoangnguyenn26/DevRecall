@@ -568,3 +568,24 @@ Completed:
 - Current-user batch recalculation
 - Profile decay to None when recent signals expire
 - Owner-scoped queries and cross-user isolation
+
+### Week 15 — Study Recommendations
+
+Completed:
+
+- Recommendation domain and lifecycle
+- Weak-topic-to-recommendation priority mapping
+- Persisted recommendation reason snapshots
+- Partial unique constraint for active recommendations
+- Optimistic concurrency protection
+- Recommendation generation from weak topics
+- Idempotent create and refresh behavior
+- Priority-ranked recommendation list
+- Batched resource summaries without N+1
+- Recommendation detail endpoint
+- Dismiss and complete lifecycle actions
+- Recommendation expiration reasons
+- Active recommendation synchronization
+- Expiration by lifetime, resolved weakness, or unavailable resource
+- Owner-scoped reads and mutations
+- Historical terminal recommendation retention
