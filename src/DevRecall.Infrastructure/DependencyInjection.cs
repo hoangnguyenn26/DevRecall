@@ -13,6 +13,8 @@ using DevRecall.Application.Interview.Answers;
 using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
+using DevRecall.Application.Recommendations;
+using DevRecall.Application.Recommendations.Generation;
 using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Study;
@@ -34,6 +36,7 @@ using DevRecall.Infrastructure.Interview.FollowUps;
 using DevRecall.Infrastructure.Knowledge;
 using DevRecall.Infrastructure.Knowledge.Tags;
 using DevRecall.Infrastructure.Persistence;
+using DevRecall.Infrastructure.Recommendations;
 using DevRecall.Infrastructure.Reviews;
 using DevRecall.Infrastructure.Reviews.Resources;
 using DevRecall.Infrastructure.Study;
@@ -91,6 +94,12 @@ public static class DependencyInjection
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IKnowledgeNodeTagRepository, KnowledgeNodeTagRepository>();
         services.AddScoped<IReviewItemRepository, ReviewItemRepository>();
+        services.AddScoped<
+            IStudyRecommendationRepository,
+            StudyRecommendationRepository>();
+        services.AddScoped<
+            IRecommendationCandidateReader,
+            RecommendationCandidateReader>();
         services.AddScoped<IReviewHistoryRepository, ReviewHistoryRepository>();
         services.AddScoped<
             IReviewKnowledgeResourceReader,

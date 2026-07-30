@@ -7,6 +7,7 @@ using DevRecall.Domain.Interview.Answers;
 using DevRecall.Domain.Interview.FollowUps;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
+using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.Reviews;
 using DevRecall.Domain.Study;
 using DevRecall.Domain.WeakTopics;
@@ -50,6 +51,9 @@ public sealed class DevRecallDbContext(
 
     public DbSet<ReviewItem> ReviewItems =>
         Set<ReviewItem>();
+
+    public DbSet<StudyRecommendation> StudyRecommendations =>
+        Set<StudyRecommendation>();
 
     public DbSet<ReviewHistory> ReviewHistories =>
         Set<ReviewHistory>();
