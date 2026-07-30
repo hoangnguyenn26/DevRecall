@@ -227,6 +227,37 @@ public sealed class StudyPlanPersistenceTests(PostgreSqlFixture fixture)
         crossUser.Should().BeNull();
     }
 
+    [Fact]
+    public async Task Repository_ShouldPersistReorderedPositions()
+    {
+        var user = CreateUser();
+        var plan = CreatePlan(user.Id);
+        AddItem(plan, StudyPlanResourceType.KnowledgeNode, 15);
+        AddItem(plan, StudyPlanResourceType.InterviewQuestion, 20);
+        AddItem(plan, StudyPlanResourceType.DsaProblem, 30);
+        await using (var setup = fixture.CreateDbContext())
+        {
+            setup.Users.Add(user);
+            setup.StudyPlans.Add(plan);
+            await setup.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var repository = provider.GetRequiredService<IStudyPlanRepository>();
+        var stored = await repository.GetByIdAndUserIdForUpdateAsync(
+            plan.Id, user.Id, CancellationToken.None);
+        var reordered = stored!.Items.OrderByDescending(x => x.Position)
+            .Select(x => x.Id).ToArray();
+        stored.ReorderItems(reordered, stored.Version, Now.AddHours(1));
+        await repository.SaveChangesAsync(CancellationToken.None);
+
+        await using var verify = fixture.CreateDbContext();
+        var positions = await verify.StudyPlanItems.AsNoTracking()
+            .Where(x => x.StudyPlanId == plan.Id)
+            .OrderBy(x => x.Position).Select(x => x.Id).ToArrayAsync();
+        positions.Should().Equal(reordered);
+    }
+
     private ServiceProvider CreateServices()
     {
         var configuration = new ConfigurationManager();

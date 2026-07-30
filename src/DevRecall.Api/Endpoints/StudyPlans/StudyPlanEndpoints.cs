@@ -2,6 +2,7 @@ using DevRecall.Api.Authorization;
 using DevRecall.Application.StudyPlans.Generate;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
+using DevRecall.Application.StudyPlans.Mutations;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.StudyPlans;
 
@@ -33,8 +34,97 @@ public static class StudyPlanEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
+        group.MapPut("/{studyPlanId:guid}", UpdateAsync)
+            .WithName("UpdateStudyPlan")
+            .Produces<StudyPlanMutationResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{studyPlanId:guid}/items/{itemId:guid}", UpdateItemAsync)
+            .WithName("UpdateStudyPlanItem")
+            .Produces<StudyPlanMutationResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapDelete("/{studyPlanId:guid}/items/{itemId:guid}", RemoveItemAsync)
+            .WithName("RemoveStudyPlanItem")
+            .Produces<StudyPlanMutationResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{studyPlanId:guid}/items/reorder", ReorderItemsAsync)
+            .WithName("ReorderStudyPlanItems")
+            .Produces<StudyPlanMutationResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPost("/{studyPlanId:guid}/ready", MarkReadyAsync)
+            .WithName("MarkStudyPlanReady")
+            .Produces<StudyPlanMutationResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPost("/{studyPlanId:guid}/cancel", CancelAsync)
+            .WithName("CancelStudyPlan")
+            .Produces<StudyPlanMutationResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
         return endpoints;
     }
+
+    private static async Task<IResult> UpdateAsync(
+        Guid studyPlanId, UpdateStudyPlanRequest request,
+        UpdateStudyPlanHandler handler, CancellationToken cancellationToken) =>
+        Results.Ok(MapMutation(await handler.HandleAsync(
+            new(studyPlanId, request.Title, request.ExpectedVersion),
+            cancellationToken)));
+
+    private static async Task<IResult> UpdateItemAsync(
+        Guid studyPlanId, Guid itemId, UpdateStudyPlanItemRequest request,
+        UpdateStudyPlanItemHandler handler,
+        CancellationToken cancellationToken) =>
+        Results.Ok(MapMutation(await handler.HandleAsync(
+            new(
+                studyPlanId, itemId, request.PlannedDurationMinutes,
+                request.ExpectedVersion),
+            cancellationToken)));
+
+    private static async Task<IResult> RemoveItemAsync(
+        Guid studyPlanId, Guid itemId, int expectedVersion,
+        RemoveStudyPlanItemHandler handler,
+        CancellationToken cancellationToken) =>
+        Results.Ok(MapMutation(await handler.HandleAsync(
+            new(studyPlanId, itemId, expectedVersion), cancellationToken)));
+
+    private static async Task<IResult> ReorderItemsAsync(
+        Guid studyPlanId, ReorderStudyPlanItemsRequest request,
+        ReorderStudyPlanItemsHandler handler,
+        CancellationToken cancellationToken) =>
+        Results.Ok(MapMutation(await handler.HandleAsync(
+            new(studyPlanId, request.ItemIds, request.ExpectedVersion),
+            cancellationToken)));
+
+    private static async Task<IResult> MarkReadyAsync(
+        Guid studyPlanId, StudyPlanMutationRequest request,
+        MarkStudyPlanReadyHandler handler,
+        CancellationToken cancellationToken) =>
+        Results.Ok(MapMutation(await handler.HandleAsync(
+            new(studyPlanId, request.ExpectedVersion), cancellationToken)));
+
+    private static async Task<IResult> CancelAsync(
+        Guid studyPlanId, StudyPlanMutationRequest request,
+        CancelStudyPlanHandler handler,
+        CancellationToken cancellationToken) =>
+        Results.Ok(MapMutation(await handler.HandleAsync(
+            new(studyPlanId, request.ExpectedVersion), cancellationToken)));
+
+    private static StudyPlanMutationResponse MapMutation(
+        StudyPlanMutationResult result) =>
+        new(
+            result.StudyPlanId, result.Status, result.ItemCount,
+            result.TotalPlannedDurationMinutes, result.UpdatedAtUtc,
+            result.ReadyAtUtc, result.CancelledAtUtc, result.Version);
 
     private static async Task<IResult> GetListAsync(
         [AsParameters] GetStudyPlansRequest request,

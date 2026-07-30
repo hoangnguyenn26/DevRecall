@@ -38,8 +38,7 @@ internal sealed class StudyPlanItemConfiguration
         builder.Property(item => item.CreatedAtUtc).IsRequired();
         builder.Property(item => item.UpdatedAtUtc).IsRequired();
         builder.HasIndex(item => new { item.StudyPlanId, item.Position })
-            .IsUnique()
-            .HasDatabaseName("ux_study_plan_items_plan_position");
+            .HasDatabaseName("ix_study_plan_items_plan_position");
         builder.HasIndex(item => new
         {
             item.StudyPlanId,

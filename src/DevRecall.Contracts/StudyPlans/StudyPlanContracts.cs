@@ -66,3 +66,20 @@ public sealed record StudyPlanDetailResponse(
     DateTimeOffset UpdatedAtUtc,
     int Version,
     IReadOnlyList<StudyPlanItemResponse> Items);
+
+public sealed record StudyPlanMutationRequest(int ExpectedVersion);
+public sealed record UpdateStudyPlanRequest(string Title, int ExpectedVersion);
+public sealed record UpdateStudyPlanItemRequest(
+    int PlannedDurationMinutes, int ExpectedVersion);
+public sealed record ReorderStudyPlanItemsRequest(
+    IReadOnlyList<Guid> ItemIds, int ExpectedVersion);
+public sealed record StudyPlanMutationResponse(
+    Guid StudyPlanId, string Status, int ItemCount,
+    int TotalPlannedDurationMinutes, DateTimeOffset UpdatedAtUtc,
+    DateTimeOffset? ReadyAtUtc, DateTimeOffset? CancelledAtUtc, int Version);
+public sealed record ConvertStudyPlanRequest(int ExpectedVersion);
+public sealed record ConvertStudyPlanResponse(
+    Guid StudyPlanId, string StudyPlanStatus, Guid StudySessionId,
+    string StudySessionStatus, string Title, int ItemCount,
+    int TotalPlannedDurationMinutes, DateTimeOffset ConvertedAtUtc,
+    int StudyPlanVersion, int StudySessionVersion);

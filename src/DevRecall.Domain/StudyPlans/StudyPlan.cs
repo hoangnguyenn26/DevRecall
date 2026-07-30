@@ -135,9 +135,33 @@ public sealed class StudyPlan
         return item;
     }
 
-    public bool UpdateItemDuration(
-        Guid itemId, int plannedDurationMinutes, DateTimeOffset updatedAtUtc)
+    public bool Rename(
+        string title, int expectedVersion, DateTimeOffset updatedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
+        EnsureDraft();
+        EnsureUtc(updatedAtUtc, nameof(updatedAtUtc));
+        var normalizedTitle = NormalizeTitle(title);
+        if (Title == normalizedTitle)
+        {
+            return false;
+        }
+
+        Title = normalizedTitle;
+        Touch(updatedAtUtc);
+        return true;
+    }
+
+    public bool UpdateItemDuration(
+        Guid itemId, int plannedDurationMinutes, DateTimeOffset updatedAtUtc) =>
+        UpdateItemDuration(
+            itemId, plannedDurationMinutes, Version, updatedAtUtc);
+
+    public bool UpdateItemDuration(
+        Guid itemId, int plannedDurationMinutes, int expectedVersion,
+        DateTimeOffset updatedAtUtc)
+    {
+        EnsureExpectedVersion(expectedVersion);
         EnsureDraft();
         EnsureUtc(updatedAtUtc, nameof(updatedAtUtc));
         EnsureDuration(plannedDurationMinutes);
@@ -160,14 +184,19 @@ public sealed class StudyPlan
         return true;
     }
 
-    public bool RemoveItem(Guid itemId, DateTimeOffset removedAtUtc)
+    public bool RemoveItem(Guid itemId, DateTimeOffset removedAtUtc) =>
+        RemoveItem(itemId, Version, removedAtUtc);
+
+    public bool RemoveItem(
+        Guid itemId, int expectedVersion, DateTimeOffset removedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureDraft();
         EnsureUtc(removedAtUtc, nameof(removedAtUtc));
         var item = _items.SingleOrDefault(item => item.Id == itemId);
         if (item is null)
         {
-            return false;
+            throw new StudyPlanDomainException(StudyPlanErrors.ItemNotFound);
         }
 
         _items.Remove(item);
@@ -177,8 +206,14 @@ public sealed class StudyPlan
     }
 
     public bool ReorderItems(
-        IReadOnlyList<Guid> orderedItemIds, DateTimeOffset reorderedAtUtc)
+        IReadOnlyList<Guid> orderedItemIds, DateTimeOffset reorderedAtUtc) =>
+        ReorderItems(orderedItemIds, Version, reorderedAtUtc);
+
+    public bool ReorderItems(
+        IReadOnlyList<Guid> orderedItemIds, int expectedVersion,
+        DateTimeOffset reorderedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureDraft();
         ArgumentNullException.ThrowIfNull(orderedItemIds);
         EnsureUtc(reorderedAtUtc, nameof(reorderedAtUtc));
@@ -264,12 +299,22 @@ public sealed class StudyPlan
 
         if (Status == StudyPlanStatus.Converted)
         {
-            return false;
+            if (ConvertedStudySessionId == studySessionId)
+            {
+                return false;
+            }
+
+            throw new StudyPlanDomainException(StudyPlanErrors.AlreadyConverted);
         }
 
         if (Status != StudyPlanStatus.Ready)
         {
             throw new StudyPlanDomainException(StudyPlanErrors.NotReady);
+        }
+
+        if (_items.Count == 0)
+        {
+            throw new StudyPlanDomainException(StudyPlanErrors.EmptyPlan);
         }
 
         Status = StudyPlanStatus.Converted;

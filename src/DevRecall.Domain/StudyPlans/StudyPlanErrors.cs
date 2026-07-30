@@ -46,6 +46,9 @@ public static class StudyPlanErrors
     public static readonly DomainError NoEligibleItems = new(
         "STUDY_PLAN_NO_ELIGIBLE_ITEMS",
         "No eligible recommendation fits the requested study plan.");
+    public static readonly DomainError ResourceUnavailable = new(
+        "STUDY_PLAN_RESOURCE_UNAVAILABLE",
+        "One or more study plan resources are no longer available.");
 }
 
 public sealed class StudyPlanDomainException(DomainError error)
