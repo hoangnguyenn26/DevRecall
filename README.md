@@ -484,6 +484,23 @@ Completed:
 - Batched study-resource summaries
 - Ownership and terminal-state protection
 
+### Week 13 — Progress Analytics Foundation
+
+Completed:
+
+- Shared UTC analytics date-range contract
+- Start-inclusive and end-exclusive range semantics
+- Default seven-day and maximum 365-day ranges
+- Progress overview across Study, Review, and DSA activity
+- Daily UTC activity trend with zero-filled dates
+- Completed study-item module breakdown
+- Review performance metrics for Again, Hard, Good, and Easy
+- DSA attempt result, duration, and distinct-problem metrics
+- Empty-state-safe rates and averages
+- Owner-scoped aggregate queries
+- Database-side grouping, counting, summing, and averaging
+- Bounded query counts without loading full histories
+
 ## Development commands
 
 ## Integration tests

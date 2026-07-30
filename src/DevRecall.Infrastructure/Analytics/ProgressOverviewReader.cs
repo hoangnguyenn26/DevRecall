@@ -101,6 +101,7 @@ internal sealed class ProgressOverviewReader(DevRecallDbContext dbContext)
     private Task<int> ReadActiveDaysAsync(
         Guid userId, AnalyticsDateRange range,
         CancellationToken cancellationToken) =>
+        // Combine distinct UTC dates from every supported activity source.
         dbContext.Database.SqlQuery<int>(
             $"""
             SELECT COUNT(DISTINCT activity_date)::integer AS "Value"
