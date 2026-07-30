@@ -44,6 +44,7 @@ using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
 using DevRecall.Application.Recommendations.Generation;
+using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Application.Reviews.Create;
 using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
@@ -126,6 +127,7 @@ public static class DependencyInjection
         services.AddScoped<RemoveTagFromKnowledgeNodeHandler>();
         services.AddScoped<CreateReviewItemHandler>();
         services.AddScoped<GenerateRecommendationsHandler>();
+        services.AddScoped<GetRecommendationsHandler>();
         services.AddScoped<EvaluateReviewItemHandler>();
         services.AddScoped<GetReviewItemDetailHandler>();
         services.AddScoped<GetDueReviewItemsHandler>();

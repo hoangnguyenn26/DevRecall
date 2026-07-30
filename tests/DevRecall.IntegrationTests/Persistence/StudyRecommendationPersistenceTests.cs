@@ -1,5 +1,6 @@
 using DevRecall.Application.Recommendations;
 using DevRecall.Application.Recommendations.Generation;
+using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.WeakTopics;
@@ -119,6 +120,49 @@ public sealed class StudyRecommendationPersistenceTests(PostgreSqlFixture fixtur
         await invalid.Should().ThrowAsync<ArgumentOutOfRangeException>();
     }
 
+    [Fact]
+    public async Task ListReader_ShouldScopeFilterOrderAndPaginate()
+    {
+        var owner = CreateUser();
+        var other = CreateUser();
+        var critical = CreateRecommendation(
+            owner.Id, 12m, generatedAt: Now.AddDays(-2));
+        var highNewer = CreateRecommendation(
+            owner.Id, 9m, generatedAt: Now.AddDays(-1));
+        var highOlder = CreateRecommendation(
+            owner.Id, 9m, generatedAt: Now.AddDays(-3));
+        var completed = CreateRecommendation(owner.Id, 8m);
+        completed.Complete(Now.AddDays(1));
+        await using (var context = fixture.CreateDbContext())
+        {
+            context.Users.AddRange(owner, other);
+            context.StudyRecommendations.AddRange(
+                critical, highNewer, highOlder, completed,
+                CreateRecommendation(other.Id, 20m));
+            await context.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var reader = provider.GetRequiredService<IRecommendationListReader>();
+        var active = await reader.ReadAsync(
+            owner.Id, RecommendationStatus.Active, null, null, null, null,
+            0, 10, CancellationToken.None);
+        var history = await reader.ReadAsync(
+            owner.Id, RecommendationStatus.Completed, null, null, null, null,
+            0, 10, CancellationToken.None);
+        var paged = await reader.ReadAsync(
+            owner.Id, RecommendationStatus.Active, null, null, null, 9m,
+            1, 1, CancellationToken.None);
+
+        active.Items.Select(x => x.RecommendationId).Should()
+            .Equal(critical.Id, highNewer.Id, highOlder.Id);
+        history.Items.Should().ContainSingle(x =>
+            x.RecommendationId == completed.Id);
+        paged.TotalCount.Should().Be(3);
+        paged.Items.Should().ContainSingle(x =>
+            x.RecommendationId == highNewer.Id);
+    }
+
     private ServiceProvider CreateServices()
     {
         var configuration = new ConfigurationManager();
@@ -132,11 +176,12 @@ public sealed class StudyRecommendationPersistenceTests(PostgreSqlFixture fixtur
         DateTimeOffset? generatedAt = null)
     {
         var at = generatedAt ?? Now;
+        var level = WeakTopicScoringPolicy.GetLevel(score);
         return StudyRecommendation.Create(
             Guid.NewGuid(), userId, RecommendationResourceType.DsaProblem,
             resourceId ?? Guid.NewGuid(), RecommendationType.RetryDsaProblem,
-            RecommendationPriority.High,
-            RecommendationReason.Create(score, WeaknessLevel.High, 3, at),
+            RecommendationPriorityPolicy.FromWeaknessLevel(level),
+            RecommendationReason.Create(score, level, 3, at),
             at, at.Add(RecommendationDefaults.ActiveLifetime));
     }
 
