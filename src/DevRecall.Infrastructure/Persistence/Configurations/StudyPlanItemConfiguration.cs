@@ -22,7 +22,7 @@ internal sealed class StudyPlanItemConfiguration
             table.HasCheckConstraint(
                 "ck_study_plan_items_source_reference",
                 "(source_type = 1 AND source_recommendation_id IS NOT NULL) "
-                + "OR source_type = 2");
+                + "OR (source_type = 2 AND source_recommendation_id IS NULL)");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();

@@ -382,6 +382,35 @@ public sealed class StudyPlanPersistenceTests(PostgreSqlFixture fixture)
             x.UserId == user.Id)).Should().Be(1);
     }
 
+    [Fact]
+    public async Task ReadyPlan_ShouldCancelAndRetainReadyTimestamp()
+    {
+        var user = CreateUser();
+        var plan = CreatePlan(user.Id);
+        AddItem(plan, StudyPlanResourceType.KnowledgeNode, 15);
+        plan.MarkReady(plan.Version, Now.AddHours(1));
+        await using (var setup = fixture.CreateDbContext())
+        {
+            setup.Users.Add(user);
+            setup.StudyPlans.Add(plan);
+            await setup.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var repository = provider.GetRequiredService<IStudyPlanRepository>();
+        var stored = await repository.GetByIdAndUserIdForUpdateAsync(
+            plan.Id, user.Id, CancellationToken.None);
+        stored!.Cancel(stored.Version, Now.AddHours(2));
+        await repository.SaveChangesAsync(CancellationToken.None);
+
+        await using var verify = fixture.CreateDbContext();
+        var cancelled = await verify.StudyPlans.AsNoTracking()
+            .SingleAsync(x => x.Id == plan.Id);
+        cancelled.Status.Should().Be(StudyPlanStatus.Cancelled);
+        cancelled.ReadyAtUtc.Should().Be(Now.AddHours(1));
+        cancelled.CancelledAtUtc.Should().Be(Now.AddHours(2));
+    }
+
     private ServiceProvider CreateServices()
     {
         var configuration = new ConfigurationManager();

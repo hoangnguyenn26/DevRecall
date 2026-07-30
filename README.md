@@ -589,3 +589,24 @@ Completed:
 - Expiration by lifetime, resolved weakness, or unavailable resource
 - Owner-scoped reads and mutations
 - Historical terminal recommendation retention
+
+### Week 16 — Personalized Study Plans
+
+Completed:
+
+- Study Plan aggregate and ordered plan items
+- Draft, Ready, Converted, and Cancelled lifecycle
+- Recommendation-priority duration composition
+- Duration-budget-based plan generation
+- Active recommendation candidate filtering
+- Resource availability validation
+- Single Draft plan constraint per user
+- Study Plan list and detail endpoints
+- Draft title, duration, removal, and reorder operations
+- Optimistic concurrency for plan mutations
+- Ready and Cancel lifecycle actions
+- Atomic conversion to Planned Study Sessions
+- Conversion resource revalidation
+- Idempotent converted-plan retry behavior
+- Owner-scoped reads and mutations
+- Resource-summary batching without N+1

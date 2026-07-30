@@ -19,8 +19,7 @@ internal sealed class StudyPlanConfiguration
                 "expires_at_utc IS NULL OR expires_at_utc > generated_at_utc");
             table.HasCheckConstraint(
                 "ck_study_plans_ready_state",
-                "(status IN (2, 3) AND ready_at_utc IS NOT NULL) OR "
-                + "(status NOT IN (2, 3) AND ready_at_utc IS NULL)");
+                "status NOT IN (2, 3) OR ready_at_utc IS NOT NULL");
             table.HasCheckConstraint(
                 "ck_study_plans_converted_state",
                 "(status = 3 AND converted_at_utc IS NOT NULL "
