@@ -7,6 +7,8 @@ public interface IWeakTopicProfileRepository
     Task<WeakTopicProfile?> GetByUserAndResourceForUpdateAsync(
         Guid userId, WeakTopicResourceType resourceType, Guid resourceId,
         CancellationToken cancellationToken);
+    Task<IReadOnlyList<WeakTopicProfile>> GetByUserIdForUpdateAsync(
+        Guid userId, CancellationToken cancellationToken);
 
     void Add(WeakTopicProfile profile);
 

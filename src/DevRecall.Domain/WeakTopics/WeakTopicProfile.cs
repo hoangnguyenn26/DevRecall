@@ -76,8 +76,7 @@ public sealed class WeakTopicProfile
         }
 
         if (Score == score.FinalScore && Level == score.Level
-            && SignalCount == score.SignalCount
-            && CalculatedAtUtc == score.CalculatedAtUtc)
+            && SignalCount == score.SignalCount)
         {
             return false;
         }

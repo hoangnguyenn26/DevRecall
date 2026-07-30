@@ -16,4 +16,10 @@ public static class WeakTopicErrors
     public static readonly DomainError CalculationConflict = new(
         "WEAK_TOPIC_CALCULATION_CONFLICT",
         "The weak topic profile could not be recalculated because its state changed.");
+    public static readonly DomainError BatchTooLarge = new(
+        "WEAK_TOPIC_BATCH_TOO_LARGE",
+        "The weak-topic recalculation batch exceeds the supported limit.");
+    public static readonly DomainError BatchConflict = new(
+        "WEAK_TOPIC_BATCH_CONFLICT",
+        "One or more weak-topic profiles changed during recalculation.");
 }

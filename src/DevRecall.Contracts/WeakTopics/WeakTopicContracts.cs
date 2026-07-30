@@ -39,3 +39,9 @@ public sealed record WeakTopicDetailResponse(
     DateTimeOffset? LatestSignalAtUtc,
     IReadOnlyList<WeakTopicSignalGroupResponse> SignalGroups,
     IReadOnlyList<WeakTopicSignalContributionResponse> Contributions);
+
+public sealed record RecalculateAllWeakTopicsResponse(
+    DateTimeOffset CalculatedAtUtc, int CandidateResources,
+    int CreatedProfiles, int UpdatedProfiles, int UnchangedProfiles,
+    int NoneProfiles, int LowProfiles, int MediumProfiles,
+    int HighProfiles, int CriticalProfiles);

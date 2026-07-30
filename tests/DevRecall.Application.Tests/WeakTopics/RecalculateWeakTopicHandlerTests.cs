@@ -123,6 +123,10 @@ public sealed class RecalculateWeakTopicHandlerTests
             Guid userId, WeakTopicResourceType resourceType, Guid resourceId,
             CancellationToken cancellationToken) => Task.FromResult(Profile);
         public void Add(WeakTopicProfile profile) => Profile = profile;
+        public Task<IReadOnlyList<WeakTopicProfile>> GetByUserIdForUpdateAsync(
+            Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<WeakTopicProfile>>(
+                Profile is null ? [] : [Profile]);
         public Task SaveChangesAsync(CancellationToken cancellationToken)
         {
             SaveCount++;

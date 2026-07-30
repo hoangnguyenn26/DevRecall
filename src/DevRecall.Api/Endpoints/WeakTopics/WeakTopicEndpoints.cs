@@ -2,6 +2,7 @@ using DevRecall.Api.Authorization;
 using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Recalculate;
+using DevRecall.Application.WeakTopics.RecalculateAll;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.WeakTopics;
 
@@ -22,6 +23,11 @@ public static class WeakTopicEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPost("/recalculate-all", RecalculateAllAsync)
+            .WithName("RecalculateAllWeakTopics")
+            .Produces<RecalculateAllWeakTopicsResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapGet("/", GetListAsync)
             .WithName("GetWeakTopics")
             .Produces<PagedResponse<WeakTopicListItemResponse>>()
@@ -33,6 +39,19 @@ public static class WeakTopicEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound);
         return endpoints;
+    }
+
+    private static async Task<IResult> RecalculateAllAsync(
+        RecalculateAllWeakTopicsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new RecalculateAllWeakTopicsCommand(), cancellationToken);
+        return Results.Ok(new RecalculateAllWeakTopicsResponse(
+            result.CalculatedAtUtc, result.CandidateResources,
+            result.CreatedProfiles, result.UpdatedProfiles,
+            result.UnchangedProfiles, result.NoneProfiles, result.LowProfiles,
+            result.MediumProfiles, result.HighProfiles, result.CriticalProfiles));
     }
 
     private static async Task<IResult> RecalculateAsync(

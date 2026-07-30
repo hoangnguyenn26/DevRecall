@@ -64,6 +64,7 @@ using DevRecall.Application.Study.Update;
 using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Recalculate;
+using DevRecall.Application.WeakTopics.RecalculateAll;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Application;
@@ -143,6 +144,7 @@ public static class DependencyInjection
         services.AddScoped<RecalculateWeakTopicHandler>();
         services.AddScoped<GetWeakTopicsHandler>();
         services.AddScoped<GetWeakTopicDetailHandler>();
+        services.AddScoped<RecalculateAllWeakTopicsHandler>();
 
         return services;
     }

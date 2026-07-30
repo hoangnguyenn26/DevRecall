@@ -22,6 +22,11 @@ internal sealed class WeakTopicProfileRepository(
     public void Add(WeakTopicProfile profile) =>
         dbContext.WeakTopicProfiles.Add(profile);
 
+    public async Task<IReadOnlyList<WeakTopicProfile>> GetByUserIdForUpdateAsync(
+        Guid userId, CancellationToken cancellationToken) =>
+        await dbContext.WeakTopicProfiles.Where(x => x.UserId == userId)
+            .ToListAsync(cancellationToken);
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         try
