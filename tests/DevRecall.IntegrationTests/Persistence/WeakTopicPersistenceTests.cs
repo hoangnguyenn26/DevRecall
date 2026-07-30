@@ -191,7 +191,7 @@ public sealed class WeakTopicPersistenceTests(PostgreSqlFixture fixture)
             score, score, WeakTopicScoringPolicy.GetLevel(score), 1,
             calculatedAt ?? Now,
             [new WeaknessSignalContribution(
-                WeaknessSignalType.ReviewAgain, 4, 1m, score)]);
+                WeaknessSignalType.ReviewAgain, calculatedAt ?? Now, 4, 1m, score)]);
 
     private static (ReviewItem Item, ReviewHistory History) CreateReview(
         Guid userId, Guid resourceId, ReviewEvaluation evaluation,

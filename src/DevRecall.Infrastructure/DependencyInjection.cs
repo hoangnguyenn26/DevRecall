@@ -19,6 +19,7 @@ using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
 using DevRecall.Application.WeakTopics;
+using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Recalculate;
 using DevRecall.Application.WeakTopics.Signals;
@@ -112,6 +113,7 @@ public static class DependencyInjection
         services.AddScoped<IWeakTopicSignalReader, WeakTopicSignalReader>();
         services.AddScoped<IWeakTopicResourceReader, WeakTopicResourceReader>();
         services.AddScoped<IWeakTopicListReader, WeakTopicListReader>();
+        services.AddScoped<IWeakTopicDetailReader, WeakTopicDetailReader>();
         services.AddScoped<
             IWeakTopicResourceSummaryReader,
             WeakTopicResourceSummaryReader>();

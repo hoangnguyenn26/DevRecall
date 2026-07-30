@@ -24,3 +24,18 @@ public sealed record WeakTopicListItemResponse(
     string? ResourcePreview, bool IsResourceAvailable, decimal Score, string Level,
     int SignalCount, int Version, DateTimeOffset CalculatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
+
+public sealed record WeakTopicSignalContributionResponse(
+    string SignalType, DateTimeOffset OccurredAtUtc, int BaseWeight,
+    decimal RecencyMultiplier, decimal WeightedScore);
+public sealed record WeakTopicSignalGroupResponse(
+    string SignalType, int Count, decimal TotalWeightedScore);
+public sealed record WeakTopicDetailResponse(
+    Guid ProfileId, string ResourceType, Guid ResourceId, string ResourceTitle,
+    string? ResourcePreview, bool IsResourceAvailable, decimal Score, string Level,
+    int SignalCount, int Version, DateTimeOffset CalculatedAtUtc,
+    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
+    DateTimeOffset SignalWindowFromUtc, DateTimeOffset SignalWindowToUtc,
+    DateTimeOffset? LatestSignalAtUtc,
+    IReadOnlyList<WeakTopicSignalGroupResponse> SignalGroups,
+    IReadOnlyList<WeakTopicSignalContributionResponse> Contributions);

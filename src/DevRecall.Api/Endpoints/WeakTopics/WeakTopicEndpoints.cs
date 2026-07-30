@@ -1,4 +1,5 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Recalculate;
 using DevRecall.Contracts.Common;
@@ -26,6 +27,11 @@ public static class WeakTopicEndpoints
             .Produces<PagedResponse<WeakTopicListItemResponse>>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{profileId:guid}", GetDetailAsync)
+            .WithName("GetWeakTopicDetail")
+            .Produces<WeakTopicDetailResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         return endpoints;
     }
 
@@ -59,5 +65,26 @@ public static class WeakTopicEndpoints
                 x.ResourcePreview, x.IsResourceAvailable, x.Score, x.Level,
                 x.SignalCount, x.Version, x.CalculatedAtUtc, x.UpdatedAtUtc)).ToArray(),
             result.Page, result.PageSize, result.TotalCount, result.TotalPages));
+    }
+
+    private static async Task<IResult> GetDetailAsync(
+        Guid profileId, GetWeakTopicDetailHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new GetWeakTopicDetailQuery(profileId), cancellationToken);
+        return Results.Ok(new WeakTopicDetailResponse(
+            result.ProfileId, result.ResourceType, result.ResourceId,
+            result.ResourceTitle, result.ResourcePreview, result.IsResourceAvailable,
+            result.Score, result.Level, result.SignalCount, result.Version,
+            result.CalculatedAtUtc, result.CreatedAtUtc, result.UpdatedAtUtc,
+            result.SignalWindowFromUtc, result.SignalWindowToUtc,
+            result.LatestSignalAtUtc, result.SignalGroups.Select(x =>
+                new WeakTopicSignalGroupResponse(
+                    x.SignalType, x.Count, x.TotalWeightedScore)).ToArray(),
+            result.Contributions.Select(x =>
+                new WeakTopicSignalContributionResponse(
+                    x.SignalType, x.OccurredAtUtc, x.BaseWeight,
+                    x.RecencyMultiplier, x.WeightedScore)).ToArray()));
     }
 }

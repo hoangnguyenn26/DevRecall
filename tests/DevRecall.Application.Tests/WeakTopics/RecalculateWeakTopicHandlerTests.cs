@@ -106,7 +106,8 @@ public sealed class RecalculateWeakTopicHandlerTests
 
         public Context()
         {
-            Resource = new(WeakTopicResourceType.KnowledgeNode, ResourceId, "Node", true);
+            Resource = new(
+                WeakTopicResourceType.KnowledgeNode, ResourceId, "Node", null, true);
         }
 
         public RecalculateWeakTopicHandler Handler => new(

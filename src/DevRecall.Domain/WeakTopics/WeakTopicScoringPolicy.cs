@@ -80,8 +80,12 @@ public static class WeakTopicScoringPolicy
             var multiplier = GetRecencyMultiplier(
                 signal.OccurredAtUtc, calculatedAtUtc);
             return new WeaknessSignalContribution(
-                signal.Type, weight, multiplier, weight * multiplier);
-        }).Where(item => item.RecencyMultiplier > 0m).ToList();
+                signal.Type, signal.OccurredAtUtc, weight, multiplier,
+                weight * multiplier);
+        }).Where(item => item.RecencyMultiplier > 0m)
+            .OrderByDescending(item => item.OccurredAtUtc)
+            .ThenBy(item => item.SignalType)
+            .ToList();
         var rawScore = contributions.Sum(item => item.WeightedScore);
         var finalScore = Math.Round(
             Math.Max(0m, rawScore), 2, MidpointRounding.AwayFromZero);

@@ -8,7 +8,8 @@ namespace DevRecall.Application.WeakTopics.Recalculate;
 
 public sealed record RecalculateWeakTopicCommand(string ResourceType, Guid ResourceId);
 public sealed record WeakTopicResourceReadModel(
-    WeakTopicResourceType ResourceType, Guid ResourceId, string Title, bool IsAvailable);
+    WeakTopicResourceType ResourceType, Guid ResourceId, string Title,
+    string? Preview, bool IsAvailable);
 public sealed record WeakTopicContributionItem(
     string SignalType, int Weight, decimal RecencyMultiplier, decimal WeightedScore);
 public sealed record RecalculateWeakTopicResult(

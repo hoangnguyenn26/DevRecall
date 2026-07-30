@@ -61,6 +61,7 @@ using DevRecall.Application.Study.Items.Skip;
 using DevRecall.Application.Study.Items.Start;
 using DevRecall.Application.Study.Start;
 using DevRecall.Application.Study.Update;
+using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Recalculate;
 using Microsoft.Extensions.DependencyInjection;
@@ -141,6 +142,7 @@ public static class DependencyInjection
         services.AddScoped<GetStudySessionDetailHandler>();
         services.AddScoped<RecalculateWeakTopicHandler>();
         services.AddScoped<GetWeakTopicsHandler>();
+        services.AddScoped<GetWeakTopicDetailHandler>();
 
         return services;
     }
