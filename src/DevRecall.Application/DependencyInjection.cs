@@ -67,6 +67,8 @@ using DevRecall.Application.Study.Items.Start;
 using DevRecall.Application.Study.Start;
 using DevRecall.Application.Study.Update;
 using DevRecall.Application.StudyPlans.Generate;
+using DevRecall.Application.StudyPlans.GetDetail;
+using DevRecall.Application.StudyPlans.GetList;
 using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Recalculate;
@@ -154,6 +156,8 @@ public static class DependencyInjection
         services.AddScoped<GetStudySessionsHandler>();
         services.AddScoped<GetStudySessionDetailHandler>();
         services.AddScoped<GenerateStudyPlanHandler>();
+        services.AddScoped<GetStudyPlansHandler>();
+        services.AddScoped<GetStudyPlanDetailHandler>();
         services.AddScoped<RecalculateWeakTopicHandler>();
         services.AddScoped<GetWeakTopicsHandler>();
         services.AddScoped<GetWeakTopicDetailHandler>();

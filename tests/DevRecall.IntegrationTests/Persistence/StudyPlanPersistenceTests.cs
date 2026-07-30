@@ -1,5 +1,7 @@
 using DevRecall.Application.StudyPlans;
 using DevRecall.Application.StudyPlans.Generation;
+using DevRecall.Application.StudyPlans.GetDetail;
+using DevRecall.Application.StudyPlans.GetList;
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.StudyPlans;
@@ -162,6 +164,67 @@ public sealed class StudyPlanPersistenceTests(PostgreSqlFixture fixture)
         (await context.StudyPlanItems.AnyAsync(x =>
             x.StudyPlanId == firstPlan.Id || x.StudyPlanId == secondPlan.Id))
             .Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ListReader_ShouldScopeFilterAndHandleEmptyPlanTotals()
+    {
+        var owner = CreateUser();
+        var other = CreateUser();
+        var emptyDraft = CreatePlan(owner.Id);
+        var ready = StudyPlan.Create(
+            Guid.NewGuid(), owner.Id, "Ready", Now.AddHours(-1),
+            Now.AddDays(7));
+        AddItem(ready, StudyPlanResourceType.DsaProblem, 30);
+        ready.MarkReady(ready.Version, Now.AddMinutes(1));
+        var otherPlan = CreatePlan(other.Id);
+        await using (var context = fixture.CreateDbContext())
+        {
+            context.Users.AddRange(owner, other);
+            context.StudyPlans.AddRange(emptyDraft, ready, otherPlan);
+            await context.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var reader = provider.GetRequiredService<IStudyPlanListReader>();
+        var all = await reader.ReadAsync(
+            owner.Id, null, 0, 10, CancellationToken.None);
+        var filtered = await reader.ReadAsync(
+            owner.Id, StudyPlanStatus.Ready, 0, 10, CancellationToken.None);
+
+        all.TotalCount.Should().Be(2);
+        all.Items.Should().Contain(x =>
+            x.StudyPlanId == emptyDraft.Id && x.ItemCount == 0
+            && x.TotalPlannedDurationMinutes == 0);
+        filtered.Items.Should().ContainSingle(x =>
+            x.StudyPlanId == ready.Id && x.TotalPlannedDurationMinutes == 30);
+    }
+
+    [Fact]
+    public async Task DetailReader_ShouldBeOwnerScopedAndReturnOrderedItems()
+    {
+        var owner = CreateUser();
+        var other = CreateUser();
+        var plan = CreatePlan(owner.Id);
+        AddItem(plan, StudyPlanResourceType.KnowledgeNode, 15);
+        AddItem(plan, StudyPlanResourceType.InterviewQuestion, 20);
+        await using (var context = fixture.CreateDbContext())
+        {
+            context.Users.AddRange(owner, other);
+            context.StudyPlans.Add(plan);
+            await context.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var reader = provider.GetRequiredService<IStudyPlanDetailReader>();
+        var owned = await reader.FindAsync(
+            owner.Id, plan.Id, CancellationToken.None);
+        var crossUser = await reader.FindAsync(
+            other.Id, plan.Id, CancellationToken.None);
+
+        owned.Should().NotBeNull();
+        owned!.Items.Select(x => x.Position).Should().Equal(1, 2);
+        crossUser.Should().BeNull();
     }
 
     private ServiceProvider CreateServices()
