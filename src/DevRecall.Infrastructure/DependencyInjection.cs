@@ -15,6 +15,7 @@ using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Application.Recommendations;
 using DevRecall.Application.Recommendations.Generation;
+using DevRecall.Application.Recommendations.GetDetail;
 using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.Resources;
@@ -102,6 +103,7 @@ public static class DependencyInjection
             IRecommendationCandidateReader,
             RecommendationCandidateReader>();
         services.AddScoped<IRecommendationListReader, RecommendationListReader>();
+        services.AddScoped<IRecommendationDetailReader, RecommendationDetailReader>();
         services.AddScoped<
             IRecommendationResourceSummaryReader,
             RecommendationResourceSummaryReader>();

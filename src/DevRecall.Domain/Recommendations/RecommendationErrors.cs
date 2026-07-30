@@ -20,6 +20,9 @@ public static class RecommendationErrors
     public static readonly DomainError Conflict = new(
         "RECOMMENDATION_CONFLICT",
         "The recommendation changed before the operation completed.");
+    public static readonly DomainError InvalidVersion = new(
+        "RECOMMENDATION_INVALID_VERSION",
+        "The expected recommendation version is invalid.");
 }
 
 public sealed class RecommendationDomainException(DomainError error)

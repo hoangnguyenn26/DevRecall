@@ -111,24 +111,38 @@ public sealed class StudyRecommendation
         return true;
     }
 
-    public void Dismiss(DateTimeOffset dismissedAtUtc)
+    public bool Dismiss(int expectedVersion, DateTimeOffset dismissedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureUtc(dismissedAtUtc, nameof(dismissedAtUtc));
+        if (Status == RecommendationStatus.Dismissed)
+        {
+            return false;
+        }
+
         EnsureActive();
         Status = RecommendationStatus.Dismissed;
         DismissedAtUtc = dismissedAtUtc;
         UpdatedAtUtc = dismissedAtUtc;
         Version = checked(Version + 1);
+        return true;
     }
 
-    public void Complete(DateTimeOffset completedAtUtc)
+    public bool Complete(int expectedVersion, DateTimeOffset completedAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureUtc(completedAtUtc, nameof(completedAtUtc));
+        if (Status == RecommendationStatus.Completed)
+        {
+            return false;
+        }
+
         EnsureActive();
         Status = RecommendationStatus.Completed;
         CompletedAtUtc = completedAtUtc;
         UpdatedAtUtc = completedAtUtc;
         Version = checked(Version + 1);
+        return true;
     }
 
     public bool Expire(DateTimeOffset expiredAtUtc)
@@ -152,6 +166,20 @@ public sealed class StudyRecommendation
         if (Status != RecommendationStatus.Active)
         {
             throw new RecommendationDomainException(RecommendationErrors.NotActive);
+        }
+    }
+
+    private void EnsureExpectedVersion(int expectedVersion)
+    {
+        if (expectedVersion <= 0)
+        {
+            throw new RecommendationDomainException(
+                RecommendationErrors.InvalidVersion);
+        }
+
+        if (Version != expectedVersion)
+        {
+            throw new RecommendationDomainException(RecommendationErrors.Conflict);
         }
     }
 

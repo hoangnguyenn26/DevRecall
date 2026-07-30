@@ -58,7 +58,7 @@ public sealed class StudyRecommendationPersistenceTests(PostgreSqlFixture fixtur
         await duplicate.Should().ThrowAsync<DbUpdateException>();
         context.ChangeTracker.Clear();
         first = await context.StudyRecommendations.SingleAsync(x => x.Id == first.Id);
-        first.Dismiss(Now.AddDays(1));
+        first.Dismiss(first.Version, Now.AddDays(1));
         await context.SaveChangesAsync();
         context.StudyRecommendations.Add(
             CreateRecommendation(user.Id, 9m, resourceId, Now.AddDays(2)));
@@ -85,9 +85,9 @@ public sealed class StudyRecommendationPersistenceTests(PostgreSqlFixture fixtur
             recommendation.Id, user.Id, CancellationToken.None);
         var itemB = await repositoryB.GetByIdAndUserIdForUpdateAsync(
             recommendation.Id, user.Id, CancellationToken.None);
-        itemA!.Dismiss(Now.AddDays(1));
+        itemA!.Dismiss(itemA.Version, Now.AddDays(1));
         await repositoryA.SaveChangesAsync(CancellationToken.None);
-        itemB!.Complete(Now.AddDays(1));
+        itemB!.Complete(itemB.Version, Now.AddDays(1));
 
         var conflict = () => repositoryB.SaveChangesAsync(CancellationToken.None);
 
@@ -132,7 +132,7 @@ public sealed class StudyRecommendationPersistenceTests(PostgreSqlFixture fixtur
         var highOlder = CreateRecommendation(
             owner.Id, 9m, generatedAt: Now.AddDays(-3));
         var completed = CreateRecommendation(owner.Id, 8m);
-        completed.Complete(Now.AddDays(1));
+        completed.Complete(completed.Version, Now.AddDays(1));
         await using (var context = fixture.CreateDbContext())
         {
             context.Users.AddRange(owner, other);

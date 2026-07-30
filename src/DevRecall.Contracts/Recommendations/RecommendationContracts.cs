@@ -30,3 +30,20 @@ public sealed record RecommendationListItemResponse(
     DateTimeOffset WeaknessCalculatedAtUtc, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
     DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc, int Version);
+
+public sealed record RecommendationReasonResponse(
+    decimal WeaknessScore, string WeaknessLevel, int SignalCount,
+    DateTimeOffset WeaknessCalculatedAtUtc);
+public sealed record RecommendationDetailResponse(
+    Guid RecommendationId, string ResourceType, Guid ResourceId,
+    string ResourceTitle, string? ResourcePreview, bool IsResourceAvailable,
+    string Type, string Priority, decimal PriorityScore, string Status,
+    RecommendationReasonResponse Reason, DateTimeOffset GeneratedAtUtc,
+    DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
+    DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
+    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version);
+public sealed record RecommendationMutationRequest(int ExpectedVersion);
+public sealed record RecommendationMutationResponse(
+    Guid RecommendationId, string Status, DateTimeOffset UpdatedAtUtc,
+    DateTimeOffset? DismissedAtUtc, DateTimeOffset? CompletedAtUtc,
+    DateTimeOffset? ExpiredAtUtc, int Version);

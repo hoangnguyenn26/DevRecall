@@ -83,11 +83,12 @@ public sealed class StudyRecommendationTests
     {
         var recommendation = Create();
 
-        recommendation.Dismiss(Now.AddHours(1));
+        recommendation.Dismiss(recommendation.Version, Now.AddHours(1));
 
         recommendation.Status.Should().Be(RecommendationStatus.Dismissed);
         recommendation.DismissedAtUtc.Should().Be(Now.AddHours(1));
-        FluentActions.Invoking(() => recommendation.Complete(Now.AddHours(2)))
+        FluentActions.Invoking(() => recommendation.Complete(
+            recommendation.Version, Now.AddHours(2)))
             .Should().Throw<RecommendationDomainException>();
     }
 
@@ -96,7 +97,7 @@ public sealed class StudyRecommendationTests
     {
         var recommendation = Create();
 
-        recommendation.Complete(Now.AddHours(1));
+        recommendation.Complete(recommendation.Version, Now.AddHours(1));
 
         recommendation.Status.Should().Be(RecommendationStatus.Completed);
         recommendation.CompletedAtUtc.Should().Be(Now.AddHours(1));
