@@ -20,6 +20,9 @@ public sealed class GetWeakTopicsHandlerTests
 
     [Theory]
     [InlineData("4")]
+    [InlineData(" 4 ")]
+    [InlineData("+4")]
+    [InlineData("04")]
     [InlineData("Severe")]
     public void LevelParser_RejectsInvalidValues(string value) =>
         FluentActions.Invoking(() => WeaknessLevelParser.Parse(value))

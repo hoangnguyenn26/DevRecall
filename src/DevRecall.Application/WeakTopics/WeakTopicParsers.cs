@@ -14,15 +14,15 @@ public static class WeakTopicResourceTypeParser
 
         var normalized = value.Trim().Replace(" ", string.Empty)
             .Replace("-", string.Empty).Replace("_", string.Empty);
-        if (normalized.All(char.IsDigit)
-            || !Enum.TryParse<WeakTopicResourceType>(normalized, true, out var type)
-            || !Enum.IsDefined(type))
+        return normalized.ToLowerInvariant() switch
         {
-            throw Invalid("resourceType",
-                "Resource type must be KnowledgeNode, InterviewQuestion, or DsaProblem.");
-        }
-
-        return type;
+            "knowledgenode" => WeakTopicResourceType.KnowledgeNode,
+            "interviewquestion" => WeakTopicResourceType.InterviewQuestion,
+            "dsaproblem" => WeakTopicResourceType.DsaProblem,
+            _ => throw Invalid(
+                "resourceType",
+                "Resource type must be KnowledgeNode, InterviewQuestion, or DsaProblem.")
+        };
     }
 
     internal static ValidationException Invalid(string field, string message) =>
@@ -41,14 +41,15 @@ public static class WeaknessLevelParser
 
         var normalized = value.Trim().Replace(" ", string.Empty)
             .Replace("-", string.Empty).Replace("_", string.Empty);
-        if (normalized.All(char.IsDigit)
-            || !Enum.TryParse<WeaknessLevel>(normalized, true, out var level)
-            || !Enum.IsDefined(level))
+        return normalized.ToLowerInvariant() switch
         {
-            throw WeakTopicResourceTypeParser.Invalid(
-                "level", "Level must be None, Low, Medium, High, or Critical.");
-        }
-
-        return level;
+            "none" => WeaknessLevel.None,
+            "low" => WeaknessLevel.Low,
+            "medium" => WeaknessLevel.Medium,
+            "high" => WeaknessLevel.High,
+            "critical" => WeaknessLevel.Critical,
+            _ => throw WeakTopicResourceTypeParser.Invalid(
+                "level", "Level must be None, Low, Medium, High, or Critical.")
+        };
     }
 }

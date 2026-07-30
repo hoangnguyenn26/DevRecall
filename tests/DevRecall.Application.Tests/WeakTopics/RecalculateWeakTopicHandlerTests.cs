@@ -24,6 +24,9 @@ public sealed class RecalculateWeakTopicHandlerTests
 
     [Theory]
     [InlineData("1")]
+    [InlineData(" 1 ")]
+    [InlineData("+1")]
+    [InlineData("01")]
     [InlineData("unknown")]
     public void ResourceTypeParser_RejectsInvalidValues(string value) =>
         FluentActions.Invoking(() => WeakTopicResourceTypeParser.Parse(value))

@@ -550,3 +550,21 @@ dotnet format
 - Frontend IDE: Visual Studio Code
 - Package management: NuGet Package Manager
 - Runtime: .NET 10
+### Week 14 — Weak Topic Detection
+
+Completed:
+
+- Deterministic weak-topic scoring policy
+- Positive and negative weakness signals
+- Ninety-day recency weighting
+- Weakness levels from None to Critical
+- Persisted current weak-topic profiles
+- Review, Study, and DSA signal readers
+- Single-resource recalculation
+- Optimistic concurrency and unique profile protection
+- Paginated weak-topic list with filters
+- Batched resource summaries without N+1
+- Read-only weakness explanation detail
+- Current-user batch recalculation
+- Profile decay to None when recent signals expire
+- Owner-scoped queries and cross-user isolation
