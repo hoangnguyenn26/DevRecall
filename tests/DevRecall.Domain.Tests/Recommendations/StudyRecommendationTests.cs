@@ -108,19 +108,33 @@ public sealed class StudyRecommendationTests
     }
 
     [Theory]
-    [InlineData(-1, false)]
-    [InlineData(0, true)]
-    [InlineData(1, true)]
-    public void Expire_ShouldRespectBoundary(int offsetSeconds, bool expected)
+    [InlineData(0)]
+    [InlineData(1)]
+    public void Expire_ShouldRespectBoundary(int offsetSeconds)
     {
         var recommendation = Create();
         var expiration = recommendation.ExpiresAtUtc!.Value;
 
-        recommendation.Expire(expiration.AddSeconds(offsetSeconds))
-            .Should().Be(expected);
+        recommendation.Expire(
+            recommendation.Version,
+            RecommendationExpirationReason.LifetimeElapsed,
+            expiration.AddSeconds(offsetSeconds))
+            .Should().BeTrue();
 
-        recommendation.Status.Should().Be(expected
-            ? RecommendationStatus.Expired : RecommendationStatus.Active);
+        recommendation.Status.Should().Be(RecommendationStatus.Expired);
+    }
+
+    [Fact]
+    public void Expire_LifetimeBeforeBoundaryShouldReject()
+    {
+        var recommendation = Create();
+
+        FluentActions.Invoking(() => recommendation.Expire(
+            recommendation.Version,
+            RecommendationExpirationReason.LifetimeElapsed,
+            recommendation.ExpiresAtUtc!.Value.AddSeconds(-1)))
+            .Should().Throw<RecommendationDomainException>()
+            .Where(x => x.Error == RecommendationErrors.NotExpiredYet);
     }
 
     [Fact]

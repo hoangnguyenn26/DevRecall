@@ -17,6 +17,7 @@ internal sealed class RecommendationDetailReader(DevRecallDbContext dbContext)
                 x.Reason.WeaknessLevel, x.Reason.SignalCount,
                 x.Reason.WeaknessCalculatedAtUtc, x.GeneratedAtUtc,
                 x.ExpiresAtUtc, x.DismissedAtUtc, x.CompletedAtUtc,
-                x.ExpiredAtUtc, x.CreatedAtUtc, x.UpdatedAtUtc, x.Version))
+                x.ExpiredAtUtc, x.ExpirationReason, x.CreatedAtUtc,
+                x.UpdatedAtUtc, x.Version))
             .SingleOrDefaultAsync(cancellationToken);
 }

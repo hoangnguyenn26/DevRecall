@@ -20,6 +20,7 @@ public sealed class StudyRecommendation
     public DateTimeOffset? DismissedAtUtc { get; private set; }
     public DateTimeOffset? CompletedAtUtc { get; private set; }
     public DateTimeOffset? ExpiredAtUtc { get; private set; }
+    public RecommendationExpirationReason? ExpirationReason { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
     public int Version { get; private set; }
@@ -145,17 +146,34 @@ public sealed class StudyRecommendation
         return true;
     }
 
-    public bool Expire(DateTimeOffset expiredAtUtc)
+    public bool Expire(
+        int expectedVersion, RecommendationExpirationReason reason,
+        DateTimeOffset expiredAtUtc)
     {
+        EnsureExpectedVersion(expectedVersion);
         EnsureUtc(expiredAtUtc, nameof(expiredAtUtc));
-        if (Status != RecommendationStatus.Active
-            || ExpiresAtUtc is null || expiredAtUtc < ExpiresAtUtc)
+        if (Status == RecommendationStatus.Expired)
         {
             return false;
         }
 
+        EnsureActive();
+        if (!Enum.IsDefined(reason))
+        {
+            throw new RecommendationDomainException(
+                RecommendationErrors.InvalidExpirationReason);
+        }
+
+        if (reason == RecommendationExpirationReason.LifetimeElapsed
+            && (ExpiresAtUtc is null || expiredAtUtc < ExpiresAtUtc))
+        {
+            throw new RecommendationDomainException(
+                RecommendationErrors.NotExpiredYet);
+        }
+
         Status = RecommendationStatus.Expired;
         ExpiredAtUtc = expiredAtUtc;
+        ExpirationReason = reason;
         UpdatedAtUtc = expiredAtUtc;
         Version = checked(Version + 1);
         return true;

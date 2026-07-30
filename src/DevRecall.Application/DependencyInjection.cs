@@ -47,6 +47,7 @@ using DevRecall.Application.Recommendations.Generation;
 using DevRecall.Application.Recommendations.GetDetail;
 using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Application.Recommendations.Lifecycle;
+using DevRecall.Application.Recommendations.Synchronize;
 using DevRecall.Application.Reviews.Create;
 using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
@@ -133,6 +134,7 @@ public static class DependencyInjection
         services.AddScoped<GetRecommendationDetailHandler>();
         services.AddScoped<DismissRecommendationHandler>();
         services.AddScoped<CompleteRecommendationHandler>();
+        services.AddScoped<SynchronizeRecommendationsHandler>();
         services.AddScoped<EvaluateReviewItemHandler>();
         services.AddScoped<GetReviewItemDetailHandler>();
         services.AddScoped<GetDueReviewItemsHandler>();

@@ -20,6 +20,10 @@ internal sealed class StudyRecommendationConfiguration
                 "reason_signal_count >= 0");
             table.HasCheckConstraint(
                 "ck_study_recommendations_version_positive", "version > 0");
+            table.HasCheckConstraint(
+                "ck_study_recommendations_expiration_reason_state",
+                "(status = 4 AND expiration_reason IS NOT NULL) OR "
+                + "(status <> 4 AND expiration_reason IS NULL)");
         });
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
@@ -35,6 +39,7 @@ internal sealed class StudyRecommendationConfiguration
         builder.Property(x => x.DismissedAtUtc);
         builder.Property(x => x.CompletedAtUtc);
         builder.Property(x => x.ExpiredAtUtc);
+        builder.Property(x => x.ExpirationReason).HasConversion<int?>();
         builder.Property(x => x.CreatedAtUtc).IsRequired();
         builder.Property(x => x.UpdatedAtUtc).IsRequired();
         builder.Property(x => x.Version).IsRequired().IsConcurrencyToken();

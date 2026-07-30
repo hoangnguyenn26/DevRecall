@@ -103,7 +103,7 @@ public sealed class GetRecommendationsHandlerTests
             9m, RecommendationStatus.Active, 9m, WeaknessLevel.High, 2,
             new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 9, 2, 0, 0, 0, TimeSpan.Zero),
-            null, null, null, null, 1);
+            null, null, null, null, null, 1);
 
     private sealed class Context
     {

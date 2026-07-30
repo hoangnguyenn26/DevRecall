@@ -23,6 +23,12 @@ public static class RecommendationErrors
     public static readonly DomainError InvalidVersion = new(
         "RECOMMENDATION_INVALID_VERSION",
         "The expected recommendation version is invalid.");
+    public static readonly DomainError InvalidExpirationReason = new(
+        "RECOMMENDATION_INVALID_EXPIRATION_REASON",
+        "The recommendation expiration reason is invalid.");
+    public static readonly DomainError NotExpiredYet = new(
+        "RECOMMENDATION_NOT_EXPIRED_YET",
+        "The recommendation has not reached its expiration time.");
 }
 
 public sealed class RecommendationDomainException(DomainError error)

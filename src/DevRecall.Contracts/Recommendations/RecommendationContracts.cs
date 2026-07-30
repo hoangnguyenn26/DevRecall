@@ -29,7 +29,8 @@ public sealed record RecommendationListItemResponse(
     decimal WeaknessScore, string WeaknessLevel, int SignalCount,
     DateTimeOffset WeaknessCalculatedAtUtc, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
-    DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc, int Version);
+    DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
+    string? ExpirationReason, int Version);
 
 public sealed record RecommendationReasonResponse(
     decimal WeaknessScore, string WeaknessLevel, int SignalCount,
@@ -41,9 +42,16 @@ public sealed record RecommendationDetailResponse(
     RecommendationReasonResponse Reason, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
     DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version);
+    string? ExpirationReason, DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc, int Version);
 public sealed record RecommendationMutationRequest(int ExpectedVersion);
 public sealed record RecommendationMutationResponse(
     Guid RecommendationId, string Status, DateTimeOffset UpdatedAtUtc,
     DateTimeOffset? DismissedAtUtc, DateTimeOffset? CompletedAtUtc,
     DateTimeOffset? ExpiredAtUtc, int Version);
+
+public sealed record SynchronizeRecommendationsResponse(
+    DateTimeOffset SynchronizedAtUtc, int ActiveRecommendationsChecked,
+    int ExpiredRecommendations, int LifetimeElapsedCount,
+    int WeaknessResolvedCount, int ResourceUnavailableCount,
+    int UnchangedRecommendations);

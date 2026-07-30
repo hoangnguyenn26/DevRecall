@@ -15,6 +15,7 @@ public sealed record RecommendationDetailReadModel(
     DateTimeOffset WeaknessCalculatedAtUtc, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
     DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
+    RecommendationExpirationReason? ExpirationReason,
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version);
 public sealed record GetRecommendationDetailResult(
     Guid RecommendationId, string ResourceType, Guid ResourceId,
@@ -24,7 +25,8 @@ public sealed record GetRecommendationDetailResult(
     DateTimeOffset WeaknessCalculatedAtUtc, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
     DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version);
+    string? ExpirationReason, DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc, int Version);
 
 public interface IRecommendationDetailReader
 {
@@ -70,6 +72,7 @@ public sealed class GetRecommendationDetailHandler(
             item.WeaknessScore, item.WeaknessLevel.ToString(), item.SignalCount,
             item.WeaknessCalculatedAtUtc, item.GeneratedAtUtc, item.ExpiresAtUtc,
             item.DismissedAtUtc, item.CompletedAtUtc, item.ExpiredAtUtc,
-            item.CreatedAtUtc, item.UpdatedAtUtc, item.Version);
+            item.ExpirationReason?.ToString(), item.CreatedAtUtc,
+            item.UpdatedAtUtc, item.Version);
     }
 }

@@ -29,3 +29,10 @@ public enum RecommendationStatus
     Completed = 3,
     Expired = 4
 }
+
+public enum RecommendationExpirationReason
+{
+    LifetimeElapsed = 1,
+    WeaknessResolved = 2,
+    ResourceUnavailable = 3
+}

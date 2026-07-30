@@ -16,7 +16,8 @@ public sealed record RecommendationListReadModel(
     WeaknessLevel WeaknessLevel, int SignalCount,
     DateTimeOffset WeaknessCalculatedAtUtc, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
-    DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc, int Version);
+    DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
+    RecommendationExpirationReason? ExpirationReason, int Version);
 public sealed record RecommendationListItem(
     Guid RecommendationId, string ResourceType, Guid ResourceId,
     string ResourceTitle, string? ResourcePreview, bool IsResourceAvailable,
@@ -24,7 +25,8 @@ public sealed record RecommendationListItem(
     decimal WeaknessScore, string WeaknessLevel, int SignalCount,
     DateTimeOffset WeaknessCalculatedAtUtc, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
-    DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc, int Version);
+    DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
+    string? ExpirationReason, int Version);
 public sealed record GetRecommendationsResult(
     IReadOnlyList<RecommendationListItem> Items, int Page, int PageSize,
     int TotalCount, int TotalPages);
@@ -93,7 +95,8 @@ public sealed class GetRecommendationsHandler(
                 x.Priority.ToString(), x.PriorityScore, x.Status.ToString(),
                 x.WeaknessScore, x.WeaknessLevel.ToString(), x.SignalCount,
                 x.WeaknessCalculatedAtUtc, x.GeneratedAtUtc, x.ExpiresAtUtc,
-                x.DismissedAtUtc, x.CompletedAtUtc, x.ExpiredAtUtc, x.Version);
+                x.DismissedAtUtc, x.CompletedAtUtc, x.ExpiredAtUtc,
+                x.ExpirationReason?.ToString(), x.Version);
         }).ToArray();
         var totalPages = page.TotalCount == 0
             ? 0 : (int)Math.Ceiling(page.TotalCount / (double)query.PageSize);

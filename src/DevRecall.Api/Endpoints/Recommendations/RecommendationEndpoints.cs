@@ -3,6 +3,7 @@ using DevRecall.Application.Recommendations.Generation;
 using DevRecall.Application.Recommendations.GetDetail;
 using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Application.Recommendations.Lifecycle;
+using DevRecall.Application.Recommendations.Synchronize;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Recommendations;
 
@@ -20,6 +21,11 @@ public static class RecommendationEndpoints
             .WithName("GenerateRecommendations")
             .Produces<GenerateRecommendationsResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPost("/synchronize", SynchronizeAsync)
+            .WithName("SynchronizeRecommendations")
+            .Produces<SynchronizeRecommendationsResponse>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapGet("/", GetListAsync)
@@ -47,6 +53,19 @@ public static class RecommendationEndpoints
         return endpoints;
     }
 
+    private static async Task<IResult> SynchronizeAsync(
+        SynchronizeRecommendationsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new SynchronizeRecommendationsCommand(), cancellationToken);
+        return Results.Ok(new SynchronizeRecommendationsResponse(
+            result.SynchronizedAtUtc, result.ActiveRecommendationsChecked,
+            result.ExpiredRecommendations, result.LifetimeElapsedCount,
+            result.WeaknessResolvedCount, result.ResourceUnavailableCount,
+            result.UnchangedRecommendations));
+    }
+
     private static async Task<IResult> GetDetailAsync(
         Guid recommendationId, GetRecommendationDetailHandler handler,
         CancellationToken cancellationToken)
@@ -61,8 +80,8 @@ public static class RecommendationEndpoints
                 result.WeaknessScore, result.WeaknessLevel, result.SignalCount,
                 result.WeaknessCalculatedAtUtc), result.GeneratedAtUtc,
             result.ExpiresAtUtc, result.DismissedAtUtc, result.CompletedAtUtc,
-            result.ExpiredAtUtc, result.CreatedAtUtc, result.UpdatedAtUtc,
-            result.Version));
+            result.ExpiredAtUtc, result.ExpirationReason, result.CreatedAtUtc,
+            result.UpdatedAtUtc, result.Version));
     }
 
     private static async Task<IResult> DismissAsync(
@@ -125,7 +144,8 @@ public static class RecommendationEndpoints
                 x.Type, x.Priority, x.PriorityScore, x.Status, x.WeaknessScore,
                 x.WeaknessLevel, x.SignalCount, x.WeaknessCalculatedAtUtc,
                 x.GeneratedAtUtc, x.ExpiresAtUtc, x.DismissedAtUtc,
-                x.CompletedAtUtc, x.ExpiredAtUtc, x.Version)).ToArray(),
+                x.CompletedAtUtc, x.ExpiredAtUtc, x.ExpirationReason,
+                x.Version)).ToArray(),
             result.Page, result.PageSize, result.TotalCount, result.TotalPages));
     }
 }

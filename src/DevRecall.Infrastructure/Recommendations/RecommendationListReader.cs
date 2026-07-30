@@ -46,7 +46,7 @@ internal sealed class RecommendationListReader(DevRecallDbContext dbContext)
                 x.Reason.WeaknessLevel, x.Reason.SignalCount,
                 x.Reason.WeaknessCalculatedAtUtc, x.GeneratedAtUtc,
                 x.ExpiresAtUtc, x.DismissedAtUtc, x.CompletedAtUtc,
-                x.ExpiredAtUtc, x.Version))
+                x.ExpiredAtUtc, x.ExpirationReason, x.Version))
             .ToListAsync(cancellationToken);
         return new(items, totalCount);
     }

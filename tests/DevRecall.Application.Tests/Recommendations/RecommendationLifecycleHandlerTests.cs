@@ -87,7 +87,7 @@ public sealed class RecommendationLifecycleHandlerTests
                 context.Item.Reason.SignalCount,
                 context.Item.Reason.WeaknessCalculatedAtUtc,
                 context.Item.GeneratedAtUtc, context.Item.ExpiresAtUtc,
-                null, null, null, context.Item.CreatedAtUtc,
+                null, null, null, null, context.Item.CreatedAtUtc,
                 context.Item.UpdatedAtUtc, context.Item.Version)
         };
         var handler = new GetRecommendationDetailHandler(
