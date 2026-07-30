@@ -40,6 +40,12 @@ public static class StudyPlanErrors
     public static readonly DomainError Conflict = new(
         "STUDY_PLAN_CONFLICT",
         "The study plan changed before the operation completed.");
+    public static readonly DomainError DraftAlreadyExists = new(
+        "STUDY_PLAN_DRAFT_ALREADY_EXISTS",
+        "A draft study plan already exists.");
+    public static readonly DomainError NoEligibleItems = new(
+        "STUDY_PLAN_NO_ELIGIBLE_ITEMS",
+        "No eligible recommendation fits the requested study plan.");
 }
 
 public sealed class StudyPlanDomainException(DomainError error)

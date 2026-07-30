@@ -72,6 +72,14 @@ public sealed partial class GlobalExceptionHandler(
                     conflictException.ErrorCode,
                     conflictException.Message),
 
+            UnprocessableEntityException unprocessableEntityException =>
+                CreateProblemDetails(
+                    context,
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Unprocessable entity",
+                    unprocessableEntityException.ErrorCode,
+                    unprocessableEntityException.Message),
+
             UnauthorizedException unauthorizedException =>
                 CreateProblemDetails(
                     context,

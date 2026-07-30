@@ -1,5 +1,12 @@
 namespace DevRecall.Domain.StudyPlans;
 
+public sealed record InitialStudyPlanItem(
+    Guid ItemId,
+    Guid RecommendationId,
+    StudyPlanResourceType ResourceType,
+    Guid ResourceId,
+    int PlannedDurationMinutes);
+
 public sealed class StudyPlan
 {
     private readonly List<StudyPlanItem> _items = [];
@@ -63,6 +70,29 @@ public sealed class StudyPlan
             UpdatedAtUtc = generatedAtUtc,
             Version = 1
         };
+    }
+
+    public static StudyPlan CreateFromRecommendations(
+        Guid id, Guid userId, string title,
+        IReadOnlyCollection<InitialStudyPlanItem> items,
+        DateTimeOffset generatedAtUtc, DateTimeOffset? expiresAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        if (items.Count == 0)
+        {
+            throw new StudyPlanDomainException(StudyPlanErrors.EmptyPlan);
+        }
+
+        var plan = Create(
+            id, userId, title, generatedAtUtc, expiresAtUtc);
+        foreach (var item in items)
+        {
+            plan.AddInitialRecommendationItem(item, generatedAtUtc);
+        }
+
+        plan.Version = 1;
+        plan.UpdatedAtUtc = generatedAtUtc;
+        return plan;
     }
 
     public StudyPlanItem AddRecommendationItem(
@@ -263,6 +293,41 @@ public sealed class StudyPlan
         }
 
         return normalized;
+    }
+
+    private void AddInitialRecommendationItem(
+        InitialStudyPlanItem item, DateTimeOffset addedAtUtc)
+    {
+        if (item.ItemId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Study plan item id cannot be empty.", nameof(item));
+        }
+
+        if (item.RecommendationId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Recommendation id cannot be empty.", nameof(item));
+        }
+
+        if (!Enum.IsDefined(item.ResourceType))
+        {
+            throw new ArgumentOutOfRangeException(nameof(item));
+        }
+
+        if (item.ResourceId == Guid.Empty)
+        {
+            throw new ArgumentException("Resource id cannot be empty.", nameof(item));
+        }
+
+        EnsureDuration(item.PlannedDurationMinutes);
+        EnsureCapacity(item.PlannedDurationMinutes);
+        EnsureResourceNotDuplicated(item.ResourceType, item.ResourceId);
+        _items.Add(new StudyPlanItem(
+            item.ItemId, item.RecommendationId,
+            StudyPlanSourceType.Recommendation, item.ResourceType,
+            item.ResourceId, item.PlannedDurationMinutes, _items.Count + 1,
+            addedAtUtc));
     }
 
     private static void EnsureDuration(int duration)
