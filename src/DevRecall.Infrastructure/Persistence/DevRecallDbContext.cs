@@ -9,6 +9,7 @@ using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
 using DevRecall.Domain.Reviews;
 using DevRecall.Domain.Study;
+using DevRecall.Domain.WeakTopics;
 using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Infrastructure.Persistence;
@@ -58,6 +59,9 @@ public sealed class DevRecallDbContext(
 
     public DbSet<StudySessionItem> StudySessionItems =>
         Set<StudySessionItem>();
+
+    public DbSet<WeakTopicProfile> WeakTopicProfiles =>
+        Set<WeakTopicProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

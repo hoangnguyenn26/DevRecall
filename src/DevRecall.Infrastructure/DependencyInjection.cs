@@ -18,6 +18,8 @@ using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
+using DevRecall.Application.WeakTopics;
+using DevRecall.Application.WeakTopics.Signals;
 using DevRecall.Infrastructure.Analytics;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
@@ -32,6 +34,7 @@ using DevRecall.Infrastructure.Reviews;
 using DevRecall.Infrastructure.Reviews.Resources;
 using DevRecall.Infrastructure.Study;
 using DevRecall.Infrastructure.Time;
+using DevRecall.Infrastructure.WeakTopics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -103,6 +106,8 @@ public static class DependencyInjection
             IStudyReviewItemResourceReader,
             StudyReviewItemResourceReader>();
         services.AddScoped<IStudySessionListReader, StudySessionListReader>();
+        services.AddScoped<IWeakTopicProfileRepository, WeakTopicProfileRepository>();
+        services.AddScoped<IWeakTopicSignalReader, WeakTopicSignalReader>();
         services.AddScoped<
             IStudyResourceSummaryReader,
             StudyResourceSummaryReader>();
