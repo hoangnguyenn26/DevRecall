@@ -1,4 +1,5 @@
 using DevRecall.Domain.Recommendations;
+using DevRecall.Domain.Study;
 
 namespace DevRecall.Domain.StudyPlans;
 
@@ -17,5 +18,20 @@ public static class StudyPlanMappingPolicy
             _ => throw new ArgumentOutOfRangeException(
                 nameof(resourceType), resourceType,
                 "Unsupported recommendation resource type.")
+        };
+
+    public static StudyResourceType MapToStudyResourceType(
+        StudyPlanResourceType resourceType) =>
+        resourceType switch
+        {
+            StudyPlanResourceType.KnowledgeNode =>
+                StudyResourceType.KnowledgeNode,
+            StudyPlanResourceType.InterviewQuestion =>
+                StudyResourceType.InterviewQuestion,
+            StudyPlanResourceType.DsaProblem =>
+                StudyResourceType.DsaProblem,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(resourceType), resourceType,
+                "Unsupported study plan resource type.")
         };
 }

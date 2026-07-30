@@ -24,6 +24,7 @@ using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
 using DevRecall.Application.StudyPlans;
+using DevRecall.Application.StudyPlans.Convert;
 using DevRecall.Application.StudyPlans.Generation;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
@@ -143,6 +144,9 @@ public static class DependencyInjection
             StudyPlanResourceSummaryReader>();
         services.AddScoped<IStudyPlanListReader, StudyPlanListReader>();
         services.AddScoped<IStudyPlanDetailReader, StudyPlanDetailReader>();
+        services.AddScoped<
+            IStudyPlanConversionPersistence,
+            StudyPlanConversionPersistence>();
         services.AddScoped<IWeakTopicProfileRepository, WeakTopicProfileRepository>();
         services.AddScoped<IWeakTopicSignalReader, WeakTopicSignalReader>();
         services.AddScoped<IWeakTopicResourceReader, WeakTopicResourceReader>();

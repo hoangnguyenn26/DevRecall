@@ -1,9 +1,11 @@
 using DevRecall.Application.StudyPlans;
+using DevRecall.Application.StudyPlans.Convert;
 using DevRecall.Application.StudyPlans.Generation;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Recommendations;
+using DevRecall.Domain.Study;
 using DevRecall.Domain.StudyPlans;
 using DevRecall.Domain.WeakTopics;
 using DevRecall.Infrastructure;
@@ -258,6 +260,128 @@ public sealed class StudyPlanPersistenceTests(PostgreSqlFixture fixture)
         positions.Should().Equal(reordered);
     }
 
+    [Fact]
+    public async Task ConversionPersistence_ShouldSavePlanAndSessionAtomically()
+    {
+        var user = CreateUser();
+        var plan = CreatePlan(user.Id);
+        AddItem(plan, StudyPlanResourceType.KnowledgeNode, 15);
+        AddItem(plan, StudyPlanResourceType.DsaProblem, 30);
+        plan.MarkReady(plan.Version, Now.AddHours(1));
+        await using (var setup = fixture.CreateDbContext())
+        {
+            setup.Users.Add(user);
+            setup.StudyPlans.Add(plan);
+            await setup.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var persistence =
+            provider.GetRequiredService<IStudyPlanConversionPersistence>();
+        var stored = await persistence.GetPlanForUpdateAsync(
+            user.Id, plan.Id, CancellationToken.None);
+        var session = CreateSession(stored!, Guid.NewGuid());
+        stored!.MarkConverted(
+            stored.Version, session.Id, Now.AddHours(2));
+        persistence.AddStudySession(session);
+        await persistence.SaveChangesAsync(CancellationToken.None);
+
+        await using var verify = fixture.CreateDbContext();
+        var converted = await verify.StudyPlans.AsNoTracking()
+            .SingleAsync(x => x.Id == plan.Id);
+        var savedSession = await verify.StudySessions.AsNoTracking()
+            .Include(x => x.Items).SingleAsync(x => x.Id == session.Id);
+        converted.Status.Should().Be(StudyPlanStatus.Converted);
+        converted.ConvertedStudySessionId.Should().Be(session.Id);
+        savedSession.Status.Should().Be(StudySessionStatus.Planned);
+        savedSession.Version.Should().Be(1);
+        savedSession.Items.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task ConversionPersistence_FailureShouldRollbackPlanAndSession()
+    {
+        var user = CreateUser();
+        var plan = CreatePlan(user.Id);
+        AddItem(plan, StudyPlanResourceType.KnowledgeNode, 15);
+        plan.MarkReady(plan.Version, Now.AddHours(1));
+        var duplicateSessionId = Guid.NewGuid();
+        var existingSession = CreateSession(plan, duplicateSessionId);
+        await using (var setup = fixture.CreateDbContext())
+        {
+            setup.Users.Add(user);
+            setup.StudyPlans.Add(plan);
+            setup.StudySessions.Add(existingSession);
+            await setup.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var persistence =
+            provider.GetRequiredService<IStudyPlanConversionPersistence>();
+        var stored = await persistence.GetPlanForUpdateAsync(
+            user.Id, plan.Id, CancellationToken.None);
+        var duplicate = CreateSession(stored!, duplicateSessionId);
+        stored!.MarkConverted(
+            stored.Version, duplicate.Id, Now.AddHours(2));
+        persistence.AddStudySession(duplicate);
+        var save = () => persistence.SaveChangesAsync(CancellationToken.None);
+
+        await save.Should().ThrowAsync<StudyPlanConversionConflictException>();
+
+        await using var verify = fixture.CreateDbContext();
+        var unchanged = await verify.StudyPlans.AsNoTracking()
+            .SingleAsync(x => x.Id == plan.Id);
+        unchanged.Status.Should().Be(StudyPlanStatus.Ready);
+        unchanged.ConvertedStudySessionId.Should().BeNull();
+        (await verify.StudySessions.CountAsync(x =>
+            x.Id == duplicateSessionId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ConcurrentConversion_ShouldPersistExactlyOneSession()
+    {
+        var user = CreateUser();
+        var plan = CreatePlan(user.Id);
+        AddItem(plan, StudyPlanResourceType.DsaProblem, 30);
+        plan.MarkReady(plan.Version, Now.AddHours(1));
+        await using (var setup = fixture.CreateDbContext())
+        {
+            setup.Users.Add(user);
+            setup.StudyPlans.Add(plan);
+            await setup.SaveChangesAsync();
+        }
+
+        using var providerA = CreateServices();
+        using var providerB = CreateServices();
+        var persistenceA =
+            providerA.GetRequiredService<IStudyPlanConversionPersistence>();
+        var persistenceB =
+            providerB.GetRequiredService<IStudyPlanConversionPersistence>();
+        var planA = await persistenceA.GetPlanForUpdateAsync(
+            user.Id, plan.Id, CancellationToken.None);
+        var planB = await persistenceB.GetPlanForUpdateAsync(
+            user.Id, plan.Id, CancellationToken.None);
+        var sessionA = CreateSession(planA!, Guid.NewGuid());
+        var sessionB = CreateSession(planB!, Guid.NewGuid());
+        planA!.MarkConverted(planA.Version, sessionA.Id, Now.AddHours(2));
+        planB!.MarkConverted(planB.Version, sessionB.Id, Now.AddHours(2));
+        persistenceA.AddStudySession(sessionA);
+        persistenceB.AddStudySession(sessionB);
+        await persistenceA.SaveChangesAsync(CancellationToken.None);
+        var secondSave = () =>
+            persistenceB.SaveChangesAsync(CancellationToken.None);
+
+        await secondSave.Should()
+            .ThrowAsync<StudyPlanConversionConflictException>();
+
+        await using var verify = fixture.CreateDbContext();
+        var converted = await verify.StudyPlans.AsNoTracking()
+            .SingleAsync(x => x.Id == plan.Id);
+        converted.ConvertedStudySessionId.Should().Be(sessionA.Id);
+        (await verify.StudySessions.CountAsync(x =>
+            x.UserId == user.Id)).Should().Be(1);
+    }
+
     private ServiceProvider CreateServices()
     {
         var configuration = new ConfigurationManager();
@@ -276,6 +400,18 @@ public sealed class StudyPlanPersistenceTests(PostgreSqlFixture fixture)
         plan.AddRecommendationItem(
             Guid.NewGuid(), Guid.NewGuid(), resourceType, Guid.NewGuid(),
             minutes, plan.UpdatedAtUtc.AddMinutes(1));
+
+    private static StudySession CreateSession(StudyPlan plan, Guid sessionId)
+    {
+        var items = plan.Items.OrderBy(x => x.Position).Select(x =>
+            new InitialStudySessionItem(
+                Guid.NewGuid(),
+                StudyPlanMappingPolicy.MapToStudyResourceType(x.ResourceType),
+                x.ResourceId)).ToArray();
+        return StudySession.CreateFromPlan(
+            sessionId, plan.UserId, plan.Title,
+            plan.TotalPlannedDurationMinutes, items, Now.AddHours(2));
+    }
 
     private static StudyRecommendation CreateRecommendation(
         Guid userId, decimal score, DateTimeOffset generatedAt,

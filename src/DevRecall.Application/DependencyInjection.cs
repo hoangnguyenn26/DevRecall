@@ -66,6 +66,7 @@ using DevRecall.Application.Study.Items.Skip;
 using DevRecall.Application.Study.Items.Start;
 using DevRecall.Application.Study.Start;
 using DevRecall.Application.Study.Update;
+using DevRecall.Application.StudyPlans.Convert;
 using DevRecall.Application.StudyPlans.Generate;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
@@ -165,6 +166,7 @@ public static class DependencyInjection
         services.AddScoped<ReorderStudyPlanItemsHandler>();
         services.AddScoped<MarkStudyPlanReadyHandler>();
         services.AddScoped<CancelStudyPlanHandler>();
+        services.AddScoped<ConvertStudyPlanHandler>();
         services.AddScoped<RecalculateWeakTopicHandler>();
         services.AddScoped<GetWeakTopicsHandler>();
         services.AddScoped<GetWeakTopicDetailHandler>();

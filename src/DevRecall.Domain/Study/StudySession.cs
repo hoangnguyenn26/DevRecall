@@ -1,5 +1,8 @@
 namespace DevRecall.Domain.Study;
 
+public sealed record InitialStudySessionItem(
+    Guid ItemId, StudyResourceType ResourceType, Guid ResourceId);
+
 public sealed class StudySession
 {
     private readonly List<StudySessionItem> _items = [];
@@ -59,6 +62,41 @@ public sealed class StudySession
             NormalizeNotes(
                 notes, nameof(notes), StudySessionText.SessionNotesMaxLength),
             createdAtUtc);
+    }
+
+    public static StudySession CreateFromPlan(
+        Guid id, Guid userId, string title, int plannedDurationMinutes,
+        IReadOnlyCollection<InitialStudySessionItem> items,
+        DateTimeOffset createdAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        if (items.Count == 0)
+        {
+            throw new ArgumentException(
+                "A study session requires at least one item.", nameof(items));
+        }
+
+        var session = Create(
+            id, userId, title, plannedDurationMinutes, null, createdAtUtc);
+        var resources = new HashSet<(StudyResourceType, Guid)>();
+        var position = 0;
+        foreach (var item in items)
+        {
+            if (!resources.Add((item.ResourceType, item.ResourceId)))
+            {
+                throw new InvalidOperationException(
+                    StudySessionErrors.ItemAlreadyExists.Message);
+            }
+
+            session._items.Add(StudySessionItem.Create(
+                item.ItemId, session.Id, item.ResourceType, item.ResourceId,
+                position, null, createdAtUtc));
+            position++;
+        }
+
+        session.Version = 1;
+        session.UpdatedAtUtc = createdAtUtc;
+        return session;
     }
 
     public bool UpdatePlan(

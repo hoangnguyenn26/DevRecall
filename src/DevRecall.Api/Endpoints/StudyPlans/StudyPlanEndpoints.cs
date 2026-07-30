@@ -1,4 +1,5 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.StudyPlans.Convert;
 using DevRecall.Application.StudyPlans.Generate;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
@@ -70,7 +71,27 @@ public static class StudyPlanEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPost("/{studyPlanId:guid}/convert", ConvertAsync)
+            .WithName("ConvertStudyPlan")
+            .Produces<ConvertStudyPlanResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
         return endpoints;
+    }
+
+    private static async Task<IResult> ConvertAsync(
+        Guid studyPlanId, ConvertStudyPlanRequest request,
+        ConvertStudyPlanHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new(studyPlanId, request.ExpectedVersion), cancellationToken);
+        return Results.Ok(new ConvertStudyPlanResponse(
+            result.StudyPlanId, result.StudyPlanStatus,
+            result.StudySessionId, result.StudySessionStatus, result.Title,
+            result.ItemCount, result.TotalPlannedDurationMinutes,
+            result.ConvertedAtUtc, result.StudyPlanVersion,
+            result.StudySessionVersion));
     }
 
     private static async Task<IResult> UpdateAsync(
