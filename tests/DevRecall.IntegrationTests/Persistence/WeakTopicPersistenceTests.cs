@@ -1,3 +1,4 @@
+using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Signals;
 using DevRecall.Domain.Dsa;
 using DevRecall.Domain.Dsa.Attempts;
@@ -126,6 +127,47 @@ public sealed class WeakTopicPersistenceTests(PostgreSqlFixture fixture)
         result.Should().BeInAscendingOrder(item => item.OccurredAtUtc);
     }
 
+    [Fact]
+    public async Task ListReader_ShouldFilterOwnProfilesOrderAndPaginate()
+    {
+        var owner = CreateUser();
+        var other = CreateUser();
+        var firstId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var secondId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+        await using (var context = fixture.CreateDbContext())
+        {
+            context.Users.AddRange(owner, other);
+            context.WeakTopicProfiles.AddRange(
+                CreateProfile(owner.Id, Guid.NewGuid(), CreateBreakdown(0m)),
+                CreateProfile(
+                    owner.Id, Guid.NewGuid(), CreateBreakdown(9m, Now.AddDays(1)),
+                    firstId),
+                CreateProfile(
+                    owner.Id, Guid.NewGuid(), CreateBreakdown(9m, Now.AddDays(2)),
+                    secondId),
+                CreateProfile(owner.Id, Guid.NewGuid(), CreateBreakdown(4m)),
+                CreateProfile(other.Id, Guid.NewGuid(), CreateBreakdown(20m)));
+            await context.SaveChangesAsync();
+        }
+
+        using var provider = CreateServices();
+        var reader = provider.GetRequiredService<IWeakTopicListReader>();
+        var defaultPage = await reader.ReadAsync(
+            owner.Id, null, null, null, false, 0, 10, CancellationToken.None);
+        var nonePage = await reader.ReadAsync(
+            owner.Id, WeaknessLevel.None, null, null, false, 0, 10,
+            CancellationToken.None);
+        var paged = await reader.ReadAsync(
+            owner.Id, null, null, 4m, false, 1, 1, CancellationToken.None);
+
+        defaultPage.TotalCount.Should().Be(3);
+        defaultPage.Items.Select(x => x.ProfileId).Should().Equal(secondId, firstId,
+            defaultPage.Items[2].ProfileId);
+        nonePage.Items.Should().ContainSingle(x => x.Level == WeaknessLevel.None);
+        paged.TotalCount.Should().Be(3);
+        paged.Items.Should().ContainSingle(x => x.ProfileId == firstId);
+    }
+
     private ServiceProvider CreateServices()
     {
         var configuration = new ConfigurationManager();
@@ -137,14 +179,17 @@ public sealed class WeakTopicPersistenceTests(PostgreSqlFixture fixture)
     }
 
     private static WeakTopicProfile CreateProfile(
-        Guid userId, Guid resourceId, WeaknessScoreBreakdown breakdown) =>
+        Guid userId, Guid resourceId, WeaknessScoreBreakdown breakdown,
+        Guid? profileId = null) =>
         WeakTopicProfile.Create(
-            Guid.NewGuid(), userId, WeakTopicResourceType.KnowledgeNode,
-            resourceId, breakdown, Now);
+            profileId ?? Guid.NewGuid(), userId, WeakTopicResourceType.KnowledgeNode,
+            resourceId, breakdown, breakdown.CalculatedAtUtc);
 
-    private static WeaknessScoreBreakdown CreateBreakdown(decimal score) =>
+    private static WeaknessScoreBreakdown CreateBreakdown(
+        decimal score, DateTimeOffset? calculatedAt = null) =>
         new(
-            score, score, WeakTopicScoringPolicy.GetLevel(score), 1, Now,
+            score, score, WeakTopicScoringPolicy.GetLevel(score), 1,
+            calculatedAt ?? Now,
             [new WeaknessSignalContribution(
                 WeaknessSignalType.ReviewAgain, 4, 1m, score)]);
 
