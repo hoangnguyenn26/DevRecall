@@ -23,6 +23,9 @@ using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
+using DevRecall.Application.StudyPlans;
+using DevRecall.Application.StudyPlans.Generation;
+using DevRecall.Application.StudyPlans.Resources;
 using DevRecall.Application.WeakTopics;
 using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
@@ -43,6 +46,7 @@ using DevRecall.Infrastructure.Recommendations;
 using DevRecall.Infrastructure.Reviews;
 using DevRecall.Infrastructure.Reviews.Resources;
 using DevRecall.Infrastructure.Study;
+using DevRecall.Infrastructure.StudyPlans;
 using DevRecall.Infrastructure.Time;
 using DevRecall.Infrastructure.WeakTopics;
 using Microsoft.EntityFrameworkCore;
@@ -128,6 +132,13 @@ public static class DependencyInjection
             IStudyReviewItemResourceReader,
             StudyReviewItemResourceReader>();
         services.AddScoped<IStudySessionListReader, StudySessionListReader>();
+        services.AddScoped<IStudyPlanRepository, StudyPlanRepository>();
+        services.AddScoped<
+            IStudyPlanRecommendationCandidateReader,
+            StudyPlanRecommendationCandidateReader>();
+        services.AddScoped<
+            IStudyPlanResourceSummaryReader,
+            StudyPlanResourceSummaryReader>();
         services.AddScoped<IWeakTopicProfileRepository, WeakTopicProfileRepository>();
         services.AddScoped<IWeakTopicSignalReader, WeakTopicSignalReader>();
         services.AddScoped<IWeakTopicResourceReader, WeakTopicResourceReader>();

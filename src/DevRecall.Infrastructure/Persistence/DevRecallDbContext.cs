@@ -10,6 +10,7 @@ using DevRecall.Domain.Knowledge.Tags;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.Reviews;
 using DevRecall.Domain.Study;
+using DevRecall.Domain.StudyPlans;
 using DevRecall.Domain.WeakTopics;
 using Microsoft.EntityFrameworkCore;
 
@@ -63,6 +64,12 @@ public sealed class DevRecallDbContext(
 
     public DbSet<StudySessionItem> StudySessionItems =>
         Set<StudySessionItem>();
+
+    public DbSet<StudyPlan> StudyPlans =>
+        Set<StudyPlan>();
+
+    public DbSet<StudyPlanItem> StudyPlanItems =>
+        Set<StudyPlanItem>();
 
     public DbSet<WeakTopicProfile> WeakTopicProfiles =>
         Set<WeakTopicProfile>();
