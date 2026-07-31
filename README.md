@@ -1,97 +1,106 @@
 # DevRecall
 
-DevRecall is a local-first personal learning and technical interview preparation system for software developers.
+> A local-first learning and technical interview preparation system for software developers.
 
-The application combines structured technical knowledge, DSA practice, active recall, spaced repetition, daily study planning and mock interview workflows in one platform.
-
-## Product goal
-
-The goal of DevRecall is to help a developer answer three questions every day:
-
-1. What should I study today?
-2. What knowledge am I starting to forget?
-3. Which technical areas are still weak?
-
-DevRecall is not intended to be a generic note-taking application. It manages the full learning lifecycle:
+DevRecall connects structured knowledge, active recall, spaced repetition, interview preparation, DSA practice, analytics, weak-topic detection, recommendations, and personalized study plans in one workflow.
 
 ```text
-Capture
-→ Practice
-→ Evaluate
-→ Review
-→ Measure
-→ Improve
+Capture → Practice → Evaluate → Review → Detect Weakness
+        → Recommend Action → Plan Learning → Execute Session
 ```
 
-## Main use cases
+## Why DevRecall?
 
-- Organize knowledge in a hierarchical tree.
-- Maintain a C#/.NET interview question bank.
-- Store short, standard and deep answer versions.
-- Track DSA problems and every attempt.
-- Record hints, mistakes and complexity analysis.
-- Review items with Again, Hard, Good and Easy ratings.
-- Generate a daily study plan based on available time.
-- Run timed mock interview sessions.
-- Track weak topics and learning progress.
-- Export, back up and restore personal data.
+Most learning tools store information but do not close the feedback loop. DevRecall is designed to answer three practical questions:
 
-## Technology stack
+1. What should I study next?
+2. What am I starting to forget?
+3. Which topics need more practice?
 
-### Backend
+It is intentionally local-first and backend-focused. AI evaluation, cloud synchronization, social features, and multi-user collaboration are outside the current MVP.
 
-- .NET 10
-- ASP.NET Core Web API
-- Entity Framework Core
-- PostgreSQL
-- Clean Architecture
-- Modular Monolith
-- OpenAPI
-- Docker Compose
+## Features
 
-### Frontend
+### Knowledge management
 
-- Vue.js
-- TypeScript
-- Vue Router
-- Pinia
+- Hierarchical knowledge tree with move, reorder, and archive behavior
+- Notes, descriptions, source references, and tags
+- Cycle-safe parent changes and user-scoped ownership
 
-### Testing
+### Interview preparation
 
-- xUnit
-- FluentAssertions
-- Testcontainers
-- ASP.NET Core integration tests
-- Architecture tests
+- Interview question bank with difficulty and topic filtering
+- Draft and immutable published answer versions
+- Ordered follow-up questions and archived-question handling
+
+### DSA practice
+
+- DSA problem catalog with topics, difficulty, source, and status
+- Immutable attempt history, result tracking, notes, code, and complexity analysis
+- Attempt comparison and latest-successful-attempt views
+
+### Review and study
+
+- Review scheduling with Again, Hard, Good, and Easy ratings
+- Due-review queue and immutable review history
+- Study sessions with ordered items and progress lifecycle
+- Personalized study plans generated from active recommendations
+- Draft editing, Ready/Cancelled lifecycle, and atomic conversion to study sessions
+
+### Analytics and recommendations
+
+- Progress overview, daily activity, module breakdown, review performance, and DSA metrics
+- Deterministic weak-topic scoring from learning activity
+- Priority-ranked recommendations with lifecycle and expiration reasons
+- Resource-summary batching and owner-scoped read models
+
+### Platform foundation
+
+- Secure cookie authentication and authenticated-user authorization policy
+- RFC Problem Details with stable business error codes
+- Request correlation through `X-Correlation-ID`
+- OpenAPI document generation
+- Liveness and PostgreSQL readiness checks
+- PostgreSQL migrations, optimistic concurrency, and transactional workflows
 
 ## Architecture
 
-The backend follows Clean Architecture with pragmatic boundaries:
+DevRecall is a backend-first modular monolith using Clean Architecture with pragmatic boundaries.
 
 ```text
-API
- ↓
-Application
- ↓
-Domain
+DevRecall.Api
+    ↓
+DevRecall.Application
+    ↓
+DevRecall.Domain
 
-Infrastructure implements inward-facing abstractions.
+DevRecall.Infrastructure → implements inward-facing abstractions
+DevRecall.Contracts      → defines public transport contracts
 ```
 
-The system is deployed as a modular monolith. The initial modules are:
+| Project | Responsibility |
+| --- | --- |
+| `DevRecall.Domain` | Aggregates, entities, value objects, invariants, and state transitions |
+| `DevRecall.Application` | Use cases, validation, authorization, DTOs, and infrastructure abstractions |
+| `DevRecall.Infrastructure` | EF Core, PostgreSQL, authentication support, clocks, and query implementations |
+| `DevRecall.Api` | HTTP endpoints, middleware, Problem Details, OpenAPI, and dependency registration |
+| `DevRecall.Contracts` | Public API request and response models |
+| `frontend/devrecall-web` | Vue application and typed HTTP integration |
 
-- Identity
-- Knowledge
-- Interview
-- DSA
-- Review
-- Study
-- Analytics
-- System
+Business logic remains framework-independent, API endpoints do not access `DbContext` directly, and read endpoints project DTOs instead of exposing EF entities.
 
-The Domain project is framework-independent. Business logic must not be placed in controllers or EF Core configurations.
+See [AGENTS.md](./AGENTS.md) for the complete engineering rules.
 
-See [`AGENTS.md`](./AGENTS.md) for implementation rules.
+## Technology stack
+
+| Area | Technologies |
+| --- | --- |
+| Backend | .NET 10, ASP.NET Core Minimal APIs, Entity Framework Core |
+| Database | PostgreSQL 17, Npgsql |
+| Frontend | Vue 3, TypeScript, Vue Router, Pinia, Vite |
+| API | REST, OpenAPI, cookie authentication, Problem Details |
+| Testing | xUnit, FluentAssertions, Testcontainers, ASP.NET Core integration tests |
+| Tooling | Docker Compose, central NuGet package management, ESLint, Oxlint, Vitest |
 
 ## Repository structure
 
@@ -100,513 +109,196 @@ DevRecall/
 ├── src/
 │   ├── DevRecall.Api/
 │   ├── DevRecall.Application/
+│   ├── DevRecall.Contracts/
 │   ├── DevRecall.Domain/
-│   ├── DevRecall.Infrastructure/
-│   └── DevRecall.Contracts/
+│   └── DevRecall.Infrastructure/
 ├── tests/
-│   ├── DevRecall.Domain.Tests/
-│   ├── DevRecall.Application.Tests/
-│   ├── DevRecall.IntegrationTests/
 │   ├── DevRecall.Api.Tests/
-│   └── DevRecall.ArchitectureTests/
-├── frontend/
-│   └── devrecall-web/
-├── docs/
-│   ├── architecture/
-│   ├── adr/
-│   ├── api/
-│   └── database/
+│   ├── DevRecall.Application.Tests/
+│   ├── DevRecall.Domain.Tests/
+│   └── DevRecall.IntegrationTests/
+├── DevRecall.ArchitectureTests/
+├── frontend/devrecall-web/
 ├── deploy/
-│   └── docker-compose.yml
-├── AGENTS.md
-└── README.md
+├── docs/
+├── Directory.Build.props
+├── Directory.Packages.props
+└── DevRecall.slnx
 ```
 
-## MVP scope
+## Getting started
 
-### Included
+### Prerequisites
 
-- Local account and authentication
-- User study preferences
-- Knowledge Tree
-- Interview question bank
-- Answer version history
-- DSA problem catalog
-- DSA attempt history
-- Review scheduler
-- Daily review queue
-- Daily study plans
-- Study sessions
-- Mock interview sessions
-- PostgreSQL full-text search
-- Basic analytics
-- Import and export
-- Backup and restore
-- Persisted background jobs
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- Node.js `22.18+` or `24.12+`
+- Docker Desktop or another Docker-compatible runtime
+- A trusted ASP.NET Core development certificate for HTTPS
 
-### Excluded
+Trust the local HTTPS certificate once:
 
-- AI evaluation
-- AI-generated questions
-- Voice recognition
-- Semantic search
-- Cloud synchronization
-- Mobile application
-- Multi-user collaboration
-- Social features
-- Microservices
-- Message broker
-- Kubernetes
-- Payment
+```powershell
+dotnet dev-certs https --trust
+```
 
-## Planned solution bootstrap
+### 1. Start PostgreSQL
 
-The initial backend setup should include:
+Create the local Docker environment file:
 
-- Central package management
-- Nullable reference types
-- Warnings as errors for project code
-- PostgreSQL through Docker Compose
-- EF Core migrations
-- OpenAPI
-- Problem Details
-- Global exception handling
-- Structured logging
-- Health checks
-- Authentication skeleton
-- Testcontainers integration-test fixture
-- Architecture tests
+```powershell
+Copy-Item deploy/.env.example deploy/.env
+```
 
-## Local development prerequisites
+Review `deploy/.env`, then start PostgreSQL:
 
-- .NET 10 SDK
-- Node.js LTS
-- Docker Desktop or compatible Docker runtime
-- PostgreSQL client tools are optional
+```powershell
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d postgres
+```
 
-## Intended startup workflow
+### 2. Configure the API connection string
 
-The final local startup workflow should be:
+The API intentionally does not store credentials in committed configuration files. Configure the development connection with User Secrets:
 
-```bash
-docker compose up -d postgres
+```powershell
+dotnet user-secrets set "ConnectionStrings:Database" "Host=localhost;Port=5432;Database=devrecall;Username=devrecall;Password=change_me" --project src/DevRecall.Api
+```
+
+Keep these values aligned with `deploy/.env`.
+
+### 3. Restore packages and apply migrations
+
+```powershell
+dotnet restore DevRecall.slnx
 dotnet ef database update --project src/DevRecall.Infrastructure --startup-project src/DevRecall.Api
-dotnet run --project src/DevRecall.Api
+```
+
+### 4. Run the API
+
+```powershell
+dotnet run --project src/DevRecall.Api --launch-profile https
+```
+
+The development API listens on:
+
+- HTTPS: `https://localhost:7081`
+- HTTP: `http://localhost:5012` (redirected to HTTPS)
+
+### 5. Run the frontend
+
+The development environment already targets `https://localhost:7081/api/v1`. To create a local override, copy the example file:
+
+```powershell
+Copy-Item frontend/devrecall-web/.env.example frontend/devrecall-web/.env.local
 npm install --prefix frontend/devrecall-web
 npm run dev --prefix frontend/devrecall-web
 ```
 
-The exact commands may change during the bootstrap phase.
+Open `http://localhost:5173`.
 
-## API conventions
+## API and operational endpoints
 
-- Base path: `/api/v1`
-- JSON properties: camelCase
-- URLs: kebab-case
-- Date and time: ISO 8601, stored as UTC
-- Errors: Problem Details
-- IDs: UUID
-- Pagination: offset pagination for MVP management screens
-- Authentication: secure cookie preferred for same-origin deployment
+| Resource | URL |
+| --- | --- |
+| API base path | `https://localhost:7081/api/v1` |
+| OpenAPI JSON (Development) | `https://localhost:7081/openapi/v1.json` |
+| Liveness | `https://localhost:7081/health/live` |
+| PostgreSQL readiness | `https://localhost:7081/health/ready` |
 
-The planned endpoint catalog is documented in [`docs/API_CATALOG.md`](./docs/API_CATALOG.md).
+The project currently exposes the OpenAPI JSON document but does not bundle Swagger UI. The endpoint catalog is available in [docs/API_CATALOG.md](./docs/API_CATALOG.md).
 
-## Implementation status
+API conventions:
 
-### Week 3 — Identity and Authentication
-
-Completed:
-
-- User domain model and case-insensitive email identity
-- PostgreSQL user persistence and unique normalized email
-- Registration with framework-supported password hashing
-- Login with secure cookie authentication
-- Current-user and logout endpoints
-- Named authenticated-user authorization policy
-- PostgreSQL-backed authentication API workflow tests
-
-### Week 4 — Knowledge Tree Core
-
-Completed:
-
-- Knowledge node aggregate with rename, move, archive, and hierarchy invariants
-- PostgreSQL knowledge node persistence with ownership and active-tree filtering
-- Create, read tree, rename, move, and archive REST endpoints
-- Stable Problem Details error codes for knowledge operations
-- Cycle prevention for self-parenting and descendant moves
-- PostgreSQL-backed domain, application, integration, and API regression coverage
-
-### Week 5 — Knowledge Advanced
-
-Completed:
-
-- Knowledge note content
-- Knowledge description and source URL
-- Knowledge detail API with archived-note access
-- Safe content updates using expected timestamps
-- No-op content update detection
-- Persistent sibling ordering and append-to-end creation
-- Root and child reorder workflows
-- Tree ordering based on stored positions
-
-### Week 6 — Knowledge Tags and Tree Interaction
-
-Completed:
-
-- User-scoped tags
-- Tag name normalization and uniqueness
-- Tag create, list, rename, and archive workflows
-- Assign and remove tags from knowledge notes
-- Knowledge detail with tags
-- Knowledge filtering by one or multiple tags
-- AND semantics for multi-tag filtering
-- Unified tree position endpoint
-- Same-parent reorder and cross-parent move
-- Move to root
-- Cycle and ownership protection
-
-### Week 7 — Interview Question Bank Core
-
-Completed:
-
-- Interview question domain model
-- Difficulty and lifecycle status
-- PostgreSQL persistence and indexes
-- Create question workflow
-- Active question list with pagination
-- Topic and difficulty filtering
-- Question detail
-- Question update
-- Question archive
-- Ownership isolation
-- Archived-question semantics
-
-### Week 8 — Interview Answers and Follow-ups
-
-Completed:
-
-- Versioned interview answers
-- Draft and published answer lifecycle
-- One active draft per question
-- Automatic answer version numbering
-- Published-answer immutability
-- Answer publishing workflow
-- Current published answer selection
-- Latest draft selection
-- Answer version history
-- Interview follow-up questions
-- Follow-up update and ordering
-- Follow-up archive workflow
-- Complete interview question detail
-- Ownership and archived-question protection
-
-### Week 9 — DSA Problem Bank Core
-
-Completed:
-
-- DSA problem domain model
-- Difficulty and lifecycle status
-- PostgreSQL problem persistence
-- Owned topic collection persistence
-- Create DSA problem workflow
-- Active problem list with pagination
-- Difficulty, topic and source filtering
-- DSA problem detail
-- Problem update and topic replacement
-- Problem archive workflow
-- Ownership isolation
-- Archived-problem semantics
-
-### Week 10 — DSA Attempt History
-
-Completed:
-
-- Immutable DSA attempt snapshots
-- Attempt result and duration validation
-- Automatic attempt numbering per problem
-- PostgreSQL attempt persistence
-- Unique problem-attempt sequence constraint
-- Attempt creation workflow
-- Paginated attempt history
-- Result filtering
-- Full attempt detail
-- Latest successful attempt
-- Attempt comparison
-- Complete DSA problem progress summary
-- Recent-attempt overview
-- Ownership and archived-problem protection
-
-### Week 11 — Review Scheduling Engine
-
-Completed:
-
-- Unified review items for Knowledge, Interview, and DSA resources
-- Deterministic Again, Hard, Good, and Easy scheduler
-- UTC clock abstraction
-- Review item and immutable review history persistence
-- One active review item per resource
-- Resource ownership and availability validation
-- Add-resource-to-review workflow
-- Paginated due review queue
-- Batched resource summaries
-- Review evaluation workflow
-- Optimistic schedule conflict protection
-- Review item detail
-- Paginated review history
-- Archived and cross-user behavior
-
-## Health endpoints
-
-Liveness:
-
-```http
-GET /health/live
-```
-
-Readiness:
-
-```http
-GET /health/ready
-```
-
-Liveness reports process health independently of PostgreSQL. Readiness verifies that PostgreSQL is reachable and returns `503 Unhealthy` when the database is unavailable.
-
-## Request correlation
-
-Clients may provide an `X-Correlation-ID` request header. The API echoes the same value in the response and includes it as `traceId` in Problem Details responses. If the header is omitted, the API generates a correlation ID automatically.
+- camelCase JSON properties
+- kebab-case resource URLs
+- UUID identifiers
+- ISO 8601 timestamps stored in UTC
+- offset pagination for management screens
+- secure HttpOnly authentication cookie
+- Problem Details responses with stable error codes
 
 ## Database migrations
-
-Open Visual Studio Package Manager Console and select `DevRecall.Infrastructure` as the default project.
 
 Create a migration:
 
 ```powershell
-Add-Migration MigrationName -Project DevRecall.Infrastructure -StartupProject DevRecall.Api -OutputDir Persistence/Migrations
+dotnet ef migrations add MigrationName --project src/DevRecall.Infrastructure --startup-project src/DevRecall.Api --output-dir Persistence/Migrations
 ```
 
-Apply migrations:
+Apply pending migrations:
 
 ```powershell
-Update-Database -Project DevRecall.Infrastructure -StartupProject DevRecall.Api
+dotnet ef database update --project src/DevRecall.Infrastructure --startup-project src/DevRecall.Api
 ```
 
-Rollback all migrations:
+Roll back all migrations:
 
 ```powershell
-Update-Database 0 -Project DevRecall.Infrastructure -StartupProject DevRecall.Api
+dotnet ef database update 0 --project src/DevRecall.Infrastructure --startup-project src/DevRecall.Api
 ```
 
-Migrations are applied explicitly as a deployment step. The API does not call `Database.Migrate()` during startup.
-
-## Development roadmap
-
-### Phase 1 — Foundation
-
-- Bootstrap solution
-- Configure PostgreSQL and EF Core
-- Add logging, health checks and error handling
-- Add authentication foundation
-
-### Phase 2 — Knowledge and Interview
-
-- Knowledge Tree
-- Tags
-- Interview questions
-- Answer versions
-- Search v1
-
-### Phase 3 — DSA and Review
-
-- DSA patterns and problems
-- Attempt tracking
-- Mistakes and solutions
-- Review scheduler
-- Due review queue
-
-### Phase 4 — Study and Mock Interview
-
-- Daily study plan
-- Study sessions
-- Mock interview sessions
-- Review generation from weak answers
-
-### Phase 5 — Reliability
-
-- Analytics
-- Import/export
-- Backup/restore
-- Persisted background jobs
-- Performance and security review
-
-### Phase 6 — Final MVP
-
-- Regression testing
-- Documentation
-- Docker Compose startup
-- Demo data
-- Release candidate
-
-## Contribution rules
-
-Before implementing a feature:
-
-1. Read `AGENTS.md`.
-2. Identify the related module and use case.
-3. Define business invariants.
-4. Define the API contract.
-5. Implement from Domain inward to API.
-6. Add tests.
-7. Update documentation.
-
-## Status
-
-The project is currently in the **documentation and implementation-planning phase**. AI features are deferred until the non-AI MVP is stable.
-
-### Week 12 — Study Session Foundation
-
-Completed:
-
-- Study Session and Study Session Item domains
-- Planned, InProgress, Completed, and Cancelled lifecycle
-- Pending, InProgress, Completed, and Skipped item lifecycle
-- Study resources for Knowledge, Interview, DSA, and Review
-- Study Session persistence and migrations
-- Session-resource duplicate protection
-- Planned-session create and update workflows
-- Add, remove, and reorder session items
-- Session and item progress workflows
-- Session completion and cancellation
-- Actual study-duration calculation
-- Optimistic concurrency using session version
-- Paginated recent-session list
-- Complete session detail and progress summary
-- Batched study-resource summaries
-- Ownership and terminal-state protection
-
-### Week 13 — Progress Analytics Foundation
-
-Completed:
-
-- Shared UTC analytics date-range contract
-- Start-inclusive and end-exclusive range semantics
-- Default seven-day and maximum 365-day ranges
-- Progress overview across Study, Review, and DSA activity
-- Daily UTC activity trend with zero-filled dates
-- Completed study-item module breakdown
-- Review performance metrics for Again, Hard, Good, and Easy
-- DSA attempt result, duration, and distinct-problem metrics
-- Empty-state-safe rates and averages
-- Owner-scoped aggregate queries
-- Database-side grouping, counting, summing, and averaging
-- Bounded query counts without loading full histories
+Migrations are an explicit deployment step. The API does not automatically call `Database.Migrate()` during startup.
 
 ## Development commands
 
-## Integration tests
+### Backend
 
-Integration tests use Testcontainers with PostgreSQL.
-
-Requirements:
-
-- Docker Desktop must be running.
-
-Run:
-
-```bash
-dotnet test tests/DevRecall.IntegrationTests
+```powershell
+dotnet format DevRecall.slnx --verify-no-changes
+dotnet build DevRecall.slnx
+dotnet test DevRecall.slnx
 ```
 
-The test suite creates, migrates and disposes its own PostgreSQL container. It does not use the local development database or User Secrets.
+### Frontend
 
-### Restore packages
-```bash
-dotnet restore
+```powershell
+npm run type-check --prefix frontend/devrecall-web
+npm run lint --prefix frontend/devrecall-web
+npm run test:unit --prefix frontend/devrecall-web -- --run
+npm run build --prefix frontend/devrecall-web
 ```
 
-### Build solution
-```bash
-dotnet build
+### PostgreSQL integration tests
+
+```powershell
+dotnet test tests/DevRecall.IntegrationTests/DevRecall.IntegrationTests.csproj
 ```
 
-### Run tests
-```bash
-dotnet test
-```
+Integration tests use Testcontainers to start a clean PostgreSQL instance, apply every migration, execute the suite, and dispose the container. They do not use the local development database.
 
-### Run API
-```bash
-dotnet run --project src/DevRecall.Api
-```
+## Engineering principles
 
-### Format code
-```bash
-dotnet format
-```
+- Implement from Domain inward to API.
+- Keep domain code independent from ASP.NET Core and EF Core.
+- Use feature-oriented Application folders.
+- Enforce ownership for every user-owned resource.
+- Carry `CancellationToken` through asynchronous operations.
+- Use UTC internally and optimistic concurrency for editable aggregates.
+- Use `AsNoTracking` and database-side projection for read-only queries.
+- Preserve historical learning data and use explicit archive semantics.
+- Add domain, application, integration, API, and architecture tests where appropriate.
 
-## Development environment
+## Current scope
 
-- Backend IDE: Visual Studio 2026
-- Frontend IDE: Visual Studio Code
-- Package management: NuGet Package Manager
-- Runtime: .NET 10
-### Week 14 — Weak Topic Detection
+DevRecall is under active development. The backend foundation and core learning loop are implemented through personalized study-plan generation and conversion into planned study sessions.
 
-Completed:
+The MVP deliberately excludes:
 
-- Deterministic weak-topic scoring policy
-- Positive and negative weakness signals
-- Ninety-day recency weighting
-- Weakness levels from None to Critical
-- Persisted current weak-topic profiles
-- Review, Study, and DSA signal readers
-- Single-resource recalculation
-- Optimistic concurrency and unique profile protection
-- Paginated weak-topic list with filters
-- Batched resource summaries without N+1
-- Read-only weakness explanation detail
-- Current-user batch recalculation
-- Profile decay to None when recent signals expire
-- Owner-scoped queries and cross-user isolation
+- AI-generated or AI-evaluated content
+- voice recording and speech recognition
+- semantic/vector search
+- cloud synchronization
+- mobile applications
+- collaboration and social features
+- microservices and distributed messaging
+- payments and public marketplaces
 
-### Week 15 — Study Recommendations
+## Contributing
 
-Completed:
+Before implementing a feature:
 
-- Recommendation domain and lifecycle
-- Weak-topic-to-recommendation priority mapping
-- Persisted recommendation reason snapshots
-- Partial unique constraint for active recommendations
-- Optimistic concurrency protection
-- Recommendation generation from weak topics
-- Idempotent create and refresh behavior
-- Priority-ranked recommendation list
-- Batched resource summaries without N+1
-- Recommendation detail endpoint
-- Dismiss and complete lifecycle actions
-- Recommendation expiration reasons
-- Active recommendation synchronization
-- Expiration by lifetime, resolved weakness, or unavailable resource
-- Owner-scoped reads and mutations
-- Historical terminal recommendation retention
-
-### Week 16 — Personalized Study Plans
-
-Completed:
-
-- Study Plan aggregate and ordered plan items
-- Draft, Ready, Converted, and Cancelled lifecycle
-- Recommendation-priority duration composition
-- Duration-budget-based plan generation
-- Active recommendation candidate filtering
-- Resource availability validation
-- Single Draft plan constraint per user
-- Study Plan list and detail endpoints
-- Draft title, duration, removal, and reorder operations
-- Optimistic concurrency for plan mutations
-- Ready and Cancel lifecycle actions
-- Atomic conversion to Planned Study Sessions
-- Conversion resource revalidation
-- Idempotent converted-plan retry behavior
-- Owner-scoped reads and mutations
-- Resource-summary batching without N+1
+1. Read [AGENTS.md](./AGENTS.md).
+2. Identify the module, use case, invariants, ownership rules, and transaction boundary.
+3. Define the API contract and stable errors.
+4. Implement from Domain through Application, Infrastructure, and API.
+5. Add focused automated tests and update documentation.
+6. Run the backend and frontend quality gates.
