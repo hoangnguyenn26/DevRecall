@@ -53,6 +53,7 @@ using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
 using DevRecall.Application.Reviews.GetDue;
 using DevRecall.Application.Reviews.GetHistory;
+using DevRecall.Application.Search;
 using DevRecall.Application.Study.Cancel;
 using DevRecall.Application.Study.Complete;
 using DevRecall.Application.Study.Create;
@@ -144,6 +145,7 @@ public static class DependencyInjection
         services.AddScoped<GetReviewItemDetailHandler>();
         services.AddScoped<GetDueReviewItemsHandler>();
         services.AddScoped<GetReviewHistoryHandler>();
+        services.AddScoped<GlobalSearchHandler>();
         services.AddScoped<CreateStudySessionHandler>();
         services.AddScoped<UpdateStudySessionHandler>();
         services.AddScoped<AddStudySessionItemHandler>();

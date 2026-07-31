@@ -62,7 +62,7 @@ public sealed class SystemEndpointsTests : IClassFixture<SystemApiFactory>
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
             "/api/v1/system/info");
-        request.Headers.Add("Origin", "http://localhost:5173");
+        request.Headers.Add("Origin", "http://localhost:3000");
 
         using var response = await _client.SendAsync(
             request,
@@ -70,7 +70,7 @@ public sealed class SystemEndpointsTests : IClassFixture<SystemApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.GetValues("Access-Control-Allow-Origin")
-            .Should().ContainSingle("http://localhost:5173");
+            .Should().ContainSingle("http://localhost:3000");
     }
 
     [Fact]

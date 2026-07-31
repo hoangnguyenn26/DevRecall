@@ -104,6 +104,17 @@ POST /api/v1/auth/logout
 Requires authentication. Returns `204 No Content` and removes the
 `devrecall.auth` authentication cookie.
 
+### Antiforgery token
+
+```http
+GET /api/v1/auth/csrf-token
+```
+
+Returns the request token and sets its companion antiforgery cookie. Cookie-authenticated
+`POST`, `PUT`, and `DELETE` requests must send the token in `X-CSRF-TOKEN`. A rejected or
+expired token returns `400 ANTIFORGERY_TOKEN_INVALID`; the web client refreshes the token
+once but never automatically retries the business mutation.
+
 ### Current user
 
 ```http
@@ -1049,9 +1060,7 @@ Query:
 
 ```text
 ?q=
-&modules=knowledge,interview,dsa,projectStory
-&tagId=
-&difficulty=
+&modules=knowledge,interview,dsa
 &page=
 &pageSize=
 ```
@@ -1060,13 +1069,9 @@ Search targets:
 
 - Knowledge nodes
 - Interview questions
-- Answer versions
-- Code examples
 - DSA problems
-- DSA mistakes
-- Project stories
 
-PostgreSQL full-text search is sufficient for the MVP.
+Search is owner-scoped and uses PostgreSQL full-text ranking with GIN expression indexes. Query text must contain 2–100 characters and page size is limited to 50.
 
 ---
 

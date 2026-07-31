@@ -14,7 +14,7 @@ public sealed class GetWeakTopicsRequest
     public string? Level { get; init; }
     public string? ResourceType { get; init; }
     public decimal? MinimumScore { get; init; }
-    public bool IncludeNone { get; init; }
+    public bool? IncludeNone { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }

@@ -20,6 +20,7 @@ using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Application.Recommendations.Synchronize;
 using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.Resources;
+using DevRecall.Application.Search;
 using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetList;
 using DevRecall.Application.Study.Resources;
@@ -48,6 +49,7 @@ using DevRecall.Infrastructure.Persistence;
 using DevRecall.Infrastructure.Recommendations;
 using DevRecall.Infrastructure.Reviews;
 using DevRecall.Infrastructure.Reviews.Resources;
+using DevRecall.Infrastructure.Search;
 using DevRecall.Infrastructure.Study;
 using DevRecall.Infrastructure.StudyPlans;
 using DevRecall.Infrastructure.Time;
@@ -128,6 +130,7 @@ public static class DependencyInjection
         services.AddScoped<
             IReviewResourceSummaryReader,
             ReviewResourceSummaryReader>();
+        services.AddScoped<IGlobalSearchReader, GlobalSearchReader>();
         services.AddSingleton<IUtcClock, SystemUtcClock>();
         services.AddScoped<IStudySessionRepository, StudySessionRepository>();
         services.AddScoped<IStudyResourceResolver, StudyResourceResolver>();

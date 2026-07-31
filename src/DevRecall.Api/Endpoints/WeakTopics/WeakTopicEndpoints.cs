@@ -77,7 +77,7 @@ public static class WeakTopicEndpoints
     {
         var result = await handler.HandleAsync(new GetWeakTopicsQuery(
             request.Level, request.ResourceType, request.MinimumScore,
-            request.IncludeNone, request.Page, request.PageSize), cancellationToken);
+            request.IncludeNone ?? false, request.Page, request.PageSize), cancellationToken);
         return Results.Ok(new PagedResponse<WeakTopicListItemResponse>(
             result.Items.Select(x => new WeakTopicListItemResponse(
                 x.ProfileId, x.ResourceType, x.ResourceId, x.ResourceTitle,

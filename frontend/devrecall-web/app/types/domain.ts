@@ -1,0 +1,34 @@
+export interface KnowledgeTreeNode { id: string; parentId?: string; title: string; sortOrder: number; children: KnowledgeTreeNode[] }
+export interface KnowledgeTag { id: string; name: string }
+export interface KnowledgeDetail { id: string; parentId?: string; title: string; content: string; description?: string; sourceUrl?: string; status: string; sortOrder: number; createdAtUtc: string; updatedAtUtc: string; tags: KnowledgeTag[] }
+
+export interface DueReviewItem { reviewItemId: string; resourceType: string; resourceId: string; resourceTitle: string; resourcePreview?: string; dueAtUtc: string; lastReviewedAtUtc?: string; intervalDays: number; reviewCount: number; overdueMinutes: number }
+export interface ReviewEvaluation { reviewItemId: string; reviewHistoryId: string; evaluation: string; previousIntervalDays: number; nextIntervalDays: number; reviewedAtUtc: string; nextDueAtUtc: string; reviewCount: number }
+
+export interface AnswerSummary { id: string; versionNumber: number; content: string; status: string; createdAtUtc: string; updatedAtUtc: string; publishedAtUtc?: string }
+export interface AnswerHistory { id: string; versionNumber: number; status: string; createdAtUtc: string; updatedAtUtc: string; publishedAtUtc?: string }
+export interface FollowUp { id: string; prompt: string; sortOrder: number; createdAtUtc: string; updatedAtUtc: string }
+export interface InterviewQuestionListItem { id: string; title: string; topic: string; difficulty: string; updatedAtUtc: string }
+export interface InterviewQuestionDetail { id: string; title: string; question: string; topic: string; difficulty: string; notes?: string; status: string; createdAtUtc: string; updatedAtUtc: string; currentPublishedAnswer?: AnswerSummary; latestDraft?: AnswerSummary; answerHistory: AnswerHistory[]; followUps: FollowUp[] }
+
+export interface DsaAttemptOverview { id: string; attemptNumber: number; result: string; language?: string; timeComplexity?: string; spaceComplexity?: string; durationMinutes: number; attemptedAtUtc: string }
+export interface DsaProblemListItem { id: string; title: string; difficulty: string; source?: string; topics: string[]; updatedAtUtc: string }
+export interface DsaProblemDetail { id: string; title: string; description: string; difficulty: string; source?: string; externalUrl?: string; topics: string[]; status: string; createdAtUtc: string; updatedAtUtc: string; attemptSummary: { totalAttempts: number; solvedAttempts: number; totalDurationMinutes: number; averageDurationMinutes: number; lastAttemptedAtUtc?: string }; latestAttempt?: DsaAttemptOverview; latestSuccessfulAttempt?: DsaAttemptOverview; recentAttempts: DsaAttemptOverview[] }
+export interface DsaAttempt { id: string; dsaProblemId: string; attemptNumber: number; result: string; language?: string; solutionCode?: string; approach?: string; timeComplexity?: string; spaceComplexity?: string; durationMinutes: number; notes?: string; attemptedAtUtc: string; createdAtUtc: string }
+
+export interface StudyPlanListItem { studyPlanId: string; title: string; status: string; itemCount: number; totalPlannedDurationMinutes: number; generatedAtUtc: string; expiresAtUtc?: string; readyAtUtc?: string; convertedAtUtc?: string; convertedStudySessionId?: string; cancelledAtUtc?: string; updatedAtUtc: string; version: number }
+export interface StudyPlanItem { itemId: string; sourceRecommendationId?: string; sourceType: string; resourceType: string; resourceId: string; resourceTitle: string; resourcePreview?: string; isResourceAvailable: boolean; plannedDurationMinutes: number; position: number }
+export interface StudyPlanDetail extends StudyPlanListItem { createdAtUtc: string; items: StudyPlanItem[] }
+export interface StudySessionListItem { id: string; title: string; status: string; plannedDurationMinutes: number; actualDurationMinutes?: number; startedAtUtc?: string; completedAtUtc?: string; totalItems: number; completedItems: number; skippedItems: number; version: number; createdAtUtc: string; updatedAtUtc: string }
+export interface StudySessionDetailItem { id: string; resourceType: string; resourceId: string; resourceTitle: string; resourcePreview?: string; isResourceAvailable: boolean; position: number; status: string; startedAtUtc?: string; completedAtUtc?: string; notes?: string; createdAtUtc: string; updatedAtUtc: string }
+export interface StudySessionDetail extends StudySessionListItem { notes?: string; progress: { totalItems: number; pendingItems: number; inProgressItems: number; completedItems: number; skippedItems: number; completionPercentage: number }; items: StudySessionDetailItem[] }
+
+export interface Recommendation { recommendationId: string; resourceType: string; resourceId: string; resourceTitle: string; resourcePreview?: string; isResourceAvailable: boolean; type: string; priority: string; priorityScore: number; status: string; weaknessScore: number; weaknessLevel: string; signalCount: number; weaknessCalculatedAtUtc: string; generatedAtUtc: string; expiresAtUtc?: string; version: number }
+export interface WeakTopic { profileId: string; resourceType: string; resourceId: string; resourceTitle: string; resourcePreview?: string; isResourceAvailable: boolean; score: number; level: string; signalCount: number; version: number; calculatedAtUtc: string; updatedAtUtc: string }
+export interface WeakTopicDetail extends WeakTopic { signalWindowFromUtc: string; signalWindowToUtc: string; latestSignalAtUtc?: string; signalGroups: { signalType: string; count: number; totalWeightedScore: number }[]; contributions: { signalType: string; occurredAtUtc: string; baseWeight: number; recencyMultiplier: number; weightedScore: number }[] }
+
+export interface ProgressOverview { fromUtc: string; toUtc: string; studyMinutes: number; completedSessions: number; cancelledSessions: number; studyItemsCompleted: number; studyItemsSkipped: number; reviewsCompleted: number; dsaAttempts: number; interviewItemsCompleted: number; knowledgeItemsCompleted: number; activeStudyDays: number }
+export interface DailyActivity { fromUtc: string; toUtc: string; days: { date: string; studyMinutes: number; completedSessions: number; completedStudyItems: number; reviews: number; dsaAttempts: number }[] }
+export interface ReviewPerformance { fromUtc: string; toUtc: string; totalReviews: number; againCount: number; hardCount: number; goodCount: number; easyCount: number; successRate: number; averagePreviousIntervalDays: number; averageNextIntervalDays: number }
+export interface DsaPerformance { fromUtc: string; toUtc: string; totalAttempts: number; solvedAttempts: number; partiallySolvedAttempts: number; failedAttempts: number; skippedAttempts: number; problemsPracticed: number; solvedRate: number; averageDurationMinutes: number }
+export interface ModuleBreakdown { fromUtc: string; toUtc: string; totalCompletedItems: number; modules: { resourceType: string; completedItems: number; percentage: number }[] }

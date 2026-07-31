@@ -6,6 +6,7 @@ using DevRecall.Application.Identity.Register;
 using DevRecall.Contracts.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Antiforgery;
 
 namespace DevRecall.Api.Endpoints.Auth;
 
@@ -20,6 +21,12 @@ public static class AuthEndpoints
 
         group.MapPost("/register", RegisterAsync);
         group.MapPost("/login", LoginAsync);
+        group.MapGet("/csrf-token", (IAntiforgery antiforgery, HttpContext context) =>
+        {
+            var tokens = antiforgery.GetAndStoreTokens(context);
+            return Results.Ok(new CsrfTokenResponse(
+                tokens.RequestToken!, tokens.HeaderName ?? "X-CSRF-TOKEN"));
+        }).WithName("GetCsrfToken").Produces<CsrfTokenResponse>();
         group.MapGet("/me", GetCurrentUserAsync)
             .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
         group.MapPost(

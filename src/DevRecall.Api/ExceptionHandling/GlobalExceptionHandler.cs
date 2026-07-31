@@ -1,6 +1,7 @@
 using DevRecall.Api.Middleware;
 using DevRecall.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DevRecall.Api.ExceptionHandling;
@@ -53,6 +54,14 @@ public sealed partial class GlobalExceptionHandler(
     {
         return exception switch
         {
+            AntiforgeryValidationException antiforgeryException =>
+                CreateProblemDetails(
+                    context,
+                    StatusCodes.Status400BadRequest,
+                    "Invalid antiforgery token",
+                    "ANTIFORGERY_TOKEN_INVALID",
+                    antiforgeryException.Message),
+
             ValidationException validationException =>
                 CreateValidationProblemDetails(context, validationException),
 

@@ -1,0 +1,11 @@
+**/bin
+**/obj
+**/node_modules
+**/.nuxt
+**/.output
+**/coverage
+**/TestResults
+.git
+.idea
+.vscode
+deploy/.env

@@ -1,0 +1,3 @@
+<script setup lang="ts">definePageMeta({layout:'app'});useSeoMeta({title:'Settings'});const auth=useAuthStore()</script>
+<template><div><CorePageHeader title="Settings" description="Account and local application preferences." /><UCard><template #header><h2>Account</h2></template><dl><dt>Display name</dt><dd>{{ auth.user?.displayName }}</dd><dt>Email</dt><dd>{{ auth.user?.email }}</dd></dl><template #footer><p>Additional preferences remain backend-driven and will be added when their API contracts are available.</p></template></UCard></div></template>
+<style scoped>h2{font-weight:700}dl{display:grid;grid-template-columns:10rem 1fr;gap:.7rem}dt,:deep(.u-card-footer){color:var(--ui-text-muted)}</style>

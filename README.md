@@ -9,6 +9,8 @@ Capture → Practice → Evaluate → Review → Detect Weakness
         → Recommend Action → Plan Learning → Execute Session
 ```
 
+![DevRecall Today workspace](docs/images/devrecall-today-dashboard.png)
+
 ## Why DevRecall?
 
 Most learning tools store information but do not close the feedback loop. DevRecall is designed to answer three practical questions:
@@ -85,7 +87,7 @@ DevRecall.Contracts      → defines public transport contracts
 | `DevRecall.Infrastructure` | EF Core, PostgreSQL, authentication support, clocks, and query implementations |
 | `DevRecall.Api` | HTTP endpoints, middleware, Problem Details, OpenAPI, and dependency registration |
 | `DevRecall.Contracts` | Public API request and response models |
-| `frontend/devrecall-web` | Vue application and typed HTTP integration |
+| `frontend/devrecall-web` | Nuxt application, public SSR layer, Learning OS, and typed HTTP integration |
 
 Business logic remains framework-independent, API endpoints do not access `DbContext` directly, and read endpoints project DTOs instead of exposing EF entities.
 
@@ -97,10 +99,10 @@ See [AGENTS.md](./AGENTS.md) for the complete engineering rules.
 | --- | --- |
 | Backend | .NET 10, ASP.NET Core Minimal APIs, Entity Framework Core |
 | Database | PostgreSQL 17, Npgsql |
-| Frontend | Vue 3, TypeScript, Vue Router, Pinia, Vite |
+| Frontend | Nuxt 4, Vue 3, TypeScript, Nuxt UI, Pinia, PrimeVue Tree, Apache ECharts |
 | API | REST, OpenAPI, cookie authentication, Problem Details |
 | Testing | xUnit, FluentAssertions, Testcontainers, ASP.NET Core integration tests |
-| Tooling | Docker Compose, central NuGet package management, ESLint, Oxlint, Vitest |
+| Tooling | Docker Compose, central NuGet package management, ESLint, Oxlint, Vitest, Playwright |
 
 ## Repository structure
 
@@ -185,7 +187,7 @@ The development API listens on:
 
 ### 5. Run the frontend
 
-The development environment already targets `https://localhost:7081/api/v1`. To create a local override, copy the example file:
+The development environment targets `https://localhost:7081/api/v1`. To create a local override, copy the example file:
 
 ```powershell
 Copy-Item frontend/devrecall-web/.env.example frontend/devrecall-web/.env.local
@@ -193,7 +195,18 @@ npm install --prefix frontend/devrecall-web
 npm run dev --prefix frontend/devrecall-web
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:3000`. Public content is server-rendered; authenticated routes live under `/app` and are marked `noindex`.
+
+### Run the complete local stack
+
+The Compose profile builds PostgreSQL, the ASP.NET Core API, and the Nuxt server:
+
+```powershell
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml run --rm api --migrate
+```
+
+Open `http://localhost:3000`. See [the demo guide](./docs/DEMO_GUIDE.md) for repeatable demo data and the full presentation journey. The measured local release numbers are recorded in the [performance baseline](./docs/PERFORMANCE_BASELINE.md).
 
 ## API and operational endpoints
 
@@ -253,7 +266,8 @@ dotnet test DevRecall.slnx
 ```powershell
 npm run type-check --prefix frontend/devrecall-web
 npm run lint --prefix frontend/devrecall-web
-npm run test:unit --prefix frontend/devrecall-web -- --run
+npm run test:unit --prefix frontend/devrecall-web
+npm run test:e2e --prefix frontend/devrecall-web
 npm run build --prefix frontend/devrecall-web
 ```
 
@@ -279,7 +293,11 @@ Integration tests use Testcontainers to start a clean PostgreSQL instance, apply
 
 ## Current scope
 
-DevRecall is under active development. The backend foundation and core learning loop are implemented through personalized study-plan generation and conversion into planned study sessions.
+DevRecall now exposes the core learning loop through a responsive Nuxt application: Today, Knowledge, Review, Interview, DSA, Study Plans, Study Sessions, Analytics, Weak Topics, Recommendations, and global search.
+
+Authenticated browser mutations use cookie authentication plus an `X-CSRF-TOKEN`
+antiforgery header. The Nuxt API client obtains and refreshes this token automatically,
+while business mutations are never retried automatically.
 
 The MVP deliberately excludes:
 

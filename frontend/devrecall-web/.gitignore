@@ -8,6 +8,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.nuxt
+.output
 .DS_Store
 dist
 dist-ssr
@@ -34,6 +36,8 @@ coverage
 
 # Vitest
 __screenshots__/
+test-results/
+playwright-report/
 
 # Vite
 *.timestamp-*-*.mjs
