@@ -27,6 +27,7 @@ useHead({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] })
           @open-command-palette="openCommandPalette()"
           @open-quick-capture="openCommandPalette('create')"
         />
+        <FeedbackNetworkStatusBanner />
         <main class="min-h-[calc(100dvh-var(--devrecall-topbar-height))] px-4 py-6 sm:px-6 lg:px-8">
           <div class="mx-auto w-full max-w-[var(--devrecall-content-width)]"><slot /></div>
         </main>

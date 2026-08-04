@@ -14,6 +14,6 @@ defineEmits<{ retry: [] }>()
         <UButton size="sm" color="error" variant="soft" @click="$emit('retry')">Try again</UButton>
       </template>
     </UAlert>
-    <p v-if="traceId" class="mt-2 text-xs text-muted">Reference: {{ traceId }}</p>
+    <p v-if="traceId" class="mt-2 break-all text-xs text-muted">Reference: {{ traceId }}</p>
   </div>
 </template>
