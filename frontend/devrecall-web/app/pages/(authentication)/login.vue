@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'auth' })
+definePageMeta({ layout: 'auth', middleware: 'guest' })
 useSeoMeta({ title: 'Sign in', robots: 'noindex' })
 const auth = useAuthStore(); const route = useRoute(); const email = ref(''); const password = ref(''); const pending = ref(false); const error = ref<unknown>()
 async function submit() { pending.value = true; error.value = undefined; try { await auth.login({ email: email.value, password: password.value }); await navigateTo(typeof route.query.redirect === 'string' ? route.query.redirect : '/app/today') } catch (caught) { error.value = caught } finally { pending.value = false } }

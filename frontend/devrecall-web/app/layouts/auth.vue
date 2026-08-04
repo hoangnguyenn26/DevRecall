@@ -1,11 +1,18 @@
 <template>
-  <main class="auth-layout">
-    <NuxtLink to="/" class="brand"><UIcon name="i-lucide-brain-circuit" /> DevRecall</NuxtLink>
-    <section><slot /></section>
-  </main>
+  <div class="grid min-h-dvh lg:grid-cols-2">
+    <section class="hidden border-r border-default bg-muted lg:block">
+      <div class="flex h-full items-center justify-center p-12">
+        <div class="max-w-md">
+          <NuxtLink to="/" class="brand"><UIcon name="i-lucide-brain-circuit" /> DevRecall</NuxtLink>
+          <p class="mt-12 text-sm font-medium text-primary">Developer Learning OS</p>
+          <h1 class="mt-3 text-4xl font-semibold tracking-tight">Turn learning into a repeatable system.</h1>
+        </div>
+      </div>
+    </section>
+    <main class="flex items-center justify-center p-6"><div class="w-full max-w-md"><slot /></div></main>
+  </div>
 </template>
 
 <style scoped>
-.auth-layout { min-height: 100vh; display: grid; place-items: center; align-content: center; gap: 2rem; padding: 1.5rem; background: radial-gradient(circle at top, color-mix(in srgb, var(--ui-primary) 10%, transparent), transparent 35%); }
-.brand { display: flex; align-items: center; gap: .5rem; font-size: 1.15rem; font-weight: 700; } section { width: min(100%, 28rem); }
+.brand { display: flex; align-items: center; gap: .5rem; font-size: 1.15rem; font-weight: 700; }
 </style>

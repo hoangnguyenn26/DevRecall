@@ -1,12 +1,6 @@
-export interface ProblemDetails {
-  type?: string
-  title: string
-  status: number
-  detail?: string
-  code?: string
-  traceId?: string
-  errors?: Record<string, string[]>
-}
+import type { ApiProblemDetails } from './problem-details'
+
+export type ProblemDetails = ApiProblemDetails
 
 export interface PagedResponse<T> {
   items: T[]
@@ -21,7 +15,7 @@ export type Query = Record<string, QueryValue | QueryValue[]>
 
 export class ApiError extends Error {
   constructor(public readonly problem: ProblemDetails) {
-    super(problem.detail ?? problem.title)
+    super(problem.detail ?? problem.title ?? 'Request failed')
     this.name = 'ApiError'
   }
 }

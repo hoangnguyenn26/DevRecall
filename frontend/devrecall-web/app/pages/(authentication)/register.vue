@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'auth' }); useSeoMeta({ title: 'Create account', robots: 'noindex' })
+definePageMeta({ layout: 'auth', middleware: 'guest' }); useSeoMeta({ title: 'Create account', robots: 'noindex' })
 const auth = useAuthStore(); const email = ref(''); const displayName = ref(''); const password = ref(''); const pending = ref(false); const error = ref<unknown>()
 async function submit() { pending.value = true; error.value = undefined; try { await auth.register({ email: email.value, displayName: displayName.value, password: password.value }); await navigateTo('/app/today') } catch (caught) { error.value = caught } finally { pending.value = false } }
 </script>

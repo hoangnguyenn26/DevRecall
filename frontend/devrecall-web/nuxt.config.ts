@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
+  compatibilityDate: '2026-08-01',
   modules: ['@nuxt/ui', '@pinia/nuxt', '@nuxt/eslint'],
   ui: { fonts: false },
   icon: { serverBundle: { collections: ['lucide'] } },
