@@ -24,11 +24,13 @@ The default API target is `https://localhost:7081/api/v1`; the web application l
 ## Quality gates
 
 ```powershell
-npm run type-check
+npm run typecheck
 npm run lint
-npm run test:unit
+npm run test
 npm run build
 ```
+
+The internal `/app/design-system` route is the visual-review playground for shared tokens and primitives. It is authenticated, excluded from navigation, and marked `noindex`.
 
 Playwright smoke tests require the API for authenticated journeys:
 

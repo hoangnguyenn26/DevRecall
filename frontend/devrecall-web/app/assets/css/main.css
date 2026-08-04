@@ -2,10 +2,20 @@
 @import "@nuxt/ui";
 
 :root {
-  --ui-primary: var(--ui-color-indigo-600);
   --ui-radius: 0.75rem;
-  --devrecall-content-width: 90rem;
-  --devrecall-reading-width: 46rem;
+  --devrecall-content-reading: 46rem;
+  --devrecall-content-standard: 72rem;
+  --devrecall-content-wide: 90rem;
+  --devrecall-content-width: var(--devrecall-content-wide);
+  --devrecall-reading-width: var(--devrecall-content-reading);
+  --devrecall-sidebar-width: 16rem;
+  --devrecall-context-width: 20rem;
+  --devrecall-radius-sm: 0.5rem;
+  --devrecall-radius-md: 0.75rem;
+  --devrecall-radius-lg: 1rem;
+  --devrecall-motion-fast: 120ms;
+  --devrecall-motion-standard: 180ms;
+  --devrecall-motion-slow: 240ms;
 }
 
 html { scroll-behavior: smooth; }
@@ -14,16 +24,18 @@ body {
   background: var(--ui-bg);
   color: var(--ui-text);
   font-family: Inter, Geist, ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
 }
+::selection { background: color-mix(in srgb, var(--ui-primary) 24%, transparent); }
 code, pre, textarea[data-code] {
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
 }
-:focus-visible { outline: 2px solid var(--ui-primary); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--ui-primary); outline-offset: 2px; scroll-margin-block: 6rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
   }
 }
