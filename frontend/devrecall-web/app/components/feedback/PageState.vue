@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import type { DeepReadonly } from 'vue'
 import type { NormalizedApiError } from '~/utils/normalize-api-error'
 
 withDefaults(defineProps<{
   pending: boolean
   refreshing?: boolean
-  error?: NormalizedApiError | null
+  error?: DeepReadonly<NormalizedApiError> | null
   empty?: boolean
   emptyTitle?: string
   emptyDescription?: string
