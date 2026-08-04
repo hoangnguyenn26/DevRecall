@@ -1,9 +1,9 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (import.meta.server) return
   const auth = useAuth()
-  await auth.restoreSession()
-
-  if (!auth.isAuthenticated.value) {
-    return navigateTo({ path: '/login', query: { redirect: to.fullPath } })
+  try {
+    await auth.restoreSession()
+  } catch {
+    throw createError({ statusCode: 503, statusMessage: 'Unable to verify your session.' })
   }
+  if (!auth.isAuthenticated.value) return navigateTo({ path: '/login', query: { redirect: to.fullPath } })
 })

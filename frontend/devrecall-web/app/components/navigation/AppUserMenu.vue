@@ -2,21 +2,36 @@
 import type { CurrentUser } from '~/types/auth'
 
 defineProps<{ user: CurrentUser | null }>()
-const auth = useAuthStore()
+const auth = useAuth()
+const toast = useToast()
 const signingOut = ref(false)
 
 async function signOut(): Promise<void> {
+  if (signingOut.value) return
   signingOut.value = true
   try {
     await auth.logout()
     await navigateTo('/login')
+  } catch (error) {
+    const normalized = normalizeApiError(error)
+    if (normalized.status === 401) {
+      auth.clearSession()
+      await navigateTo('/login')
+      return
+    }
+    toast.add({
+      title: 'Unable to log out',
+      description: normalized.detail ?? 'Try again in a moment.',
+      color: 'error',
+      duration: 7000,
+    })
   } finally {
     signingOut.value = false
   }
 }
 
 const items = computed(() => [
-  [{ label: auth.user?.displayName ?? auth.user?.email ?? 'Account', type: 'label' as const }],
+  [{ label: auth.user.value?.displayName ?? auth.user.value?.email ?? 'Account', type: 'label' as const }],
   [
     { label: 'Settings', icon: 'i-lucide-settings', to: '/app/settings' },
     { label: 'Log out', icon: 'i-lucide-log-out', disabled: signingOut.value, onSelect: signOut },

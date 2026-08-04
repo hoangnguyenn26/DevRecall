@@ -28,7 +28,7 @@ export function normalizeApiError(error: unknown): NormalizedApiError {
 
   return {
     status: data.status ?? 500,
-    code: data.code ?? 'UNEXPECTED_ERROR',
+    code: data.code ?? data.errorCode ?? 'UNEXPECTED_ERROR',
     title: data.title ?? 'Something went wrong.',
     detail: data.detail,
     fieldErrors: data.errors ?? {},

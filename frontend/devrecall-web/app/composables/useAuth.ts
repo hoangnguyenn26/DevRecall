@@ -3,9 +3,12 @@ export function useAuth() {
 
   return {
     user: computed(() => store.user),
-    status: computed(() => !store.initialized ? 'unknown' : store.isAuthenticated ? 'authenticated' : 'anonymous'),
+    status: computed(() => store.status),
     isAuthenticated: computed(() => store.isAuthenticated),
     restoreSession: store.restore,
-    clearSession: () => store.$patch({ user: null, initialized: true }),
+    login: store.login,
+    register: store.register,
+    logout: store.logout,
+    clearSession: store.clearSession,
   }
 }

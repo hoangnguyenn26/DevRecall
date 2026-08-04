@@ -1,38 +1,64 @@
-import type { CurrentUser, LoginRequest, RegisterRequest } from '~/types/auth'
-import { ApiError } from '~/types/api'
+import type { AuthStatus, CurrentUser, LoginRequest, RegisterRequest } from '~/types/auth'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { normalizeApiError } from '~/utils/normalize-api-error'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<CurrentUser | null>(null)
-  const initialized = ref(false)
+  const status = ref<AuthStatus>('unknown')
   const api = useApi()
+  let restorePromise: Promise<void> | null = null
 
-  async function restore() {
-    if (initialized.value) return
+  const initialized = computed(() => status.value !== 'unknown')
+  const isAuthenticated = computed(() => status.value === 'authenticated')
+
+  async function performRestore(): Promise<void> {
     try {
       user.value = await api.get<CurrentUser>('/auth/me')
+      status.value = 'authenticated'
     } catch (error) {
-      if (!(error instanceof ApiError) || error.problem.status !== 401) throw error
-      user.value = null
-    } finally {
-      initialized.value = true
+      const normalized = normalizeApiError(error)
+      if (normalized.status === 401) {
+        user.value = null
+        status.value = 'anonymous'
+        return
+      }
+      status.value = 'unknown'
+      throw error
     }
   }
 
-  async function login(request: LoginRequest) {
-    user.value = await api.post<CurrentUser>('/auth/login', request)
-    initialized.value = true
+  async function restore(force = false): Promise<void> {
+    if (!force && status.value !== 'unknown') return
+    if (restorePromise) return await restorePromise
+    restorePromise = performRestore()
+    try {
+      await restorePromise
+    } finally {
+      restorePromise = null
+    }
   }
 
-  async function register(request: RegisterRequest) {
-    user.value = await api.post<CurrentUser>('/auth/register', request)
-    initialized.value = true
+  async function login(request: LoginRequest): Promise<CurrentUser> {
+    const currentUser = await api.post<CurrentUser>('/auth/login', request)
+    user.value = currentUser
+    status.value = 'authenticated'
+    return currentUser
   }
 
-  async function logout() {
+  async function register(request: RegisterRequest): Promise<CurrentUser> {
+    return await api.post<CurrentUser>('/auth/register', request)
+  }
+
+  async function logout(): Promise<void> {
     await api.post<undefined>('/auth/logout')
-    user.value = null
-    initialized.value = true
+    clearSession()
   }
 
-  return { user, initialized, isAuthenticated: computed(() => user.value !== null), restore, login, register, logout }
+  function clearSession(): void {
+    user.value = null
+    status.value = 'anonymous'
+  }
+
+  return { user, status, initialized, isAuthenticated, restore, login, register, logout, clearSession }
 })

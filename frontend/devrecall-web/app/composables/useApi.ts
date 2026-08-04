@@ -22,6 +22,9 @@ function appendQuery(url: URL, query?: Query) {
 
 export function useApi() {
   const config = useRuntimeConfig()
+  const redirectingToLogin = import.meta.client
+    ? useState('auth:redirecting-to-login', () => false)
+    : { value: false }
 
   async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
     const base = config.public.apiBaseUrl.replace(/\/$/, '')
@@ -30,10 +33,11 @@ export function useApi() {
       import.meta.client ? window.location.origin : 'http://localhost')
     appendQuery(url, options.query)
     const method = options.method ?? 'GET'
+    const forwardedHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && !csrfToken) {
       const csrfResponse = await fetch(`${base}/auth/csrf-token`, {
         credentials: 'include',
-        headers: { Accept: 'application/json' },
+        headers: { Accept: 'application/json', ...forwardedHeaders },
       })
       if (!csrfResponse.ok) throw new Error('Unable to establish request security.')
       const tokens = await csrfResponse.json() as { requestToken: string; headerName: string }
@@ -44,6 +48,7 @@ export function useApi() {
       Accept: 'application/json',
       'Content-Type': 'application/json',
       'X-Correlation-ID': crypto.randomUUID(),
+      ...forwardedHeaders,
     }
     if (csrfToken && !['GET', 'HEAD', 'OPTIONS'].includes(method)) headers[csrfHeaderName] = csrfToken
     const response = await fetch(url, {
@@ -59,7 +64,17 @@ export function useApi() {
         title: 'Request failed',
         status: response.status,
       })) as ProblemDetails
-      if (problem.code === 'ANTIFORGERY_TOKEN_INVALID') csrfToken = undefined
+      if ((problem.code ?? problem.errorCode) === 'ANTIFORGERY_TOKEN_INVALID') csrfToken = undefined
+      if (response.status === 401 && !path.startsWith('/auth/') && import.meta.client && !redirectingToLogin.value) {
+        redirectingToLogin.value = true
+        try {
+          const currentRoute = useNuxtApp().$router.currentRoute.value
+          useAuthStore().clearSession()
+          await navigateTo({ path: '/login', query: { redirect: currentRoute.fullPath } })
+        } finally {
+          redirectingToLogin.value = false
+        }
+      }
       throw new ApiError({ ...problem, status: response.status })
     }
     if (response.status === 204) return undefined as T
