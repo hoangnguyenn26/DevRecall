@@ -16,5 +16,5 @@ export function resourceRoute(type: string, id: string) {
   if (normalized.includes('interview')) return `/app/interview/${id}`
   if (normalized.includes('dsa')) return `/app/dsa/${id}`
   if (normalized.includes('review')) return '/app/review'
-  return '/app/today'
+  return '/app'
 }

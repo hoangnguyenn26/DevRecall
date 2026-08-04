@@ -4,7 +4,7 @@ import type { DueReviewItem, ProgressOverview, Recommendation, StudyPlanListItem
 import { formatMinutes, resourceRoute } from '~/utils/format'
 import { resolveNextAction } from '~/utils/nextAction'
 
-definePageMeta({ layout: 'app' }); useSeoMeta({ title: 'Today' })
+definePageMeta({ layout: 'app', alias: ['/app'] }); useSeoMeta({ title: 'Today' })
 const api = useApi(); const loading = ref(true); const error = ref<unknown>()
 const sessions = ref<StudySessionListItem[]>([]); const plans = ref<StudyPlanListItem[]>([]); const reviews = ref<DueReviewItem[]>([]); const recommendations = ref<Recommendation[]>([]); const weakTopics = ref<WeakTopic[]>([]); const overview = ref<ProgressOverview>()
 const now = new Date(); const from = new Date(now); from.setUTCDate(now.getUTCDate() - 6); from.setUTCHours(0, 0, 0, 0)

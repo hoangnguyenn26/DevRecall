@@ -9,6 +9,9 @@
   --devrecall-content-width: var(--devrecall-content-wide);
   --devrecall-reading-width: var(--devrecall-content-reading);
   --devrecall-sidebar-width: 16rem;
+  --devrecall-sidebar-expanded: 16rem;
+  --devrecall-sidebar-collapsed: 4.5rem;
+  --devrecall-topbar-height: 3.5rem;
   --devrecall-context-width: 20rem;
   --devrecall-radius-sm: 0.5rem;
   --devrecall-radius-md: 0.75rem;
