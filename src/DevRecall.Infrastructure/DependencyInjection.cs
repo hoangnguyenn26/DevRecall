@@ -30,6 +30,7 @@ using DevRecall.Application.StudyPlans.Generation;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
 using DevRecall.Application.StudyPlans.Resources;
+using DevRecall.Application.Today;
 using DevRecall.Application.WeakTopics;
 using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
@@ -53,6 +54,7 @@ using DevRecall.Infrastructure.Search;
 using DevRecall.Infrastructure.Study;
 using DevRecall.Infrastructure.StudyPlans;
 using DevRecall.Infrastructure.Time;
+using DevRecall.Infrastructure.Today;
 using DevRecall.Infrastructure.WeakTopics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -163,6 +165,7 @@ public static class DependencyInjection
         services.AddScoped<
             IStudyResourceSummaryReader,
             StudyResourceSummaryReader>();
+        services.AddScoped<ITodayDashboardReader, TodayDashboardReader>();
 
         return services;
     }

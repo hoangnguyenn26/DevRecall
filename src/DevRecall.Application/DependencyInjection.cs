@@ -72,6 +72,7 @@ using DevRecall.Application.StudyPlans.Generate;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
 using DevRecall.Application.StudyPlans.Mutations;
+using DevRecall.Application.Today;
 using DevRecall.Application.WeakTopics.GetDetail;
 using DevRecall.Application.WeakTopics.GetList;
 using DevRecall.Application.WeakTopics.Recalculate;
@@ -173,6 +174,8 @@ public static class DependencyInjection
         services.AddScoped<GetWeakTopicsHandler>();
         services.AddScoped<GetWeakTopicDetailHandler>();
         services.AddScoped<RecalculateAllWeakTopicsHandler>();
+        services.AddScoped<GetTodayDashboardHandler>();
+        services.AddSingleton<ITodayNextActionPolicy, TodayNextActionPolicy>();
 
         return services;
     }

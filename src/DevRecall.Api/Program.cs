@@ -12,6 +12,7 @@ using DevRecall.Api.Endpoints.Study;
 using DevRecall.Api.Endpoints.StudyPlans;
 using DevRecall.Api.Endpoints.System;
 using DevRecall.Api.Endpoints.Tags;
+using DevRecall.Api.Endpoints.Today;
 using DevRecall.Api.Endpoints.WeakTopics;
 using DevRecall.Api.ExceptionHandling;
 using DevRecall.Api.Middleware;
@@ -161,6 +162,7 @@ app.MapSystemEndpoints();
 app.MapStudySessionEndpoints();
 app.MapStudyPlanEndpoints();
 app.MapTagEndpoints();
+app.MapTodayEndpoints();
 app.MapWeakTopicEndpoints();
 
 app.Run();
