@@ -58,8 +58,9 @@ public sealed class AssignTagToKnowledgeNodeHandler(
             return;
         }
 
-        relationRepository.Add(KnowledgeNodeTag.Create(
-            node.Id, tag.Id, DateTimeOffset.UtcNow));
+        var currentUtc = DateTimeOffset.UtcNow;
+        relationRepository.Add(KnowledgeNodeTag.Create(node.Id, tag.Id, currentUtc));
+        node.MarkTagsChanged(currentUtc);
         await relationRepository.SaveChangesAsync(cancellationToken);
     }
 }

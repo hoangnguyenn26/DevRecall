@@ -28,6 +28,10 @@ public static class KnowledgeErrors
         "KNOWLEDGE_CONCURRENT_UPDATE",
         "The knowledge node was modified by another operation.");
 
+    public static readonly DomainError Conflict = new(
+        "KNOWLEDGE_CONFLICT",
+        "The knowledge item changed since it was loaded.");
+
     public static readonly DomainError InvalidOrder = new(
         "KNOWLEDGE_INVALID_ORDER",
         "The target knowledge node position is invalid.");

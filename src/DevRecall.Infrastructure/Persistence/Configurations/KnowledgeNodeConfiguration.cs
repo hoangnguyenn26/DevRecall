@@ -49,6 +49,10 @@ internal sealed class KnowledgeNodeConfiguration
         builder.Property(node => node.UpdatedAtUtc)
             .IsRequired();
 
+        builder.Property(node => node.Version)
+            .IsConcurrencyToken()
+            .IsRequired();
+
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(node => node.UserId)

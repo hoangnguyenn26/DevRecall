@@ -54,6 +54,7 @@ public sealed class RemoveTagFromKnowledgeNodeHandler(
         }
 
         relationRepository.Remove(relation);
+        node.MarkTagsChanged(DateTimeOffset.UtcNow);
         await relationRepository.SaveChangesAsync(cancellationToken);
     }
 }
