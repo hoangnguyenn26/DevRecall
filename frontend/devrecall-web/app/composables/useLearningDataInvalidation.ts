@@ -13,7 +13,10 @@ export function useLearningDataInvalidation() {
     const moduleKey = type === 'KnowledgeNode'
       ? queryKeys.knowledgeList
       : type === 'InterviewQuestion' ? queryKeys.interviewList : queryKeys.dsaList
-    await Promise.all([refreshNuxtData(moduleKey), refreshNuxtData(queryKeys.today)])
+    const keys = type === 'KnowledgeNode'
+      ? [moduleKey, queryKeys.knowledgeTopics, queryKeys.today]
+      : [moduleKey, queryKeys.today]
+    await Promise.all(keys.map(key => refreshNuxtData(key)))
   }
 
   return { refreshToday, refreshTodayAndNavigation, refreshLearningEntryPoints, afterCapture }

@@ -22,7 +22,7 @@ describe('learning data invalidation', () => {
     await useLearningDataInvalidation().afterCapture('KnowledgeNode')
 
     expect(refresh.mock.calls.map(([key]) => key)).toEqual([
-      queryKeys.knowledgeList, queryKeys.today,
+      queryKeys.knowledgeList, queryKeys.knowledgeTopics, queryKeys.today,
     ])
   })
 
