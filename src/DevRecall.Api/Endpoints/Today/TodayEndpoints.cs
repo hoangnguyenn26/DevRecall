@@ -44,6 +44,11 @@ public static class TodayEndpoints
                     result.NextAction.Context.PlannedDurationMinutes,
                     result.NextAction.Context.RemainingCount,
                     result.NextAction.Context.Priority)),
+            result.RecentActivity is null ? null : new(
+                result.RecentActivity.Type.ToString(), result.RecentActivity.ResourceId,
+                result.RecentActivity.Title, result.RecentActivity.Description,
+                result.RecentActivity.OccurredAtUtc, result.RecentActivity.TargetPath,
+                result.RecentActivity.Icon),
             new(
                 result.Metrics.ReviewsDue,
                 result.Metrics.StudyMinutesThisWeek,

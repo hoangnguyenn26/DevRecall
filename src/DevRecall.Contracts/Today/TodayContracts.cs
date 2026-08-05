@@ -4,6 +4,7 @@ public sealed record GetTodayDashboardResponse(
     DateTimeOffset GeneratedAtUtc,
     TodayUserSummaryResponse User,
     TodayNextActionResponse NextAction,
+    TodayRecentActivityResponse? RecentActivity,
     TodayMetricsResponse Metrics,
     TodayStudyPlanResponse? StudyPlan,
     IReadOnlyList<TodayRecommendationResponse> Recommendations,
@@ -17,6 +18,9 @@ public sealed record TodayNextActionResponse(
 public sealed record TodayNextActionContextResponse(
     Guid? ResourceId, string? ResourceType, string? ResourceTitle,
     int? PlannedDurationMinutes, int? RemainingCount, string? Priority);
+public sealed record TodayRecentActivityResponse(
+    string Type, Guid ResourceId, string Title, string Description,
+    DateTimeOffset OccurredAtUtc, string TargetPath, string Icon);
 public sealed record TodayMetricsResponse(
     int ReviewsDue, int StudyMinutesThisWeek, int ActiveDaysThisWeek,
     int WeeklyTargetDays, decimal WeeklyProgressPercent);

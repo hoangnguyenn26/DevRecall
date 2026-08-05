@@ -14,6 +14,7 @@ using DevRecall.Application.Interview.Answers;
 using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
+using DevRecall.Application.Navigation;
 using DevRecall.Application.Recommendations;
 using DevRecall.Application.Recommendations.Generation;
 using DevRecall.Application.Recommendations.GetDetail;
@@ -169,6 +170,8 @@ public static class DependencyInjection
             IStudyResourceSummaryReader,
             StudyResourceSummaryReader>();
         services.AddScoped<ITodayDashboardReader, TodayDashboardReader>();
+        services.AddScoped<ITodayRecentActivityReader, TodayRecentActivityReader>();
+        services.AddScoped<INavigationIndicatorsReader, NavigationIndicatorsReader>();
 
         return services;
     }

@@ -44,6 +44,7 @@ using DevRecall.Application.Knowledge.Tags.Rename;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
+using DevRecall.Application.Navigation;
 using DevRecall.Application.Recommendations.Generation;
 using DevRecall.Application.Recommendations.GetDetail;
 using DevRecall.Application.Recommendations.GetList;
@@ -177,6 +178,7 @@ public static class DependencyInjection
         services.AddScoped<GetWeakTopicDetailHandler>();
         services.AddScoped<RecalculateAllWeakTopicsHandler>();
         services.AddScoped<GetTodayDashboardHandler>();
+        services.AddScoped<GetNavigationIndicatorsHandler>();
         services.AddSingleton<ITodayNextActionPolicy, TodayNextActionPolicy>();
 
         return services;

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
+using DevRecall.Contracts.Navigation;
 using DevRecall.Contracts.Today;
 using DevRecall.Domain.Study;
 using DevRecall.Infrastructure.Persistence;
@@ -22,6 +23,25 @@ public sealed class TodayEndpointsTests(AuthApiFactory factory)
         using var response = await client.GetAsync("/api/v1/today");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task NavigationIndicators_ShouldRequireAuthentication()
+    {
+        using var client = CreateClient();
+        using var response = await client.GetAsync("/api/v1/navigation-indicators");
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task NavigationIndicators_ShouldReturnCurrentUserSummary()
+    {
+        var auth = await CreateAuthenticatedClientAsync("indicators");
+        using var client = auth.Client;
+        using var response = await client.GetAsync("/api/v1/navigation-indicators");
+        var indicators = await response.Content.ReadFromJsonAsync<NavigationIndicatorsResponse>();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        indicators.Should().BeEquivalentTo(new NavigationIndicatorsResponse(0, false, 0, true));
     }
 
     [Fact]
@@ -75,6 +95,9 @@ public sealed class TodayEndpointsTests(AuthApiFactory factory)
         dashboard!.NextAction.Type.Should().Be("ContinueStudySession");
         dashboard.NextAction.TargetPath.Should().Be(
             $"/app/study-sessions/{sessionId}");
+        dashboard.RecentActivity.Should().NotBeNull();
+        dashboard.RecentActivity!.Type.Should().Be("StudySession");
+        dashboard.RecentActivity.ResourceId.Should().Be(sessionId);
     }
 
     private async Task<Guid> SeedActiveSessionAsync(Guid userId, string title)

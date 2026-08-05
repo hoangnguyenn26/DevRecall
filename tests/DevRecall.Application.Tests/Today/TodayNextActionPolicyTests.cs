@@ -124,14 +124,17 @@ public sealed class TodayNextActionPolicyTests
             2026, 8, 4, 12, 0, 0, TimeSpan.Zero);
         var clock = new CountingClock(now);
         var reader = new ReaderStub();
+        var recentReader = new RecentReaderStub();
         var handler = new GetTodayDashboardHandler(
-            reader, _policy, new CurrentUserStub(Guid.NewGuid()), clock);
+            reader, _policy, recentReader,
+            new CurrentUserStub(Guid.NewGuid()), clock);
 
         var result = await handler.HandleAsync(
             new GetTodayDashboardQuery(), CancellationToken.None);
 
         clock.ReadCount.Should().Be(1);
         reader.CurrentUtc.Should().Be(now);
+        recentReader.CurrentUtc.Should().Be(now);
         result.GeneratedAtUtc.Should().Be(now);
     }
 
@@ -183,6 +186,18 @@ public sealed class TodayNextActionPolicyTests
                         DateOnly.FromDateTime(currentUtc.UtcDateTime)
                             .AddDays(index), 0, 0)).ToArray(),
                 null, 0));
+        }
+    }
+
+    private sealed class RecentReaderStub : ITodayRecentActivityReader
+    {
+        public DateTimeOffset CurrentUtc { get; private set; }
+
+        public Task<TodayRecentActivityReadModel?> ReadLatestAsync(
+            Guid userId, DateTimeOffset currentUtc, CancellationToken cancellationToken)
+        {
+            CurrentUtc = currentUtc;
+            return Task.FromResult<TodayRecentActivityReadModel?>(null);
         }
     }
 }

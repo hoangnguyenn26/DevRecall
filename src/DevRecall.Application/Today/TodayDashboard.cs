@@ -36,6 +36,10 @@ public sealed record TodayWeakTopicReadModel(
     string ResourceTitle, string Summary, bool IsResourceAvailable);
 public sealed record TodayActivityPointReadModel(
     DateOnly Date, int StudyMinutes, int ActivityCount);
+public enum TodayRecentActivityType { Knowledge = 1, InterviewPractice = 2, DsaAttempt = 3, StudyPlan = 4, StudySession = 5 }
+public sealed record TodayRecentActivityReadModel(
+    TodayRecentActivityType Type, Guid ResourceId, string Title, string Description,
+    DateTimeOffset OccurredAtUtc, string TargetPath, string Icon);
 public sealed record ActiveStudySessionCandidate(
     Guid Id, string Title, int RemainingItemCount, int? RemainingMinutes);
 public sealed record TodayDashboardReadModel(
@@ -54,11 +58,17 @@ public interface ITodayDashboardReader
         Guid userId, DateTimeOffset currentUtc,
         CancellationToken cancellationToken);
 }
+public interface ITodayRecentActivityReader
+{
+    Task<TodayRecentActivityReadModel?> ReadLatestAsync(
+        Guid userId, DateTimeOffset currentUtc, CancellationToken cancellationToken);
+}
 
 public sealed record TodayDashboardResult(
     DateTimeOffset GeneratedAtUtc, Guid UserId, string DisplayName,
     bool HasCompletedOnboarding,
-    TodayNextAction NextAction, TodayDashboardMetricsReadModel Metrics,
+    TodayNextAction NextAction, TodayRecentActivityReadModel? RecentActivity,
+    TodayDashboardMetricsReadModel Metrics,
     TodayStudyPlanReadModel? StudyPlan,
     IReadOnlyList<TodayRecommendationReadModel> Recommendations,
     IReadOnlyList<TodayWeakTopicReadModel> WeakTopics,
@@ -66,6 +76,7 @@ public sealed record TodayDashboardResult(
 
 public sealed class GetTodayDashboardHandler(
     ITodayDashboardReader reader, ITodayNextActionPolicy nextActionPolicy,
+    ITodayRecentActivityReader recentActivityReader,
     ICurrentUser currentUser, IUtcClock utcClock)
 {
     public async Task<TodayDashboardResult> HandleAsync(
@@ -77,6 +88,8 @@ public sealed class GetTodayDashboardHandler(
         var currentUtc = utcClock.UtcNow;
         var dashboard = await reader.ReadAsync(
             userId, currentUtc, cancellationToken);
+        var recentActivity = await recentActivityReader.ReadLatestAsync(
+            userId, currentUtc, cancellationToken);
         var action = nextActionPolicy.SelectAction(new TodayActionContext(
             dashboard.ActiveSession, dashboard.StudyPlan,
             dashboard.Metrics.ReviewsDue,
@@ -85,7 +98,7 @@ public sealed class GetTodayDashboardHandler(
             dashboard.ActiveRecommendationCount));
         return new TodayDashboardResult(
             currentUtc, userId, dashboard.DisplayName,
-            dashboard.HasCompletedOnboarding, action,
+            dashboard.HasCompletedOnboarding, action, recentActivity,
             dashboard.Metrics, dashboard.StudyPlan, dashboard.Recommendations,
             dashboard.WeakTopics, dashboard.WeeklyActivity);
     }

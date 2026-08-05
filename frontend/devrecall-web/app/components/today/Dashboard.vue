@@ -9,6 +9,7 @@ defineProps<{ dashboard: TodayDashboard }>()
     <TodayWelcomeHeader :display-name="dashboard.user.displayName" />
     <TodayOnboardingCallout v-if="!dashboard.user.hasCompletedOnboarding" />
     <TodayNextActionCard :action="dashboard.nextAction" />
+    <TodayContinueLearning v-if="dashboard.recentActivity" :activity="dashboard.recentActivity" :generated-at-utc="dashboard.generatedAtUtc" />
     <TodayMetricsGrid :metrics="dashboard.metrics" />
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,.75fr)]">
       <TodayStudyPlanSection

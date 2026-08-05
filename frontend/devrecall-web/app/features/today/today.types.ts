@@ -11,11 +11,21 @@ export interface TodayDashboard {
   generatedAtUtc: string
   user: TodayUserSummary
   nextAction: TodayNextAction
+  recentActivity: TodayRecentActivity | null
   metrics: TodayMetrics
   studyPlan: TodayStudyPlan | null
   recommendations: TodayRecommendation[]
   weakTopics: TodayWeakTopic[]
   weeklyActivity: TodayActivityPoint[]
+}
+export interface TodayRecentActivity {
+  type: 'Knowledge' | 'InterviewPractice' | 'DsaAttempt' | 'StudyPlan' | 'StudySession'
+  resourceId: string
+  title: string
+  description: string
+  occurredAtUtc: string
+  targetPath: string
+  icon: string
 }
 export interface TodayUserSummary { userId: string; displayName: string; hasCompletedOnboarding: boolean }
 export interface TodayNextAction {
