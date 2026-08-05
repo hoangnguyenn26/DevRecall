@@ -146,7 +146,7 @@ public sealed class TodayNextActionPolicyTests
         new(
             Guid.NewGuid(), RecommendationResourceType.KnowledgeNode,
             Guid.NewGuid(), RecommendationType.ReviewKnowledge,
-            priority, 80, "Dependency injection");
+            priority, 80, "Dependency injection", "Review this topic.", true);
 
     private sealed class CountingClock(DateTimeOffset now) : IUtcClock
     {
@@ -177,7 +177,7 @@ public sealed class TodayNextActionPolicyTests
         {
             CurrentUtc = currentUtc;
             return Task.FromResult(new TodayDashboardReadModel(
-                "Learner", new(0, 0, 0, 5, 0), null, [], [],
+                "Learner", false, new(0, 0, 0, 5, 0), null, [], [],
                 Enumerable.Range(0, 7).Select(index =>
                     new TodayActivityPointReadModel(
                         DateOnly.FromDateTime(currentUtc.UtcDateTime)

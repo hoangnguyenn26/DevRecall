@@ -26,6 +26,12 @@ public sealed class DevRecallDbContext(
     public DbSet<User> Users =>
         Set<User>();
 
+    public DbSet<UserLearningPreference> UserLearningPreferences =>
+        Set<UserLearningPreference>();
+
+    public DbSet<UserLearningFocusArea> UserLearningFocusAreas =>
+        Set<UserLearningFocusArea>();
+
     public DbSet<DsaProblem> DsaProblems =>
         Set<DsaProblem>();
 

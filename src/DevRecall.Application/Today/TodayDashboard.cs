@@ -1,6 +1,7 @@
 using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Common.Time;
 using DevRecall.Application.Identity;
+using DevRecall.Domain.Identity;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.StudyPlans;
 using DevRecall.Domain.WeakTopics;
@@ -9,7 +10,7 @@ namespace DevRecall.Application.Today;
 
 public static class TodayDashboardDefaults
 {
-    public const int WeeklyTargetDays = 5;
+    public const int WeeklyTargetDays = LearningPreferenceDefaults.WeeklyTargetDays;
 }
 
 public sealed record GetTodayDashboardQuery;
@@ -27,17 +28,19 @@ public sealed record TodayStudyPlanReadModel(
 public sealed record TodayRecommendationReadModel(
     Guid RecommendationId, RecommendationResourceType ResourceType,
     Guid ResourceId, RecommendationType Type, RecommendationPriority Priority,
-    decimal PriorityScore, string ResourceTitle);
+    decimal PriorityScore, string ResourceTitle, string ReasonSummary,
+    bool IsResourceAvailable);
 public sealed record TodayWeakTopicReadModel(
     Guid WeakTopicProfileId, WeakTopicResourceType ResourceType,
     Guid ResourceId, WeaknessLevel Level, decimal Score,
-    string ResourceTitle, bool IsResourceAvailable);
+    string ResourceTitle, string Summary, bool IsResourceAvailable);
 public sealed record TodayActivityPointReadModel(
     DateOnly Date, int StudyMinutes, int ActivityCount);
 public sealed record ActiveStudySessionCandidate(
     Guid Id, string Title, int RemainingItemCount, int? RemainingMinutes);
 public sealed record TodayDashboardReadModel(
-    string DisplayName, TodayDashboardMetricsReadModel Metrics,
+    string DisplayName, bool HasCompletedOnboarding,
+    TodayDashboardMetricsReadModel Metrics,
     TodayStudyPlanReadModel? StudyPlan,
     IReadOnlyList<TodayRecommendationReadModel> Recommendations,
     IReadOnlyList<TodayWeakTopicReadModel> WeakTopics,
@@ -54,6 +57,7 @@ public interface ITodayDashboardReader
 
 public sealed record TodayDashboardResult(
     DateTimeOffset GeneratedAtUtc, Guid UserId, string DisplayName,
+    bool HasCompletedOnboarding,
     TodayNextAction NextAction, TodayDashboardMetricsReadModel Metrics,
     TodayStudyPlanReadModel? StudyPlan,
     IReadOnlyList<TodayRecommendationReadModel> Recommendations,
@@ -76,11 +80,12 @@ public sealed class GetTodayDashboardHandler(
         var action = nextActionPolicy.SelectAction(new TodayActionContext(
             dashboard.ActiveSession, dashboard.StudyPlan,
             dashboard.Metrics.ReviewsDue,
-            dashboard.Recommendations.Count == 0
-                ? null : dashboard.Recommendations[0],
+            dashboard.Recommendations.FirstOrDefault(item =>
+                item.IsResourceAvailable),
             dashboard.ActiveRecommendationCount));
         return new TodayDashboardResult(
-            currentUtc, userId, dashboard.DisplayName, action,
+            currentUtc, userId, dashboard.DisplayName,
+            dashboard.HasCompletedOnboarding, action,
             dashboard.Metrics, dashboard.StudyPlan, dashboard.Recommendations,
             dashboard.WeakTopics, dashboard.WeeklyActivity);
     }

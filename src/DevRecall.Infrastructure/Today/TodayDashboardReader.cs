@@ -21,16 +21,25 @@ internal sealed class TodayDashboardReader(
     IProgressOverviewReader progressOverviewReader,
     IDailyActivityReader dailyActivityReader) : ITodayDashboardReader
 {
-    private const int RecommendationCandidateLimit = 12;
+    private const int RecommendationPreviewLimit = 3;
 
     public async Task<TodayDashboardReadModel> ReadAsync(
         Guid userId, DateTimeOffset currentUtc,
         CancellationToken cancellationToken)
     {
-        var displayName = await dbContext.Users.AsNoTracking()
+        var user = await dbContext.Users.AsNoTracking()
             .Where(user => user.Id == userId)
-            .Select(user => user.DisplayName)
+            .Select(user => new
+            {
+                user.DisplayName,
+                WeeklyTargetDays = dbContext.UserLearningPreferences
+                    .Where(preference => preference.UserId == user.Id)
+                    .Select(preference => (int?)preference.WeeklyTargetDays)
+                    .SingleOrDefault()
+            })
             .SingleAsync(cancellationToken);
+        var weeklyTargetDays = user.WeeklyTargetDays
+            ?? TodayDashboardDefaults.WeeklyTargetDays;
         var week = GetCurrentWeek(currentUtc);
         var analyticsRange = new AnalyticsDateRange(week.StartUtc, week.EndUtc);
         var reviewsDue = await dbContext.ReviewItems.AsNoTracking()
@@ -71,21 +80,21 @@ internal sealed class TodayDashboardReader(
             .ToArray();
         var progressPercent = Math.Min(
             100m, progress.ActiveStudyDays
-                / (decimal)TodayDashboardDefaults.WeeklyTargetDays * 100m);
+                / weeklyTargetDays * 100m);
 
         return new TodayDashboardReadModel(
-            displayName,
+            user.DisplayName, user.WeeklyTargetDays.HasValue,
             new(reviewsDue, progress.StudyMinutes, progress.ActiveStudyDays,
-                TodayDashboardDefaults.WeeklyTargetDays,
+                weeklyTargetDays,
                 decimal.Round(progressPercent, 2)),
             MapPlan(plan, summaries),
-            recommendations
-                .Where(item => GetSummary(summaries, item.ResourceType, item.ResourceId).Available)
-                .Take(3)
+            recommendations.Take(3)
                 .Select(item => new TodayRecommendationReadModel(
                     item.Id, item.ResourceType, item.ResourceId, item.Type,
                     item.Priority, item.PriorityScore,
-                    GetSummary(summaries, item.ResourceType, item.ResourceId).Title))
+                    GetSummary(summaries, item.ResourceType, item.ResourceId).Title,
+                    RecommendationSummary(item),
+                    GetSummary(summaries, item.ResourceType, item.ResourceId).Available))
                 .ToArray(),
             weakTopics.Select(item =>
             {
@@ -93,7 +102,8 @@ internal sealed class TodayDashboardReader(
                     summaries, item.ResourceType, item.ResourceId);
                 return new TodayWeakTopicReadModel(
                     item.Id, item.ResourceType, item.ResourceId, item.Level,
-                    item.Score, summary.Title, summary.Available);
+                    item.Score, summary.Title, WeakTopicSummary(item),
+                    summary.Available);
             }).ToArray(),
             activity, activeSession, activeRecommendationCount);
     }
@@ -127,7 +137,8 @@ internal sealed class TodayDashboardReader(
                 plan.Id, plan.Title, plan.Status, plan.Items.Count,
                 plan.Items.Sum(item => item.PlannedDurationMinutes),
                 plan.Version,
-                plan.Items.OrderBy(item => item.Position).Take(5)
+                plan.Items.OrderBy(item => item.Position)
+                    .ThenBy(item => item.Id).Take(5)
                     .Select(item => new RawStudyPlanItem(
                         item.Id, item.ResourceType, item.ResourceId,
                         item.PlannedDurationMinutes, item.Position))
@@ -145,10 +156,11 @@ internal sealed class TodayDashboardReader(
             .ThenByDescending(item => item.PriorityScore)
             .ThenByDescending(item => item.GeneratedAtUtc)
             .ThenBy(item => item.Id)
-            .Take(RecommendationCandidateLimit)
+            .Take(RecommendationPreviewLimit)
             .Select(item => new RawRecommendation(
                 item.Id, item.ResourceType, item.ResourceId, item.Type,
-                item.Priority, item.PriorityScore))
+                item.Priority, item.PriorityScore, item.Reason.WeaknessLevel,
+                item.Reason.SignalCount))
             .ToListAsync(cancellationToken);
 
     private Task<List<RawWeakTopic>> ReadWeakTopicsAsync(
@@ -163,7 +175,7 @@ internal sealed class TodayDashboardReader(
             .Take(3)
             .Select(item => new RawWeakTopic(
                 item.Id, item.ResourceType, item.ResourceId,
-                item.Level, item.Score))
+                item.Level, item.Score, item.SignalCount))
             .ToListAsync(cancellationToken);
 
     private async Task<Dictionary<ResourceKey, ResourceSummary>>
@@ -252,6 +264,27 @@ internal sealed class TodayDashboardReader(
                 Convert.ToInt32(type, CultureInfo.InvariantCulture), resourceId),
             new ResourceSummary("Unavailable resource", false));
 
+    private static string RecommendationSummary(RawRecommendation item) =>
+        item.WeaknessLevel == WeaknessLevel.Critical
+            ? "Critical weak-topic signal needs focused practice."
+            : item.SignalCount > 1
+                ? $"Repeated learning difficulty across {item.SignalCount} signals."
+                : item.Type switch
+                {
+                    RecommendationType.RetryDsaProblem =>
+                        "A recent DSA result suggests another attempt.",
+                    RecommendationType.PracticeInterview =>
+                        "Interview evidence suggests revisiting this question.",
+                    _ => "Review evidence suggests revisiting this topic."
+                };
+
+    private static string WeakTopicSummary(RawWeakTopic item) =>
+        item.SignalCount > 1
+            ? $"Repeated difficulty detected across {item.SignalCount} learning signals."
+            : item.Level == WeaknessLevel.Critical
+                ? "Critical evidence indicates this topic needs attention."
+                : "Recent learning evidence indicates this topic needs practice.";
+
     private static Guid[] Ids(
         IEnumerable<ResourceKey> references, int kind) =>
         references.Where(item => item.Kind == kind)
@@ -289,10 +322,10 @@ internal sealed class TodayDashboardReader(
     private sealed record RawRecommendation(
         Guid Id, RecommendationResourceType ResourceType, Guid ResourceId,
         RecommendationType Type, RecommendationPriority Priority,
-        decimal PriorityScore);
+        decimal PriorityScore, WeaknessLevel WeaknessLevel, int SignalCount);
     private sealed record RawWeakTopic(
         Guid Id, WeakTopicResourceType ResourceType, Guid ResourceId,
-        WeaknessLevel Level, decimal Score);
+        WeaknessLevel Level, decimal Score, int SignalCount);
     private sealed record ResourceKey(int Kind, Guid Id);
     private sealed record ResourceSummary(string Title, bool Available);
     private sealed record ResourceRow(Guid Id, string Title, bool Available);

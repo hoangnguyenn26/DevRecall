@@ -31,7 +31,8 @@ public static class TodayEndpoints
     private static GetTodayDashboardResponse Map(TodayDashboardResult result) =>
         new(
             result.GeneratedAtUtc,
-            new(result.UserId, result.DisplayName),
+            new(result.UserId, result.DisplayName,
+                result.HasCompletedOnboarding),
             new(
                 result.NextAction.Type.ToString(), result.NextAction.Title,
                 result.NextAction.Description, result.NextAction.ActionLabel,
@@ -61,11 +62,13 @@ public static class TodayEndpoints
             result.Recommendations.Select(item => new TodayRecommendationResponse(
                 item.RecommendationId, item.ResourceType.ToString(),
                 item.ResourceId, item.Type.ToString(), item.Priority.ToString(),
-                item.PriorityScore, item.ResourceTitle)).ToArray(),
+                item.PriorityScore, item.ResourceTitle, item.ReasonSummary,
+                item.IsResourceAvailable)).ToArray(),
             result.WeakTopics.Select(item => new TodayWeakTopicResponse(
                 item.WeakTopicProfileId, item.ResourceType.ToString(),
                 item.ResourceId, item.Level.ToString(), item.Score,
-                item.ResourceTitle, item.IsResourceAvailable)).ToArray(),
+                item.ResourceTitle, item.Summary,
+                item.IsResourceAvailable)).ToArray(),
             result.WeeklyActivity.Select(item => new TodayActivityPointResponse(
                 item.Date, item.StudyMinutes, item.ActivityCount)).ToArray());
 }

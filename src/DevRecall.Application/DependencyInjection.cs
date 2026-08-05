@@ -16,6 +16,7 @@ using DevRecall.Application.Dsa.GetList;
 using DevRecall.Application.Dsa.Update;
 using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
+using DevRecall.Application.Identity.Onboarding;
 using DevRecall.Application.Identity.Register;
 using DevRecall.Application.Interview.Answers.CreateDraft;
 using DevRecall.Application.Interview.Answers.Publish;
@@ -104,6 +105,7 @@ public static class DependencyInjection
         services.AddScoped<UpdateDsaProblemHandler>();
         services.AddScoped<RegisterUserHandler>();
         services.AddScoped<LoginUserHandler>();
+        services.AddScoped<OnboardingHandler>();
         services.AddScoped<GetCurrentUserHandler>();
         services.AddScoped<CreateInterviewQuestionHandler>();
         services.AddScoped<CreateInterviewAnswerDraftHandler>();

@@ -8,6 +8,7 @@ using DevRecall.Application.Dsa;
 using DevRecall.Application.Dsa.Attempts;
 using DevRecall.Application.Dsa.GetDetail;
 using DevRecall.Application.Identity;
+using DevRecall.Application.Identity.Onboarding;
 using DevRecall.Application.Interview;
 using DevRecall.Application.Interview.Answers;
 using DevRecall.Application.Interview.FollowUps;
@@ -86,6 +87,8 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserLearningPreferenceRepository,
+            UserLearningPreferenceRepository>();
         services.AddScoped<IDailyActivityReader, DailyActivityReader>();
         services.AddScoped<IDsaPerformanceReader, DsaPerformanceReader>();
         services.AddScoped<IModuleBreakdownReader, ModuleBreakdownReader>();

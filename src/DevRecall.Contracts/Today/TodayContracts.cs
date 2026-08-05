@@ -9,7 +9,8 @@ public sealed record GetTodayDashboardResponse(
     IReadOnlyList<TodayRecommendationResponse> Recommendations,
     IReadOnlyList<TodayWeakTopicResponse> WeakTopics,
     IReadOnlyList<TodayActivityPointResponse> WeeklyActivity);
-public sealed record TodayUserSummaryResponse(Guid UserId, string DisplayName);
+public sealed record TodayUserSummaryResponse(
+    Guid UserId, string DisplayName, bool HasCompletedOnboarding);
 public sealed record TodayNextActionResponse(
     string Type, string Title, string Description, string ActionLabel,
     string TargetPath, string Icon, TodayNextActionContextResponse? Context);
@@ -28,10 +29,11 @@ public sealed record TodayStudyPlanItemResponse(
     bool IsResourceAvailable, int PlannedDurationMinutes, int Position);
 public sealed record TodayRecommendationResponse(
     Guid RecommendationId, string ResourceType, Guid ResourceId,
-    string Type, string Priority, decimal PriorityScore, string ResourceTitle);
+    string Type, string Priority, decimal PriorityScore, string ResourceTitle,
+    string ReasonSummary, bool IsResourceAvailable);
 public sealed record TodayWeakTopicResponse(
     Guid WeakTopicProfileId, string ResourceType, Guid ResourceId,
-    string Level, decimal Score, string ResourceTitle,
+    string Level, decimal Score, string ResourceTitle, string Summary,
     bool IsResourceAvailable);
 public sealed record TodayActivityPointResponse(
     DateOnly Date, int StudyMinutes, int ActivityCount);
