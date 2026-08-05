@@ -10,6 +10,7 @@ const {
 } = useAppShell()
 const { commandPaletteOpen, openCommandPalette } = useCommandPalette()
 const quickCapture = useQuickCapture()
+const route = useRoute()
 const { pendingPrefix } = useNavigationShortcuts()
 useGlobalShortcuts()
 useHead({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] })
@@ -31,8 +32,8 @@ useHead({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] })
           @open-quick-capture="quickCapture.start()"
         />
         <FeedbackNetworkStatusBanner />
-        <main class="min-h-[calc(100dvh-var(--devrecall-topbar-height))] px-4 py-6 sm:px-6 lg:px-8">
-          <div class="mx-auto w-full max-w-[var(--devrecall-content-width)]"><slot /></div>
+        <main class="min-h-[calc(100dvh-var(--devrecall-topbar-height))]" :class="route.meta.workspace ? 'p-2 lg:p-3' : 'px-4 py-6 sm:px-6 lg:px-8'">
+          <div class="mx-auto w-full" :class="route.meta.workspace ? 'max-w-none' : 'max-w-[var(--devrecall-content-width)]'"><slot /></div>
         </main>
       </div>
     </div>
