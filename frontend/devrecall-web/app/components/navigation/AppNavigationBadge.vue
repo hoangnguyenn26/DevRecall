@@ -4,18 +4,21 @@ const { indicators } = useNavigationIndicators()
 
 const badge = computed(() => {
   if (props.badgeKey === 'reviewsDue' && indicators.value.reviewsDue > 0) {
-    return { label: indicators.value.reviewsDue > 99 ? '99+' : String(indicators.value.reviewsDue), color: 'warning' as const }
+    return { label: indicators.value.reviewsDue > 99 ? '99+' : String(indicators.value.reviewsDue), accessible: `${indicators.value.reviewsDue} items due`, color: 'warning' as const }
   }
   if (props.badgeKey === 'activeStudyPlan' && indicators.value.hasActiveStudyPlan) {
-    return { label: 'Active', color: 'primary' as const }
+    return { label: 'Active', accessible: 'active plan available', color: 'primary' as const }
   }
   if (props.badgeKey === 'criticalWeakTopics' && indicators.value.criticalWeakTopics > 0) {
-    return { label: String(indicators.value.criticalWeakTopics), color: 'error' as const }
+    return { label: String(indicators.value.criticalWeakTopics), accessible: `${indicators.value.criticalWeakTopics} critical topics`, color: 'error' as const }
   }
   return undefined
 })
 </script>
 
 <template>
-  <UBadge v-if="badge" :color="badge.color" variant="subtle" size="xs" :aria-label="`${badge.label} ${props.badgeKey}`">{{ badge.label }}</UBadge>
+  <template v-if="badge">
+    <UBadge :color="badge.color" variant="subtle" size="xs" aria-hidden="true">{{ badge.label }}</UBadge>
+    <span class="sr-only">{{ badge.accessible }}</span>
+  </template>
 </template>

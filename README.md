@@ -23,6 +23,15 @@ It is intentionally local-first and backend-focused. AI evaluation, cloud synchr
 
 ## Features
 
+### Today workspace
+
+- Action-first dashboard with a deterministic Next Best Action policy
+- Personalized onboarding and weekly learning targets
+- Weekly metrics, current Study Plan, recommendations, Weak Topics, and seven-day activity
+- Continue Learning from the latest resumable activity
+- Quick Capture for Knowledge, Interview Questions, and DSA Problems
+- Lightweight navigation indicators and targeted data refresh after learning mutations
+
 ### Knowledge management
 
 - Hierarchical knowledge tree with move, reorder, and archive behavior

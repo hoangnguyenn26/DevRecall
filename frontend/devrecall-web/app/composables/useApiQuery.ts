@@ -28,5 +28,7 @@ export function useApiQuery<T>(key: string, fetcher: () => Promise<T>, options: 
   const hasData = computed(() => data.value !== null && data.value !== undefined)
   const isPending = computed(() => status.value === 'pending' && !hasData.value)
   const refreshing = computed(() => status.value === 'pending' && hasData.value)
-  return { data, status, error: readonly(normalizedError), isPending, refreshing, hasData, refresh, clear }
+  const error = computed(() => hasData.value ? null : normalizedError.value)
+  const refreshError = computed(() => hasData.value ? normalizedError.value : null)
+  return { data, status, error: readonly(error), refreshError: readonly(refreshError), isPending, refreshing, hasData, refresh, clear }
 }

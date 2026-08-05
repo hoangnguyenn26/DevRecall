@@ -10,6 +10,11 @@ type ApiRequestOptions = {
 let csrfToken: string | undefined
 let csrfHeaderName = 'X-CSRF-TOKEN'
 
+function resetSecurityContext(): void {
+  csrfToken = undefined
+  csrfHeaderName = 'X-CSRF-TOKEN'
+}
+
 function appendQuery(url: URL, query?: Query) {
   if (!query) return
   for (const [key, raw] of Object.entries(query)) {
@@ -27,7 +32,10 @@ export function useApi() {
     : { value: false }
 
   async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-    const base = config.public.apiBaseUrl.replace(/\/$/, '')
+    const configuredBase = import.meta.server
+      ? `${config.apiInternalBaseUrl.replace(/\/$/, '')}/api/v1`
+      : config.public.apiBaseUrl
+    const base = configuredBase.replace(/\/$/, '')
     const url = new URL(
       `${base}/${path.replace(/^\//, '')}`,
       import.meta.client ? window.location.origin : 'http://localhost')
@@ -86,5 +94,6 @@ export function useApi() {
     post: <T>(path: string, body?: unknown, signal?: AbortSignal) => request<T>(path, { method: 'POST', body, signal }),
     put: <T>(path: string, body?: unknown, signal?: AbortSignal) => request<T>(path, { method: 'PUT', body, signal }),
     delete: <T>(path: string, query?: Query, signal?: AbortSignal) => request<T>(path, { method: 'DELETE', query, signal }),
+    resetSecurityContext,
   }
 }

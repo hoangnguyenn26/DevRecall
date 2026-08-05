@@ -39,8 +39,11 @@ async function finish(): Promise<void> {
     toast.add({ title: 'Your workspace is ready', color: 'success' })
     await navigateTo('/app')
   }
-  catch {
-    submitError.value = 'We could not save your setup. Review your choices and try again.'
+  catch (error) {
+    const problem = normalizeApiError(error)
+    submitError.value = problem.status === 409
+      ? (problem.detail ?? 'Onboarding was already completed. Reload your current preferences.')
+      : (problem.detail ?? 'We could not save your setup. Review your choices and try again.')
   }
   finally { submitting.value = false }
 }
@@ -61,7 +64,7 @@ async function skip(): Promise<void> {
     await refreshLearningEntryPoints()
     await navigateTo('/app')
   }
-  catch { submitError.value = 'We could not skip setup. Please try again.' }
+  catch (error) { const problem = normalizeApiError(error); submitError.value = problem.detail ?? 'We could not skip setup. Please try again.' }
   finally { submitting.value = false; confirmDialog.setPending(false) }
 }
 </script>

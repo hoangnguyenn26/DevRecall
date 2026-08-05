@@ -58,6 +58,8 @@ public sealed class TodayEndpointsTests(AuthApiFactory factory)
         dashboard!.User.UserId.Should().Be(auth.User.Id);
         dashboard.NextAction.Type.Should().Be("CreateKnowledge");
         dashboard.WeeklyActivity.Should().HaveCount(7);
+        dashboard.WeeklyActivity.Select(point => point.Date)
+            .Should().BeInAscendingOrder();
         dashboard.Recommendations.Should().HaveCountLessThanOrEqualTo(3);
         dashboard.WeakTopics.Should().HaveCountLessThanOrEqualTo(3);
     }
@@ -77,6 +79,7 @@ public sealed class TodayEndpointsTests(AuthApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         dashboard!.NextAction.Type.Should().Be("CreateKnowledge");
+        dashboard.RecentActivity.Should().BeNull();
     }
 
     [Fact]

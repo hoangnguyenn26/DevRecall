@@ -40,15 +40,15 @@ public sealed class OnboardingHandler(
                 userId, goal, command.DailyCommitmentMinutes,
                 command.WeeklyTargetDays, focusAreas, utcClock.UtcNow);
             repository.Add(preference);
+            await repository.SaveChangesAsync(cancellationToken);
         }
-        else
+        else if (preference.CompleteOnboarding(
+            goal, command.DailyCommitmentMinutes,
+            command.WeeklyTargetDays, focusAreas, utcClock.UtcNow))
         {
-            preference.CompleteOnboarding(
-                goal, command.DailyCommitmentMinutes,
-                command.WeeklyTargetDays, focusAreas, utcClock.UtcNow);
+            await repository.SaveChangesAsync(cancellationToken);
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
         return Map(preference);
     }
 

@@ -55,7 +55,11 @@ public sealed class OnboardingEndpointsTests(AuthApiFactory factory)
 
     [Theory]
     [InlineData("1", "DotNet")]
+    [InlineData("01", "DotNet")]
+    [InlineData("+1", "DotNet")]
     [InlineData("PracticeAlgorithms", "5")]
+    [InlineData("PracticeAlgorithms", "01")]
+    [InlineData("PracticeAlgorithms", "+1")]
     public async Task Complete_ShouldRejectNumericEnumStrings(
         string goal, string focusArea)
     {

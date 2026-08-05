@@ -1,8 +1,12 @@
 import { queryKeys } from '~/query/query-keys'
 
 export function useLearningDataInvalidation() {
+  const refreshToday = (): Promise<void> => refreshNuxtData(queryKeys.today)
+  const refreshTodayAndNavigation = (): Promise<void> =>
+    Promise.all([refreshNuxtData(queryKeys.today), refreshNuxtData(queryKeys.navigationIndicators)]).then(() => undefined)
+
   async function refreshLearningEntryPoints(): Promise<void> {
-    await Promise.all([refreshNuxtData(queryKeys.today), refreshNuxtData(queryKeys.navigationIndicators)])
+    await refreshTodayAndNavigation()
   }
 
   async function afterCapture(type: 'KnowledgeNode' | 'InterviewQuestion' | 'DsaProblem'): Promise<void> {
@@ -12,5 +16,5 @@ export function useLearningDataInvalidation() {
     await Promise.all([refreshNuxtData(moduleKey), refreshNuxtData(queryKeys.today)])
   }
 
-  return { refreshLearningEntryPoints, afterCapture }
+  return { refreshToday, refreshTodayAndNavigation, refreshLearningEntryPoints, afterCapture }
 }

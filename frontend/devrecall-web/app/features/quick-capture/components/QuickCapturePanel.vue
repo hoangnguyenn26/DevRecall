@@ -8,14 +8,24 @@ import type { CreatedResourceReference, QuickCaptureType } from '../quick-captur
 import { useQuickCapture } from '../useQuickCapture'
 
 const quickCapture = useQuickCapture(); const { afterCapture } = useLearningDataInvalidation()
+const router = useRouter()
 const dirty = ref(false); const pending = ref(false); const created = ref<CreatedResourceReference | null>(null)
 const title = computed(() => created.value ? 'Resource created' : quickCapture.type.value ? quickCaptureTypeMeta[quickCapture.type.value].label : 'Quick capture')
 watch(quickCapture.type, () => { dirty.value = false; pending.value = false; created.value = null })
+watch(() => quickCapture.open.value, async (open) => {
+  if (!open) return
+  await nextTick()
+  requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-quick-capture-primary]')?.focus())
+})
 function requestClose(open: boolean) { if (open) return; if (pending.value) return; if (dirty.value && !window.confirm('Discard this capture?\n\nYour unsaved content will be lost.')) return; quickCapture.close() }
+function canLeave(): boolean { if (!quickCapture.open.value) return true; if (pending.value) return false; if (dirty.value && !window.confirm('Discard this capture?\n\nYour unsaved content will be lost.')) return false; quickCapture.close(); return true }
 async function onCreated(value: CreatedResourceReference) { created.value = value; dirty.value = false; if (quickCapture.type.value) await afterCapture(quickCapture.type.value) }
 async function openResource() { if (!created.value) return; const path = created.value.targetPath; quickCapture.close(); await navigateTo(path) }
 function continueHere() { quickCapture.close() }
 function selectType(type: QuickCaptureType) { quickCapture.selectType(type) }
+let removeRouteGuard: (() => void) | undefined
+onMounted(() => { removeRouteGuard = router.beforeEach(() => canLeave()) })
+onUnmounted(() => removeRouteGuard?.())
 </script>
 
 <template>

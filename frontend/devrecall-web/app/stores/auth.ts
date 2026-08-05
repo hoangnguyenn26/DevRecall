@@ -41,6 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(request: LoginRequest): Promise<CurrentUser> {
     const currentUser = await api.post<CurrentUser>('/auth/login', request)
+    api.resetSecurityContext()
     user.value = currentUser
     status.value = 'authenticated'
     return currentUser
@@ -52,6 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout(): Promise<void> {
     await api.post<undefined>('/auth/logout')
+    api.resetSecurityContext()
     clearSession()
   }
 

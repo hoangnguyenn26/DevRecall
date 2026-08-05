@@ -9,8 +9,9 @@ import { loginSchema, registerSchema } from '~/validation/auth'
 const currentUser: CurrentUser = { id: 'user-1', email: 'learner@example.com', displayName: 'Learner' }
 const get = vi.fn<(path: string) => Promise<CurrentUser>>()
 const post = vi.fn<(path: string, body?: unknown) => Promise<CurrentUser | undefined>>()
+const resetSecurityContext = vi.fn<() => void>()
 
-vi.stubGlobal('useApi', () => ({ get, post }))
+vi.stubGlobal('useApi', () => ({ get, post, resetSecurityContext }))
 const { useAuthStore } = await import('~/stores/auth')
 
 describe('authentication foundation', () => {
@@ -18,6 +19,7 @@ describe('authentication foundation', () => {
     setActivePinia(createPinia())
     get.mockReset()
     post.mockReset()
+    resetSecurityContext.mockReset()
   })
 
   it('stores the current user after a valid login', async () => {
@@ -26,6 +28,7 @@ describe('authentication foundation', () => {
     await auth.login({ email: currentUser.email, password: 'Example123!' })
     expect(auth.user).toEqual(currentUser)
     expect(auth.status).toBe('authenticated')
+    expect(resetSecurityContext).toHaveBeenCalledOnce()
   })
 
   it('does not authenticate a registration response because the backend does not create a session', async () => {
@@ -69,6 +72,7 @@ describe('authentication foundation', () => {
     await auth.logout()
     expect(auth.status).toBe('anonymous')
     expect(auth.user).toBeNull()
+    expect(resetSecurityContext).toHaveBeenCalledTimes(2)
   })
 
   it('accepts safe internal redirects and rejects external redirects', () => {
