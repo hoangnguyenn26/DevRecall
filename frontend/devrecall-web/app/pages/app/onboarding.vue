@@ -13,6 +13,7 @@ const form = reactive<OnboardingFormState>(onboardingDefaults())
 const api = useOnboardingApi()
 const confirmDialog = useConfirmDialog()
 const toast = useToast()
+const { refreshLearningEntryPoints } = useLearningDataInvalidation()
 const submitting = ref(false)
 const submitError = ref('')
 const canContinue = computed(() => canContinueOnboarding(step.value, form))
@@ -34,7 +35,7 @@ async function finish(): Promise<void> {
       dailyCommitmentMinutes: form.dailyCommitmentMinutes,
       weeklyTargetDays: form.weeklyTargetDays,
     })
-    await refreshNuxtData('today-dashboard')
+    await refreshLearningEntryPoints()
     toast.add({ title: 'Your workspace is ready', color: 'success' })
     await navigateTo('/app')
   }
@@ -57,7 +58,7 @@ async function skip(): Promise<void> {
   confirmDialog.setPending(true)
   try {
     await api.skip()
-    await refreshNuxtData('today-dashboard')
+    await refreshLearningEntryPoints()
     await navigateTo('/app')
   }
   catch { submitError.value = 'We could not skip setup. Please try again.' }

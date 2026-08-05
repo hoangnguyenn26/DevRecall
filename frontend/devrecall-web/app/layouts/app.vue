@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import QuickCapturePanel from '~/features/quick-capture/components/QuickCapturePanel.vue'
+import { useQuickCapture } from '~/features/quick-capture/useQuickCapture'
 const {
   sidebarCollapsed,
   mobileNavigationOpen,
@@ -7,6 +9,7 @@ const {
   closeMobileNavigation,
 } = useAppShell()
 const { commandPaletteOpen, openCommandPalette } = useCommandPalette()
+const quickCapture = useQuickCapture()
 const { pendingPrefix } = useNavigationShortcuts()
 useGlobalShortcuts()
 useHead({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] })
@@ -25,7 +28,7 @@ useHead({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] })
         <NavigationAppTopBar
           @open-mobile-navigation="openMobileNavigation"
           @open-command-palette="openCommandPalette()"
-          @open-quick-capture="openCommandPalette('create')"
+          @open-quick-capture="quickCapture.start()"
         />
         <FeedbackNetworkStatusBanner />
         <main class="min-h-[calc(100dvh-var(--devrecall-topbar-height))] px-4 py-6 sm:px-6 lg:px-8">
@@ -39,6 +42,7 @@ useHead({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] })
       @update:open="$event ? openMobileNavigation() : closeMobileNavigation()"
     />
     <NavigationAppCommandPalette v-model:open="commandPaletteOpen" />
+    <QuickCapturePanel />
 
     <div
       v-if="pendingPrefix === 'g'"
