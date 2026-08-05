@@ -17,7 +17,7 @@ export interface TodayDashboard {
   weakTopics: TodayWeakTopic[]
   weeklyActivity: TodayActivityPoint[]
 }
-export interface TodayUserSummary { userId: string; displayName: string }
+export interface TodayUserSummary { userId: string; displayName: string; hasCompletedOnboarding: boolean }
 export interface TodayNextAction {
   type: TodayActionType
   title: string
@@ -68,6 +68,8 @@ export interface TodayRecommendation {
   priority: string
   priorityScore: number
   resourceTitle: string
+  reasonSummary: string
+  isResourceAvailable: boolean
 }
 export interface TodayWeakTopic {
   weakTopicProfileId: string
@@ -76,6 +78,7 @@ export interface TodayWeakTopic {
   level: string
   score: number
   resourceTitle: string
+  summary: string
   isResourceAvailable: boolean
 }
 export interface TodayActivityPoint {

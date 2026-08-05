@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import NextActionCard from '~/components/today/NextActionCard.vue'
 import { useTodayApi } from './today.api'
-import { formatTodayMinutes, getDayPeriod } from './today.format'
+import { buildWeeklyActivityDescription, buildWeeklyActivityInsight, formatTodayMinutes, getDayPeriod } from './today.format'
 import { getTodayActionIcon } from './today.meta'
 import type { TodayNextAction } from './today.types'
 
@@ -74,5 +74,15 @@ describe('Today dashboard foundation', () => {
 
     expect(get).toHaveBeenCalledOnce()
     expect(get).toHaveBeenCalledWith('/today')
+  })
+
+  it('builds a text alternative and deterministic activity insight', () => {
+    const activity = [
+      { date: '2026-08-03', studyMinutes: 20 },
+      { date: '2026-08-04', studyMinutes: 45 },
+      { date: '2026-08-05', studyMinutes: 0 },
+    ]
+    expect(buildWeeklyActivityDescription(activity)).toContain('2 active days')
+    expect(buildWeeklyActivityInsight(activity, 5)).toBe('You studied on 2 of 5 target days this week.')
   })
 })

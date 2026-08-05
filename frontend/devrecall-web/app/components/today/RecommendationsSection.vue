@@ -6,21 +6,26 @@ defineProps<{ recommendations: TodayRecommendation[] }>()
 
 <template>
   <section class="rounded-2xl border border-default p-5">
-    <TodaySectionHeader title="Active recommendations" to="/app/recommendations" />
-    <div v-if="recommendations.length" class="divide-y divide-default">
-      <NuxtLink
-        v-for="item in recommendations"
-        :key="item.recommendationId"
-        :to="`/app/recommendations/${item.recommendationId}`"
-        class="flex items-center justify-between gap-4 rounded-lg py-3 focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <div class="min-w-0">
-          <p class="truncate text-sm font-medium">{{ item.resourceTitle }}</p>
-          <p class="mt-1 text-xs text-muted">{{ item.type }}</p>
-        </div>
-        <CoreStatusBadge :value="item.priority" />
-      </NuxtLink>
-    </div>
-    <p v-else class="py-4 text-sm text-muted">No active recommendations. Keep practicing to reveal the next focus area.</p>
+    <TodaySectionHeader title="Recommendations" :to="recommendations.length ? '/app/recommendations' : undefined" />
+    <ul v-if="recommendations.length" class="divide-y divide-default rounded-xl border border-default">
+      <li v-for="item in recommendations" :key="item.recommendationId">
+        <NuxtLink
+          :to="`/app/recommendations/${item.recommendationId}`"
+          class="flex items-start justify-between gap-4 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        >
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium">{{ item.isResourceAvailable ? item.resourceTitle : 'Unavailable resource' }}</p>
+            <p class="mt-1 line-clamp-2 text-xs leading-5 text-muted">{{ item.reasonSummary }}</p>
+          </div>
+          <CoreStatusBadge :value="item.priority" />
+        </NuxtLink>
+      </li>
+    </ul>
+    <CoreEmptyState
+      v-else
+      icon="i-lucide-sparkles"
+      title="No active recommendations"
+      description="DevRecall will surface focused actions when your learning history reveals something worth revisiting."
+    />
   </section>
 </template>
