@@ -4,6 +4,7 @@ using System.Text.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Knowledge;
+using DevRecall.Contracts.Common;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Infrastructure.Persistence;
 using FluentAssertions;
@@ -863,6 +864,176 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         tree[0].Children[0].Children[0].Title.Should().Be("C");
     }
 
+    [Fact]
+    public async Task WorkspaceList_ShouldPaginateAndIsolateOwner()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var ownerClient = owner.Client;
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+        var expected = await CreateNodeAsync(ownerClient, "Dependency injection", null);
+        await CreateNodeAsync(otherClient, "Private note", null);
+
+        using var response = await ownerClient.GetAsync(
+            "/api/v1/knowledge?query=dependency&page=1&pageSize=30&sort=updated");
+        var page = await response.Content.ReadFromJsonAsync<
+            PagedResponse<KnowledgeWorkspaceListItemResponse>>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        page!.Items.Should().ContainSingle(item => item.Id == expected.Id);
+        page.Items.Should().NotContain(item => item.Title == "Private note");
+    }
+
+    [Fact]
+    public async Task WorkspaceTopicTree_ShouldReturnDeterministicDescendantCounts()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var root = await CreateNodeAsync(client, "Backend", null);
+        await CreateNodeAsync(client, "Dependency injection", root.Id);
+
+        using var response = await client.GetAsync("/api/v1/knowledge/topics/tree");
+        var tree = await response.Content.ReadFromJsonAsync<KnowledgeTopicTreeResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        tree!.TotalKnowledgeCount.Should().Be(2);
+        tree.Items.Should().ContainSingle();
+        tree.Items[0].TotalKnowledgeCount.Should().Be(2);
+        tree.Items[0].DescendantKnowledgeCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task WorkspaceList_WithConflictingTopicFilters_ShouldReturnStableProblemCode()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+
+        using var response = await client.GetAsync(
+            $"/api/v1/knowledge?topicId={Guid.NewGuid()}&topicScope=uncategorized");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_INVALID_TOPIC_FILTER");
+    }
+
+    [Fact]
+    public async Task WorkspaceDetail_ForAnotherOwner_ShouldReturnKnowledgeNotFound()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var ownerClient = owner.Client;
+        var note = await CreateNodeAsync(ownerClient, "Private", null);
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+
+        using var response = await otherClient.GetAsync($"/api/v1/knowledge/{note.Id}");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("KNOWLEDGE_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task WorkspaceUpdate_ShouldIncrementVersionOnceAndTreatNormalizedRepeatAsNoOp()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Original", null);
+        var detail = await GetWorkspaceDetailAsync(client, node.Id);
+
+        using var firstResponse = await client.PutAsJsonAsync($"/api/v1/knowledge/{node.Id}",
+            new UpdateKnowledgeRequest(" Updated title ", " Content ", null, [], detail.Version));
+        using var first = JsonDocument.Parse(await firstResponse.Content.ReadAsStringAsync());
+        var updatedVersion = first.RootElement.GetProperty("detail").GetProperty("version").GetInt32();
+
+        using var secondResponse = await client.PutAsJsonAsync($"/api/v1/knowledge/{node.Id}",
+            new UpdateKnowledgeRequest("Updated title", "Content", null, [], updatedVersion));
+        using var second = JsonDocument.Parse(await secondResponse.Content.ReadAsStringAsync());
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        updatedVersion.Should().Be(detail.Version + 1);
+        second.RootElement.GetProperty("changed").GetBoolean().Should().BeFalse();
+        second.RootElement.GetProperty("detail").GetProperty("version").GetInt32().Should().Be(updatedVersion);
+    }
+
+    [Fact]
+    public async Task WorkspaceUpdate_WithStaleVersion_ShouldReturnConflictAndKeepDraftServerSide()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Concurrency", null);
+        var detail = await GetWorkspaceDetailAsync(client, node.Id);
+        using var successful = await client.PutAsJsonAsync($"/api/v1/knowledge/{node.Id}",
+            new UpdateKnowledgeRequest("Latest", "Latest content", null, [], detail.Version));
+        successful.EnsureSuccessStatusCode();
+
+        using var stale = await client.PutAsJsonAsync($"/api/v1/knowledge/{node.Id}",
+            new UpdateKnowledgeRequest("Stale", "Stale content", null, [], detail.Version));
+        using var problem = JsonDocument.Parse(await stale.Content.ReadAsStringAsync());
+
+        stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        problem.RootElement.GetProperty("errorCode").GetString().Should().Be("KNOWLEDGE_CONFLICT");
+        (await GetWorkspaceDetailAsync(client, node.Id)).Title.Should().Be("Latest");
+    }
+
+    [Fact]
+    public async Task WorkspaceTags_ShouldBeIdempotentOwnerScopedAndFilterWithAndSemantics()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var architecture = await CreateWorkspaceTagAsync(client, "Architecture");
+        var duplicate = await CreateWorkspaceTagAsync(client, "  architecture ");
+        var interview = await CreateWorkspaceTagAsync(client, "Interview");
+        var both = await CreateNodeAsync(client, "Both tags", null);
+        var one = await CreateNodeAsync(client, "One tag", null);
+        await UpdateWorkspaceAsync(client, both.Id, "Both tags", [architecture.Id, interview.Id]);
+        await UpdateWorkspaceAsync(client, one.Id, "One tag", [architecture.Id]);
+
+        using var response = await client.GetAsync(
+            $"/api/v1/knowledge?tagIds={architecture.Id},{interview.Id}&page=1&pageSize=30");
+        var page = await response.Content.ReadFromJsonAsync<PagedResponse<KnowledgeWorkspaceListItemResponse>>();
+
+        duplicate.Id.Should().Be(architecture.Id);
+        page!.Items.Should().ContainSingle(item => item.Id == both.Id);
+        page.Items.Should().NotContain(item => item.Id == one.Id);
+    }
+
+    [Fact]
+    public async Task WorkspaceDetail_ShouldReturnBoundedOwnerScopedRelatedKnowledge()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var tag = await CreateWorkspaceTagAsync(client, "Backend");
+        var source = await CreateNodeAsync(client, "Source", null);
+        var related = await CreateNodeAsync(client, "Related", null);
+        await UpdateWorkspaceAsync(client, source.Id, "Source", [tag.Id]);
+        await UpdateWorkspaceAsync(client, related.Id, "Related", [tag.Id]);
+
+        var detail = await GetWorkspaceDetailAsync(client, source.Id);
+
+        detail.RelatedItems.Should().Contain(item => item.Id == related.Id && item.SharedTagCount == 1);
+        detail.RelatedItems.Should().NotContain(item => item.Id == source.Id);
+        detail.RelatedItems.Count.Should().BeLessThanOrEqualTo(5);
+    }
+
+    [Fact]
+    public async Task WorkspaceDelete_ShouldRequireCurrentVersionAndArchiveTheItem()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var node = await CreateNodeAsync(client, "Delete me", null);
+        var detail = await GetWorkspaceDetailAsync(client, node.Id);
+
+        using var stale = await client.DeleteAsync($"/api/v1/knowledge/{node.Id}?expectedVersion={detail.Version + 1}");
+        using var deleted = await client.DeleteAsync($"/api/v1/knowledge/{node.Id}?expectedVersion={detail.Version}");
+        using var missing = await client.GetAsync($"/api/v1/knowledge/{node.Id}");
+
+        stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        deleted.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private async Task<(HttpClient Client, RegisterResponse User)>
         CreateAuthenticatedClientAsync()
     {
@@ -915,6 +1086,32 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         using var response = await client.GetAsync($"/api/v1/knowledge-nodes/{id}");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<KnowledgeNodeDetailResponse>())!;
+    }
+
+    private static async Task<KnowledgeWorkspaceDetailResponse> GetWorkspaceDetailAsync(
+        HttpClient client, Guid id)
+    {
+        using var response = await client.GetAsync($"/api/v1/knowledge/{id}");
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<KnowledgeWorkspaceDetailResponse>())!;
+    }
+
+    private static async Task<KnowledgeTagSummaryResponse> CreateWorkspaceTagAsync(
+        HttpClient client, string name)
+    {
+        using var response = await client.PostAsJsonAsync("/api/v1/knowledge/tags",
+            new CreateKnowledgeTagRequest(name));
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<KnowledgeTagSummaryResponse>())!;
+    }
+
+    private static async Task UpdateWorkspaceAsync(HttpClient client, Guid id,
+        string title, IReadOnlyList<Guid> tagIds)
+    {
+        var detail = await GetWorkspaceDetailAsync(client, id);
+        using var response = await client.PutAsJsonAsync($"/api/v1/knowledge/{id}",
+            new UpdateKnowledgeRequest(title, detail.Content, detail.TopicId, tagIds, detail.Version));
+        response.EnsureSuccessStatusCode();
     }
 
     private static async Task<IReadOnlyList<KnowledgeTreeNodeResponse>> GetTreeAsync(

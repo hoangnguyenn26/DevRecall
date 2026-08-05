@@ -138,6 +138,10 @@ public sealed class TagHandlerTests
         public Task<Tag?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(tags.SingleOrDefault(tag => tag.Id == id));
 
+        public Task<Tag?> GetByNormalizedNameAsync(Guid userId, string normalizedName,
+            CancellationToken cancellationToken) => Task.FromResult(tags.SingleOrDefault(tag =>
+                tag.UserId == userId && tag.NormalizedName == normalizedName));
+
         public Task<IReadOnlyList<Tag>> GetActiveByUserIdAsync(
             Guid userId,
             CancellationToken cancellationToken) =>

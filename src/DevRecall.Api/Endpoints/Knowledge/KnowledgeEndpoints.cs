@@ -12,6 +12,9 @@ using DevRecall.Application.Knowledge.Tags.Remove;
 using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
+using DevRecall.Application.Knowledge.Workspace;
+using DevRecall.Application.Common.Exceptions;
+using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Knowledge;
 
 namespace DevRecall.Api.Endpoints.Knowledge;
@@ -40,8 +43,132 @@ public static class KnowledgeEndpoints
         group.MapPut("/{nodeId:guid}/tags/{tagId:guid}", AssignTagAsync);
         group.MapDelete("/{nodeId:guid}/tags/{tagId:guid}", RemoveTagAsync);
 
+        var workspace = endpoints.MapGroup("/api/v1/knowledge")
+            .WithTags("Knowledge Workspace")
+            .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
+        workspace.MapGet("", GetWorkspaceListAsync);
+        workspace.MapGet("/topics/tree", GetWorkspaceTopicTreeAsync);
+        workspace.MapGet("/tags", GetWorkspaceTagsAsync);
+        workspace.MapPost("/tags", CreateWorkspaceTagAsync);
+        workspace.MapGet("/{knowledgeId:guid}", GetWorkspaceDetailAsync);
+        workspace.MapPut("/{knowledgeId:guid}", UpdateWorkspaceAsync);
+        workspace.MapDelete("/{knowledgeId:guid}", DeleteWorkspaceAsync);
+
         return endpoints;
     }
+
+    private static async Task<IResult> GetWorkspaceListAsync(
+        [AsParameters] GetKnowledgeRequest request,
+        GetKnowledgeListHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var tagIds = ParseTagIds(request.TagIds);
+        var result = await handler.HandleAsync(new GetKnowledgeListQuery(
+            request.TopicId, request.TopicScope, request.Query, request.Sort,
+            request.Page, request.PageSize, tagIds), cancellationToken);
+        return Results.Ok(new PagedResponse<KnowledgeWorkspaceListItemResponse>(
+            result.Items.Select(MapWorkspaceListItem).ToList(), result.Page,
+            result.PageSize, result.TotalCount, result.TotalPages));
+    }
+
+    private static async Task<IResult> GetWorkspaceDetailAsync(
+        Guid knowledgeId, GetKnowledgeDetailHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(knowledgeId, cancellationToken);
+        return Results.Ok(new KnowledgeWorkspaceDetailResponse(
+            result.Id, result.Title, result.Content, result.Description, result.SourceUrl,
+            result.TopicId, result.TopicName, result.Tags.Select(tag =>
+                new KnowledgeWorkspaceTagResponse(tag.Id, tag.Name)).ToList(),
+            result.RelatedItems.Select(item => new RelatedKnowledgeResponse(
+                item.Id, item.Title, item.TopicName, item.SharedTagCount,
+                item.SameTopic, item.UpdatedAtUtc)).ToList(),
+            result.CreatedAtUtc, result.UpdatedAtUtc, result.Version));
+    }
+
+    private static async Task<IResult> UpdateWorkspaceAsync(
+        Guid knowledgeId, UpdateKnowledgeRequest request,
+        UpdateKnowledgeHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(new UpdateKnowledgeCommand(
+            knowledgeId, request.Title, request.Content, request.TopicId,
+            request.TagIds ?? [], request.ExpectedVersion), cancellationToken);
+        return Results.Ok(new
+        {
+            detail = MapWorkspaceDetail(result.Detail),
+            result.Changed,
+            result.TopicChanged
+        });
+    }
+
+    private static async Task<IResult> DeleteWorkspaceAsync(
+        Guid knowledgeId, int expectedVersion, DeleteKnowledgeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        await handler.HandleAsync(knowledgeId, expectedVersion, cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> GetWorkspaceTagsAsync(
+        string? query, int take, GetKnowledgeTagsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(query, take == 0 ? 20 : take, cancellationToken);
+        return Results.Ok(result.Select(tag => new KnowledgeTagSummaryResponse(
+            tag.Id, tag.Name, tag.NormalizedName, tag.KnowledgeCount)));
+    }
+
+    private static async Task<IResult> CreateWorkspaceTagAsync(
+        CreateKnowledgeTagRequest request, CreateKnowledgeTagHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(request.Name, cancellationToken);
+        return Results.Ok(new KnowledgeTagSummaryResponse(
+            result.Id, result.Name, result.NormalizedName, result.KnowledgeCount));
+    }
+
+    private static async Task<IResult> GetWorkspaceTopicTreeAsync(
+        GetKnowledgeTopicTreeHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(cancellationToken);
+        return Results.Ok(new KnowledgeTopicTreeResponse(
+            result.Items.Select(MapTopic).ToList(), result.TotalKnowledgeCount,
+            result.UncategorizedCount));
+    }
+
+    private static KnowledgeWorkspaceListItemResponse MapWorkspaceListItem(
+        KnowledgeListItemReadModel item) => new(
+            item.Id, item.Title, item.Summary, item.TopicId, item.TopicName,
+            item.Tags.Select(tag => new KnowledgeWorkspaceTagResponse(tag.Id, tag.Name)).ToList(),
+            item.TagCount, item.CreatedAtUtc, item.UpdatedAtUtc, item.Version);
+
+    private static KnowledgeWorkspaceDetailResponse MapWorkspaceDetail(
+        KnowledgeDetailReadModel result) => new(
+            result.Id, result.Title, result.Content, result.Description, result.SourceUrl,
+            result.TopicId, result.TopicName,
+            result.Tags.Select(tag => new KnowledgeWorkspaceTagResponse(tag.Id, tag.Name)).ToList(),
+            result.RelatedItems.Select(item => new RelatedKnowledgeResponse(item.Id,
+                item.Title, item.TopicName, item.SharedTagCount, item.SameTopic, item.UpdatedAtUtc)).ToList(),
+            result.CreatedAtUtc, result.UpdatedAtUtc, result.Version);
+
+    private static List<Guid> ParseTagIds(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return [];
+        var parts = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var ids = new List<Guid>();
+        foreach (var part in parts)
+        {
+            if (!Guid.TryParse(part, out var id)) throw new ValidationException(
+                new Dictionary<string, string[]> { ["tagIds"] = ["Tag IDs must be valid GUID values."] });
+            ids.Add(id);
+        }
+        return ids.Distinct().Order().ToList();
+    }
+
+    private static KnowledgeTopicResponse MapTopic(KnowledgeTopicReadModel topic) => new(
+        topic.Id, topic.ParentId, topic.Name, topic.DirectKnowledgeCount,
+        topic.DescendantKnowledgeCount, topic.TotalKnowledgeCount, topic.ChildCount,
+        topic.Children.Select(MapTopic).ToList());
 
     private static async Task<IResult> GetDetailAsync(
         Guid id,

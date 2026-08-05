@@ -54,6 +54,14 @@ public sealed partial class GlobalExceptionHandler(
     {
         return exception switch
         {
+            BadRequestException badRequestException =>
+                CreateProblemDetails(
+                    context,
+                    StatusCodes.Status400BadRequest,
+                    "Bad request",
+                    badRequestException.ErrorCode,
+                    badRequestException.Message),
+
             AntiforgeryValidationException antiforgeryException =>
                 CreateProblemDetails(
                     context,
@@ -80,6 +88,14 @@ public sealed partial class GlobalExceptionHandler(
                     "Conflict",
                     conflictException.ErrorCode,
                     conflictException.Message),
+
+            ConcurrencyException concurrencyException =>
+                CreateProblemDetails(
+                    context,
+                    StatusCodes.Status409Conflict,
+                    "Conflict",
+                    concurrencyException.ErrorCode,
+                    concurrencyException.Message),
 
             UnprocessableEntityException unprocessableEntityException =>
                 CreateProblemDetails(

@@ -9,6 +9,9 @@ public interface ITagRepository
 
     Task<Tag?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    Task<Tag?> GetByNormalizedNameAsync(Guid userId, string normalizedName,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<Tag>> GetActiveByUserIdAsync(
         Guid userId,
         CancellationToken cancellationToken);

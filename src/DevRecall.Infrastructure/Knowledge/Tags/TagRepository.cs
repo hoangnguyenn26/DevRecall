@@ -24,6 +24,12 @@ internal sealed class TagRepository(DevRecallDbContext dbContext)
     public Task<Tag?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Tags.SingleOrDefaultAsync(tag => tag.Id == id, cancellationToken);
 
+    public Task<Tag?> GetByNormalizedNameAsync(Guid userId, string normalizedName,
+        CancellationToken cancellationToken) => dbContext.Tags.AsNoTracking()
+        .SingleOrDefaultAsync(tag => tag.UserId == userId
+            && tag.NormalizedName == normalizedName && tag.Status == TagStatus.Active,
+            cancellationToken);
+
     public async Task<IReadOnlyList<Tag>> GetActiveByUserIdAsync(
         Guid userId,
         CancellationToken cancellationToken)

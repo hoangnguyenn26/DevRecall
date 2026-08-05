@@ -14,6 +14,7 @@ using DevRecall.Application.Interview.Answers;
 using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
+using DevRecall.Application.Knowledge.Workspace;
 using DevRecall.Application.Navigation;
 using DevRecall.Application.Recommendations;
 using DevRecall.Application.Recommendations.Generation;
@@ -111,6 +112,9 @@ public static class DependencyInjection
         services.AddScoped<IKnowledgeNodeRepository, KnowledgeNodeRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IKnowledgeNodeTagRepository, KnowledgeNodeTagRepository>();
+        services.AddScoped<IKnowledgeWorkspaceReader, KnowledgeWorkspaceReader>();
+        services.AddScoped<IKnowledgeWorkspaceWriter, KnowledgeWorkspaceWriter>();
+        services.AddScoped<IKnowledgeTagReader, KnowledgeTagReader>();
         services.AddScoped<IReviewItemRepository, ReviewItemRepository>();
         services.AddScoped<
             IStudyRecommendationRepository,
