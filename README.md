@@ -319,6 +319,22 @@ The MVP deliberately excludes:
 - microservices and distributed messaging
 - payments and public marketplaces
 
+### Week 19 — Knowledge Workspace
+
+Completed:
+
+- Three-pane Knowledge workspace
+- Hierarchical topic navigation
+- Searchable and filterable Knowledge list
+- Route-driven list/detail selection
+- Responsive mobile drill-down
+- Reading and optimistic editing experience
+- Topic and tag organization
+- Related Knowledge discovery
+- Global resource search
+- Keyboard-first workspace navigation
+- Unsaved-change and concurrency protection
+
 ## Contributing
 
 Before implementing a feature:

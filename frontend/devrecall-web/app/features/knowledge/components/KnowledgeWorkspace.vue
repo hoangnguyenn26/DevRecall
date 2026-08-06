@@ -5,6 +5,7 @@ import { useQuickCapture } from '~/features/quick-capture/useQuickCapture'
 import type { KnowledgeDetail, KnowledgeDetailMode, KnowledgeEditState, KnowledgeListPage, KnowledgeSort, KnowledgeTagOption, KnowledgeTopic, KnowledgeTopicTree } from '../knowledge.types'
 import { createKnowledgeEditState, isKnowledgeEditDirty } from '../knowledge.edit'
 import { buildKnowledgeFilterKey, moveKnowledgeActiveId, resolveKnowledgeActiveId } from '../knowledge.navigation'
+import { canonicalizeKnowledgeLocation, isCanonicalKnowledgeLocation } from '../knowledge.route'
 import KnowledgeDetailPane from './KnowledgeDetailPane.vue'
 import KnowledgeEditor from './KnowledgeEditor.vue'
 import KnowledgeListPane from './KnowledgeListPane.vue'
@@ -29,14 +30,23 @@ const sort = computed<KnowledgeSort>(() => ['created', 'title'].includes(String(
 const pageNumber = computed(() => Math.max(1, Number(route.query.page) || 1))
 const tagIds = computed(() => typeof route.query.tagIds === 'string' ? [...new Set(route.query.tagIds.split(',').filter(Boolean))].sort() : [])
 const filterKey = computed(() => buildKnowledgeFilterKey({ topicId: topicId.value, uncategorized: uncategorized.value, query: searchQuery.value, tagIds: tagIds.value, sort: sort.value, page: pageNumber.value }))
+async function canonicalizeCurrentRoute() {
+  const canonical = canonicalizeKnowledgeLocation(route.path, route.query)
+  if (!isCanonicalKnowledgeLocation(route.path, route.query, canonical)) await router.replace(canonical)
+}
+await canonicalizeCurrentRoute()
+watch(() => route.fullPath, () => { void canonicalizeCurrentRoute() })
 const listSession = useState<{ filterKey: string; scrollTop: number; focusedId?: string; restorePending?: boolean } | null>('knowledge:list-session', () => null)
+const listQueryKey = computed(() => queryKeys.knowledgeList(filterKey.value))
+const activeKnowledgeListKey = useState('knowledge:active-list-key', () => listQueryKey.value)
+watch(listQueryKey, value => { activeKnowledgeListKey.value = value }, { immediate: true })
 
-const { data: listPage, status: listStatus, error: listError, refresh: refreshList } = await useAsyncData<KnowledgeListPage>(queryKeys.knowledgeList,
+const { data: listPage, status: listStatus, error: listError, refresh: refreshList } = await useAsyncData<KnowledgeListPage>(listQueryKey,
   () => api.get('/knowledge', { topicId: topicId.value, topicScope: uncategorized.value ? 'uncategorized' : undefined, query: searchQuery.value, tagIds: tagIds.value.join(','), sort: sort.value, page: pageNumber.value, pageSize: 30 }),
-  { server: false, watch: [topicId, uncategorized, searchQuery, tagIds, sort, pageNumber] })
+  { server: false })
 const { data: topicTree, status: treeStatus, error: treeError, refresh: refreshTree } = await useAsyncData<KnowledgeTopicTree>(
   queryKeys.knowledgeTopics, () => api.get('/knowledge/topics/tree'), { server: false })
-const { data: tagOptions } = await useAsyncData<KnowledgeTagOption[]>(queryKeys.knowledgeTags,
+const { data: tagOptions } = await useAsyncData<KnowledgeTagOption[]>(queryKeys.knowledgeTags(),
   () => api.get('/knowledge/tags', { take: 20 }), { server: false, default: () => [] })
 const detail = ref<KnowledgeDetail | null>(null); const detailError = ref<unknown>(); const detailLoading = ref(false)
 const pendingDetailFocus = ref(false)
@@ -56,6 +66,17 @@ async function loadDetail() {
 watch(selectedId, value => { pendingDetailFocus.value = Boolean(value); void loadDetail() }, { immediate: true })
 watch(detail, async value => { if (value && pendingDetailFocus.value) { pendingDetailFocus.value = false; await nextTick(); detailPane.value?.focusHeading() } })
 watch(() => listPage.value?.items, items => { activeListId.value = resolveKnowledgeActiveId(items ?? [], selectedId.value, activeListId.value) }, { immediate: true })
+watch(listPage, async page => {
+  if (!page || dirty.value) return
+  const lastValidPage = Math.max(1, page.totalPages)
+  if (pageNumber.value > lastValidPage) {
+    await router.replace({ path: '/app/knowledge', query: { ...route.query, page: lastValidPage === 1 ? undefined : lastValidPage } })
+    return
+  }
+  const constrained = Boolean(topicId.value || uncategorized.value || searchQuery.value || tagIds.value.length || pageNumber.value > 1)
+  if (selectedId.value && constrained && !page.items.some(item => item.id === selectedId.value))
+    await router.replace({ path: '/app/knowledge', query: route.query })
+})
 watch([selectedId, listStatus, () => listPage.value?.items], async () => {
   const session = listSession.value
   if (selectedId.value || listStatus.value === 'pending' || !session?.restorePending || session.filterKey !== filterKey.value) return
@@ -84,6 +105,7 @@ async function cancelEdit() { if (!await confirmDiscard()) return; mode.value = 
 function addEditorTag(tag: KnowledgeTagOption) { if (!editorTags.value.some(item => item.id === tag.id)) editorTags.value.push(tag) }
 async function saveKnowledge() {
   if (!detail.value || !form.value || !dirty.value || saving.value || !form.value.title.trim()) return
+  const tagsChanged = detail.value.tags.map(tag => tag.id).sort().join(',') !== [...new Set(form.value.tagIds)].sort().join(',')
   saving.value = true; conflict.value = false
   try {
     const response = await api.put<{ detail: KnowledgeDetail; changed: boolean; topicChanged: boolean }>(`/knowledge/${detail.value.id}`, {
@@ -91,7 +113,8 @@ async function saveKnowledge() {
       tagIds: [...new Set(form.value.tagIds)], expectedVersion: form.value.expectedVersion,
     })
     detail.value = response.detail; mode.value = 'read'; form.value = null; initialForm.value = null
-    const refreshes: Promise<unknown>[] = [refreshList(), refreshNuxtData(queryKeys.knowledgeTags)]
+    const refreshes: Promise<unknown>[] = [refreshList()]
+    if (tagsChanged) refreshes.push(refreshNuxtData(queryKeys.knowledgeTags()))
     if (response.topicChanged) refreshes.push(refreshTree())
     await Promise.all(refreshes); toast.add({ title: 'Knowledge saved', color: 'success' })
   } catch (error) { if (error instanceof ApiError && error.problem.status === 409) conflict.value = true; else throw error }
@@ -106,7 +129,7 @@ async function deleteKnowledge() {
     await api.delete(`/knowledge/${detail.value.id}`, { expectedVersion: detail.value.version })
     const previousPage = listPage.value?.items.length === 1 && pageNumber.value > 1 ? pageNumber.value - 1 : pageNumber.value
     await router.push({ path: '/app/knowledge', query: { ...route.query, page: previousPage === 1 ? undefined : previousPage } })
-    await Promise.all([refreshList(), refreshTree(), refreshNuxtData(queryKeys.knowledgeTags)])
+    await Promise.all([refreshList(), refreshTree(), refreshNuxtData(queryKeys.knowledgeTags())])
     toast.add({ title: 'Knowledge deleted' })
   } catch (error) { if (error instanceof ApiError && error.problem.status === 409) { conflict.value = true; mode.value = 'edit'; if (!form.value && detail.value) startEdit() } else throw error }
 }
@@ -175,7 +198,7 @@ function onKeyboard(event: KeyboardEvent) {
   }
   if (mode.value === 'read' && event.key.toLowerCase() === 'e' && !typing) { event.preventDefault(); startEdit() }
   if (mode.value === 'edit' && event.key.toLowerCase() === 's' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void saveKnowledge() }
-  if (mode.value === 'edit' && event.key === 'Escape') { event.preventDefault(); void cancelEdit() }
+  if (mode.value === 'edit' && event.key === 'Escape' && !typing && !commandPaletteOpen.value) { event.preventDefault(); void cancelEdit() }
 }
 onMounted(() => { setShortcutScope(mode.value === 'edit' ? 'editor' : 'knowledge-workspace'); window.addEventListener('keydown', onKeyboard) })
 onBeforeUnmount(() => { setShortcutScope('global'); detailController?.abort(); window.removeEventListener('keydown', onKeyboard) })
@@ -183,10 +206,10 @@ onBeforeUnmount(() => { setShortcutScope('global'); detailController?.abort(); w
 
 <template>
   <div class="flex h-[calc(100dvh-var(--devrecall-topbar-height)-2rem)] min-h-[36rem] flex-col overflow-hidden rounded-xl border border-default bg-default shadow-sm lg:h-[calc(100dvh-var(--devrecall-topbar-height)-3rem)]">
-    <header class="flex min-h-16 items-center justify-between gap-3 border-b border-default px-3 sm:px-4"><div class="flex min-w-0 items-center gap-2"><UButton class="lg:hidden" icon="i-lucide-panel-left" color="neutral" variant="ghost" aria-label="Open topics" @click="topicDrawerOpen = true" /><div class="min-w-0"><h1 class="truncate text-lg font-semibold">Knowledge</h1><p class="hidden text-xs text-muted sm:block">Explore your connected learning notes.</p></div></div><div class="flex items-center gap-1"><UPopover><UButton icon="i-lucide-keyboard" color="neutral" variant="ghost" aria-label="Knowledge keyboard shortcuts" /><template #content><div class="w-64 space-y-2 p-3 text-sm"><p class="font-medium">Keyboard shortcuts</p><p><UKbd>/</UKbd> Focus search</p><p><UKbd>J</UKbd>/<UKbd>K</UKbd> Move through notes</p><p><UKbd>Home</UKbd>/<UKbd>End</UKbd> First or last</p><p><UKbd>Enter</UKbd> Open note</p><p><UKbd>E</UKbd> Edit selected note</p><p><UKbd>Ctrl</UKbd> + <UKbd>S</UKbd> Save</p></div></template></UPopover><UButton icon="i-lucide-plus" label="Capture note" @click="quickCapture.start('KnowledgeNode')" /></div></header>
+    <header class="flex min-h-16 items-center justify-between gap-3 border-b border-default px-3 sm:px-4"><div class="flex min-w-0 items-center gap-2"><UButton class="lg:hidden" icon="i-lucide-panel-left" color="neutral" variant="ghost" aria-label="Open topics" @click="topicDrawerOpen = true" /><div class="min-w-0"><component :is="selectedId ? 'p' : 'h1'" class="truncate text-lg font-semibold">Knowledge</component><p class="hidden text-xs text-muted sm:block">Explore your connected learning notes.</p></div></div><div class="flex items-center gap-1"><UPopover><UButton icon="i-lucide-keyboard" color="neutral" variant="ghost" aria-label="Knowledge keyboard shortcuts" /><template #content><div class="w-64 space-y-2 p-3 text-sm"><p class="font-medium">Keyboard shortcuts</p><p><UKbd>/</UKbd> Focus search</p><p><UKbd>J</UKbd>/<UKbd>K</UKbd> Move through notes</p><p><UKbd>Home</UKbd>/<UKbd>End</UKbd> First or last</p><p><UKbd>Enter</UKbd> Open note</p><p><UKbd>E</UKbd> Edit selected note</p><p><UKbd>Ctrl</UKbd> + <UKbd>S</UKbd> Save</p><p><UKbd>Ctrl</UKbd> + <UKbd>K</UKbd> Global search</p><p><UKbd>G</UKbd> then <UKbd>K</UKbd> Open Knowledge</p></div></template></UPopover><UButton icon="i-lucide-plus" label="Capture note" @click="quickCapture.start('KnowledgeNode')" /></div></header>
     <div class="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] lg:grid-cols-[17rem_minmax(19rem,25rem)_minmax(0,1fr)]">
       <KnowledgeTopicPane class="hidden border-r border-default lg:flex" :tree="topicTree ?? null" :loading="treeStatus === 'pending'" :error="treeError" :selected-id="topicId" :uncategorized="uncategorized" :expanded="expanded" @select="selectTopic" @toggle="toggleTopic" @retry="refreshTree" />
-      <KnowledgeListPane ref="listPane" class="border-r-0 border-default md:border-r" :class="selectedId ? 'hidden md:flex' : 'flex'" :page="listPage ?? null" :loading="listStatus === 'pending'" :error="listError" :selected-id="selectedId" :active-id="activeListId" :query="searchQuery" :sort="sort" :filtered="Boolean(topicId || uncategorized || tagIds.length)" :active-tag-ids="tagIds" :tag-options="tagOptions" @select="selectKnowledge" @activate="activeListId = $event" @list-focus="listKeyboardActive = true" @search="guardedUpdateQuery({ query: $event || undefined, page: undefined }, true)" @sort="guardedUpdateQuery({ sort: $event === 'updated' ? undefined : $event, page: undefined })" @tags="guardedUpdateQuery({ tagIds: $event.length ? $event.join(',') : undefined, page: undefined }, true)" @page="guardedUpdateQuery({ page: $event === 1 ? undefined : $event })" @retry="refreshList" />
+      <KnowledgeListPane ref="listPane" class="border-r-0 border-default md:border-r" :class="selectedId ? 'hidden md:flex' : 'flex'" :page="listPage ?? null" :loading="listStatus === 'pending'" :error="listError" :selected-id="selectedId" :active-id="activeListId" :query="searchQuery" :sort="sort" :filtered="Boolean(topicId || uncategorized || tagIds.length)" :active-tag-ids="tagIds" :tag-options="tagOptions" @select="selectKnowledge" @activate="activeListId = $event" @list-focus="listKeyboardActive = true" @search="guardedUpdateQuery({ query: $event || undefined, page: undefined }, true)" @sort="guardedUpdateQuery({ sort: $event === 'updated' ? undefined : $event, page: undefined })" @tags="guardedUpdateQuery({ tagIds: $event.length ? $event.join(',') : undefined, page: undefined }, true)" @page="guardedUpdateQuery({ page: $event === 1 ? undefined : $event }, true)" @retry="refreshList" />
       <KnowledgeEditor v-if="selectedId && mode === 'edit' && form" v-model="form" class="block" :topics="topicOptions" :selected-tags="editorTags" :saving="saving" :conflict="conflict" :dirty="dirty" @save="saveKnowledge" @cancel="cancelEdit" @reload="reloadLatest" @tag-added="addEditorTag" />
       <KnowledgeDetailPane v-else ref="detailPane" :class="selectedId ? 'block' : 'hidden md:block'" :detail="detail" :loading="detailLoading" :error="detailError" @retry="loadDetail" @back="backToList" @edit="startEdit" @delete="deleteKnowledge" @tag="applyTagFilter" @related="openRelated" />
     </div>

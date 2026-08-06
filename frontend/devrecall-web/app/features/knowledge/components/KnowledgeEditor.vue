@@ -8,8 +8,8 @@ const form = defineModel<KnowledgeEditState>({ required: true })
 
 <template>
   <section class="flex h-full min-h-0 flex-col" aria-label="Edit knowledge">
-<header class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-default bg-default/95 px-4 py-3 backdrop-blur"><div><h2 class="font-semibold">Edit knowledge</h2><p class="text-xs text-muted">Ctrl/⌘ + S to save</p></div><div class="flex gap-1"><UButton color="neutral" variant="ghost" label="Cancel" @click="$emit('cancel')" /><UButton icon="i-lucide-save" label="Save" :loading="saving" :disabled="saving || !dirty" @click="$emit('save')" /></div></header>
-    <form class="mx-auto grid w-full max-w-[46rem] gap-5 overflow-y-auto px-5 py-6 sm:px-8" @submit.prevent="$emit('save')">
+<header class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-default bg-default/95 px-4 py-3 backdrop-blur"><div><h2 class="font-semibold">Edit knowledge</h2><p class="text-xs text-muted">Ctrl/⌘ + S to save</p></div><div class="flex gap-1"><UButton color="neutral" variant="ghost" label="Cancel" :disabled="saving" @click="$emit('cancel')" /><UButton icon="i-lucide-save" label="Save" :loading="saving" :disabled="saving || !dirty" @click="$emit('save')" /></div></header>
+    <form class="mx-auto grid w-full max-w-[46rem] gap-5 overflow-y-auto px-5 py-6 sm:px-8" :aria-busy="saving" @submit.prevent="$emit('save')">
       <FeedbackConcurrencyConflictAlert v-if="conflict" resource-label="knowledge item" @reload="$emit('reload')" />
       <UFormField label="Title" required><UInput v-model="form.title" name="title" autofocus class="w-full" maxlength="200" /></UFormField>
       <UFormField label="Topic"><USelect v-model="form.topicId" :items="topics" value-key="value" class="w-full" /></UFormField>

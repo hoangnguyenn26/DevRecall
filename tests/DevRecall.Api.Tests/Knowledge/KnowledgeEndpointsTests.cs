@@ -3,8 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
-using DevRecall.Contracts.Knowledge;
 using DevRecall.Contracts.Common;
+using DevRecall.Contracts.Knowledge;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Infrastructure.Persistence;
 using FluentAssertions;
@@ -885,6 +885,24 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task WorkspaceSearch_ShouldRankExactTitleBeforePrefixDeterministically()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        await CreateNodeAsync(client, "Dependency Injection Lifetimes", null);
+        await CreateNodeAsync(client, "Dependency Injection", null);
+
+        using var response = await client.GetAsync(
+            "/api/v1/knowledge?query=dependency%20injection&page=1&pageSize=30");
+        var page = await response.Content.ReadFromJsonAsync<
+            PagedResponse<KnowledgeWorkspaceListItemResponse>>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        page!.Items.Select(item => item.Title).Should().Equal(
+            "Dependency Injection", "Dependency Injection Lifetimes");
+    }
+
+    [Fact]
     public async Task WorkspaceTopicTree_ShouldReturnDeterministicDescendantCounts()
     {
         var session = await CreateAuthenticatedClientAsync();
@@ -900,6 +918,29 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         tree.Items.Should().ContainSingle();
         tree.Items[0].TotalKnowledgeCount.Should().Be(2);
         tree.Items[0].DescendantKnowledgeCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task WorkspaceTopicTree_WithCorruptCycle_ShouldReturnEachTopicAtMostOnce()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var root = await CreateNodeAsync(client, "Cycle A", null);
+        var child = await CreateNodeAsync(client, "Cycle B", root.Id);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+            await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE knowledge_nodes SET parent_id = {child.Id} WHERE id = {root.Id}");
+        }
+
+        using var response = await client.GetAsync("/api/v1/knowledge/topics/tree");
+        var tree = await response.Content.ReadFromJsonAsync<KnowledgeTopicTreeResponse>();
+        var topicIds = FlattenTopics(tree!.Items).Select(topic => topic.Id).ToArray();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        topicIds.Should().HaveCount(2).And.OnlyHaveUniqueItems();
+        topicIds.Should().BeEquivalentTo([root.Id, child.Id]);
     }
 
     [Fact]
@@ -932,6 +973,30 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         document.RootElement.GetProperty("errorCode").GetString()
             .Should().Be("KNOWLEDGE_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task WorkspaceMutations_ForAnotherOwner_ShouldReturnKnowledgeNotFound()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var ownerClient = owner.Client;
+        var note = await CreateNodeAsync(ownerClient, "Owner only", null);
+        var detail = await GetWorkspaceDetailAsync(ownerClient, note.Id);
+        var other = await CreateAuthenticatedClientAsync();
+        using var otherClient = other.Client;
+
+        using var update = await otherClient.PutAsJsonAsync($"/api/v1/knowledge/{note.Id}",
+            new UpdateKnowledgeRequest("Leaked", "Leaked", null, [], detail.Version));
+        using var delete = await otherClient.DeleteAsync(
+            $"/api/v1/knowledge/{note.Id}?expectedVersion={detail.Version}");
+        using var updateProblem = JsonDocument.Parse(await update.Content.ReadAsStringAsync());
+        using var deleteProblem = JsonDocument.Parse(await delete.Content.ReadAsStringAsync());
+
+        update.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        delete.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        updateProblem.RootElement.GetProperty("errorCode").GetString().Should().Be("KNOWLEDGE_NOT_FOUND");
+        deleteProblem.RootElement.GetProperty("errorCode").GetString().Should().Be("KNOWLEDGE_NOT_FOUND");
+        (await GetWorkspaceDetailAsync(ownerClient, note.Id)).Title.Should().Be("Owner only");
     }
 
     [Fact]
@@ -1122,4 +1187,7 @@ public sealed class KnowledgeEndpointsTests(AuthApiFactory factory)
         return (await response.Content
             .ReadFromJsonAsync<IReadOnlyList<KnowledgeTreeNodeResponse>>())!;
     }
+
+    private static IEnumerable<KnowledgeTopicResponse> FlattenTopics(IEnumerable<KnowledgeTopicResponse> topics) =>
+        topics.SelectMany(topic => new[] { topic }.Concat(FlattenTopics(topic.Children)));
 }

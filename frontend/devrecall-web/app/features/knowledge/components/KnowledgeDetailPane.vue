@@ -14,7 +14,7 @@ defineExpose({ focusHeading })
 </script>
 
 <template>
-  <section class="h-full min-h-0 overflow-y-auto" aria-label="Knowledge detail">
+  <section class="h-full min-h-0 overflow-y-auto" aria-label="Knowledge detail" :aria-busy="loading">
     <div class="sticky top-0 z-10 flex items-center gap-2 border-b border-default bg-default/95 px-4 py-3 backdrop-blur md:hidden"><UButton icon="i-lucide-arrow-left" color="neutral" variant="ghost" aria-label="Back to knowledge list" @click="$emit('back')" /><span class="text-sm font-medium">Back to list</span></div>
     <CoreLoadingState v-if="loading" label="Loading note" />
     <CoreErrorState v-else-if="error" :error="error" @retry="$emit('retry')" />
@@ -31,4 +31,4 @@ defineExpose({ focusHeading })
   </section>
 </template>
 
-<style scoped>.knowledge-content pre { overflow-x: auto; margin: 1rem 0; border-radius: .75rem; padding: 1rem; background: var(--ui-bg-elevated); }.knowledge-content code { font-family: "JetBrains Mono", ui-monospace, monospace; white-space: pre; }</style>
+<style scoped>.knowledge-content { overflow-wrap: anywhere; }.knowledge-content pre { overflow-x: auto; overflow-wrap: normal; margin: 1rem 0; border-radius: .75rem; padding: 1rem; background: var(--ui-bg-elevated); }.knowledge-content code { font-family: "JetBrains Mono", ui-monospace, monospace; white-space: pre; }</style>

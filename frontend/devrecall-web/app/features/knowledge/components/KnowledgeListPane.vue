@@ -23,7 +23,7 @@ defineExpose({ focusSearch, focusActive, getScrollTop, restoreList })
 </script>
 
 <template>
-  <section class="flex h-full min-h-0 flex-col" aria-label="Knowledge list">
+  <section class="flex h-full min-h-0 flex-col" aria-label="Knowledge list" :aria-busy="loading">
     <div class="space-y-3 border-b border-default p-3">
       <div ref="searchInput"><UInput v-model="searchValue" icon="i-lucide-search" placeholder="Search knowledge…" aria-label="Search knowledge" class="w-full" /></div>
       <div class="flex items-center justify-between gap-2">

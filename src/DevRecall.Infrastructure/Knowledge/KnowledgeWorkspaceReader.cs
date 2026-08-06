@@ -53,7 +53,8 @@ internal sealed class KnowledgeWorkspaceReader(DevRecallDbContext dbContext)
         }
 
         var totalCount = await nodes.CountAsync(cancellationToken);
-        var ordered = ApplyOrdering(nodes, filter);
+        var exactPattern = filter.Query is null ? null : EscapeLikePattern(filter.Query);
+        var ordered = ApplyOrdering(nodes, filter, exactPattern, exactPattern + "%");
         var pageRows = await (
             from node in ordered.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize)
             join parent in dbContext.KnowledgeNodes.AsNoTracking()
@@ -150,23 +151,28 @@ internal sealed class KnowledgeWorkspaceReader(DevRecallDbContext dbContext)
     }
 
     private static IOrderedQueryable<KnowledgeNode> ApplyOrdering(
-        IQueryable<KnowledgeNode> nodes, KnowledgeListFilter filter)
+        IQueryable<KnowledgeNode> nodes, KnowledgeListFilter filter,
+        string? exactPattern, string? prefixPattern)
     {
         if (filter.Query is not null)
         {
-            return nodes.OrderByDescending(node => EF.Functions.ToTsVector("simple",
+            return nodes.OrderByDescending(node => EF.Functions.ILike(node.Title, exactPattern!, "\\"))
+                .ThenByDescending(node => EF.Functions.ILike(node.Title, prefixPattern!, "\\"))
+                .ThenByDescending(node => EF.Functions.ToTsVector("simple",
                     node.Title + " " + node.Content + " " + (node.Description ?? ""))
                     .RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", filter.Query)))
                 .ThenByDescending(node => node.UpdatedAtUtc).ThenBy(node => node.Id);
         }
 
+#pragma warning disable CA1304, CA1311, CA1862 // PostgreSQL translates ToLower for normalized title ordering.
         return filter.Sort switch
         {
             KnowledgeListSort.Created => nodes.OrderByDescending(node => node.CreatedAtUtc).ThenBy(node => node.Id),
-            KnowledgeListSort.Title => nodes.OrderBy(node => node.Title).ThenBy(node => node.Id),
+            KnowledgeListSort.Title => nodes.OrderBy(node => node.Title.ToLower()).ThenBy(node => node.Id),
             _ => nodes.OrderByDescending(node => node.UpdatedAtUtc)
                 .ThenByDescending(node => node.CreatedAtUtc).ThenBy(node => node.Id)
         };
+#pragma warning restore CA1304, CA1311, CA1862
     }
 
     private async Task<IReadOnlyList<RelatedKnowledgeReadModel>> ReadRelatedAsync(
@@ -178,7 +184,10 @@ internal sealed class KnowledgeWorkspaceReader(DevRecallDbContext dbContext)
                 && node.Status == KnowledgeNodeStatus.Active)
             .Select(node => new
             {
-                node.Id, node.Title, node.ParentId, node.UpdatedAtUtc,
+                node.Id,
+                node.Title,
+                node.ParentId,
+                node.UpdatedAtUtc,
                 TopicName = dbContext.KnowledgeNodes.Where(topic => topic.Id == node.ParentId)
                     .Select(topic => topic.Title).FirstOrDefault(),
                 SharedTagCount = dbContext.KnowledgeNodeTags.Count(relation =>
@@ -209,6 +218,11 @@ internal sealed class KnowledgeWorkspaceReader(DevRecallDbContext dbContext)
         }
         return result.ToArray();
     }
+
+    private static string EscapeLikePattern(string value) => value
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal);
 
     private static List<KnowledgeTopicReadModel> BuildChildren(
         Guid parentId, int depth, IReadOnlyDictionary<Guid, List<TopicRow>> children, HashSet<Guid> visited)

@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useLearningDataInvalidation } from '~/composables/useLearningDataInvalidation'
 import { queryKeys } from './query-keys'
 
 describe('learning data invalidation', () => {
+  beforeEach(() => vi.stubGlobal('useState', () => ({ value: queryKeys.knowledgeList('active') })))
   afterEach(() => vi.unstubAllGlobals())
 
   it('refreshes Today and navigation after a learning-state mutation', async () => {
@@ -15,14 +16,13 @@ describe('learning data invalidation', () => {
     expect(refresh).toHaveBeenCalledWith(queryKeys.navigationIndicators)
   })
 
-  it('refreshes only the affected list and Today after Knowledge capture', async () => {
+  it('refreshes only the affected Knowledge projections and Today after Knowledge capture', async () => {
     const refresh = vi.fn<(key: string) => Promise<void>>(async () => undefined)
     vi.stubGlobal('refreshNuxtData', refresh)
-
     await useLearningDataInvalidation().afterCapture('KnowledgeNode')
 
     expect(refresh.mock.calls.map(([key]) => key)).toEqual([
-      queryKeys.knowledgeList, queryKeys.knowledgeTopics, queryKeys.today,
+      queryKeys.knowledgeList('active'), queryKeys.knowledgeTopics, queryKeys.knowledgeTags(), queryKeys.today,
     ])
   })
 

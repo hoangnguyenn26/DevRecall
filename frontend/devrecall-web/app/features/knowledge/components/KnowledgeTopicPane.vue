@@ -5,7 +5,7 @@ defineEmits<{ select: [id?: string, uncategorized?: boolean]; toggle: [id: strin
 </script>
 
 <template>
-  <aside class="flex h-full min-h-0 flex-col bg-muted/30" aria-label="Knowledge topics">
+  <aside class="flex h-full min-h-0 flex-col bg-muted/30" aria-label="Knowledge topics" :aria-busy="loading">
     <div class="border-b border-default px-4 py-4"><p class="font-semibold">Topics</p><p class="text-xs text-muted">{{ tree?.totalKnowledgeCount ?? 0 }} notes</p></div>
     <CoreLoadingState v-if="loading" label="Loading topics" />
     <CoreErrorState v-else-if="error" :error="error" @retry="$emit('retry')" />
