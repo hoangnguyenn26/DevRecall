@@ -5,7 +5,7 @@ const routesByKey: Record<string, string> = {
 
 export function useNavigationShortcuts() {
   const router = useRouter()
-  const pendingPrefix = ref<string | null>(null)
+  const pendingPrefix = useState<string | null>('shortcuts:navigation-prefix', () => null)
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   function clearPending(): void {
@@ -15,8 +15,7 @@ export function useNavigationShortcuts() {
   }
 
   async function handleKeydown(event: KeyboardEvent): Promise<void> {
-    const element = event.target as HTMLElement | null
-    if (element?.matches('input, textarea, select, [contenteditable="true"]')) return
+    if (isEditableTarget(event.target)) return
     const key = event.key.toLowerCase()
 
     if (pendingPrefix.value === 'g') {
@@ -24,6 +23,7 @@ export function useNavigationShortcuts() {
       const target = routesByKey[key]
       if (target) {
         event.preventDefault()
+        event.stopImmediatePropagation()
         await router.push(target)
       }
       return
@@ -40,5 +40,5 @@ export function useNavigationShortcuts() {
     clearPending()
     window.removeEventListener('keydown', handleKeydown)
   })
-  return { pendingPrefix: readonly(pendingPrefix) }
+  return { pendingPrefix: readonly(pendingPrefix), clearPending }
 }

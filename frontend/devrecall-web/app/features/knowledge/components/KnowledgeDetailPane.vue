@@ -8,6 +8,9 @@ const contentBlocks = computed(() => (props.detail?.content ?? '').split(/```/).
   value: index % 2 === 1 ? value.trim().replace(/^[a-z0-9+#.-]+\r?\n/i, '') : value,
   code: index % 2 === 1,
 })))
+const heading = useTemplateRef<HTMLElement>('heading')
+function focusHeading() { heading.value?.focus() }
+defineExpose({ focusHeading })
 </script>
 
 <template>
@@ -19,7 +22,7 @@ const contentBlocks = computed(() => (props.detail?.content ?? '').split(/```/).
     <template v-else>
       <KnowledgeDetailHeader :knowledge="detail" @edit="$emit('edit')" @delete="$emit('delete')" @tag="$emit('tag', $event)" />
       <article class="mx-auto max-w-[var(--devrecall-reading-width)] px-5 py-8 sm:px-8">
-      <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">{{ detail.title }}</h1><p v-if="detail.description" class="mt-4 text-base text-muted">{{ detail.description }}</p>
+      <h1 ref="heading" tabindex="-1" class="text-2xl font-semibold tracking-tight outline-none sm:text-3xl">{{ detail.title }}</h1><p v-if="detail.description" class="mt-4 text-base text-muted">{{ detail.description }}</p>
       <div class="knowledge-content mt-8 text-[0.98rem] leading-7"><template v-if="detail.content"><template v-for="(block, index) in contentBlocks" :key="index"><pre v-if="block.code"><code>{{ block.value.trim() }}</code></pre><div v-else class="whitespace-pre-wrap">{{ block.value }}</div></template></template><p v-else class="text-muted">No content has been added yet.</p></div>
       <a v-if="detail.sourceUrl" :href="detail.sourceUrl" target="_blank" rel="noreferrer" class="mt-8 inline-flex items-center gap-1 text-sm text-primary">Open reference <UIcon name="i-lucide-external-link" /></a>
       <section v-if="detail.relatedItems.length" class="mt-12"><h2 class="mb-3 text-lg font-semibold">Related knowledge</h2><ul class="divide-y divide-default rounded-xl border border-default"><li v-for="item in detail.relatedItems" :key="item.id"><button class="block w-full p-4 text-left hover:bg-elevated/50" @click="$emit('related', item.id)"><span class="line-clamp-2 text-sm font-medium">{{ item.title }}</span><span class="mt-1 block text-xs text-muted">{{ buildRelatedReason(item) }}</span></button></li></ul></section>
