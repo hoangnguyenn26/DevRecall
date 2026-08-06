@@ -1,6 +1,5 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Search;
-using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Search;
 
 namespace DevRecall.Api.Endpoints.Search;
@@ -14,7 +13,7 @@ public static class SearchEndpoints
             .WithTags("Search")
             .WithName("GlobalSearch")
             .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser)
-            .Produces<PagedResponse<SearchResultResponse>>()
+            .Produces<GlobalSearchResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
         return endpoints;
@@ -26,13 +25,15 @@ public static class SearchEndpoints
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
-            new GlobalSearchQuery(
-                request.Q, request.Modules, request.Page, request.PageSize),
+            new GlobalSearchQuery(request.Q, request.TakePerType),
             cancellationToken);
-        return Results.Ok(SearchResponse.Create(
-            result.Items.Select(item => new SearchResultResponse(
-                item.ResourceType, item.ResourceId, item.Title, item.Preview,
-                item.Rank, item.Metadata)).ToList(),
-            result.Page, result.PageSize, result.TotalCount, result.TotalPages));
+        return Results.Ok(new GlobalSearchResponse(
+            result.Query,
+            result.Items.Select(item => new GlobalSearchResultResponse(
+                item.ResourceId, item.ResourceType, item.Title, item.Summary,
+                item.TargetPath, item.Rank, item.UpdatedAtUtc,
+                item.Highlights.Select(highlight => new SearchHighlightResponse(
+                    highlight.Field, highlight.Text)).ToList())).ToList(),
+            result.HasMore));
     }
 }

@@ -10,109 +10,166 @@ namespace DevRecall.Infrastructure.Search;
 internal sealed class GlobalSearchReader(DevRecallDbContext dbContext)
     : IGlobalSearchReader
 {
-    public async Task<GlobalSearchReadResult> SearchAsync(
-        Guid userId, string text, IReadOnlySet<string> modules,
-        int candidateLimit, CancellationToken cancellationToken)
+    private const int SummaryLength = 240;
+
+    public async Task<GlobalSearchReadModel> SearchAsync(
+        Guid userId, string query, int takePerType,
+        CancellationToken cancellationToken)
     {
-        var candidates = new List<GlobalSearchCandidate>();
-        var totalCount = 0;
-        if (modules.Contains("knowledge"))
-        {
-            var result = await SearchKnowledgeAsync(userId, text, candidateLimit, cancellationToken);
-            candidates.AddRange(result.Items); totalCount += result.TotalCount;
-        }
-        if (modules.Contains("interview"))
-        {
-            var result = await SearchInterviewAsync(userId, text, candidateLimit, cancellationToken);
-            candidates.AddRange(result.Items); totalCount += result.TotalCount;
-        }
-        if (modules.Contains("dsa"))
-        {
-            var result = await SearchDsaAsync(userId, text, candidateLimit, cancellationToken);
-            candidates.AddRange(result.Items); totalCount += result.TotalCount;
-        }
-        return new GlobalSearchReadResult(
-            candidates.OrderByDescending(item => item.Rank)
-                .ThenBy(item => item.Title).Take(candidateLimit).ToList(), totalCount);
+        var limit = takePerType + 1;
+        var knowledge = await SearchKnowledgeAsync(
+            userId, query, limit, cancellationToken);
+        var interview = await SearchInterviewAsync(
+            userId, query, limit, cancellationToken);
+        var dsa = await SearchDsaAsync(
+            userId, query, limit, cancellationToken);
+        var hasMore = knowledge.Count > takePerType
+            || interview.Count > takePerType || dsa.Count > takePerType;
+
+        var items = knowledge.Take(takePerType)
+            .Concat(interview.Take(takePerType))
+            .Concat(dsa.Take(takePerType))
+            .OrderByDescending(item => item.IsExactTitleMatch)
+            .ThenByDescending(item => item.IsPrefixTitleMatch)
+            .ThenByDescending(item => item.Rank)
+            .ThenByDescending(item => item.UpdatedAtUtc)
+            .ThenBy(item => item.ResourceType)
+            .ThenBy(item => item.ResourceId)
+            .ToList();
+        return new GlobalSearchReadModel(items, hasMore);
     }
 
-    private async Task<GlobalSearchReadResult> SearchKnowledgeAsync(
+    private async Task<IReadOnlyList<GlobalSearchCandidate>> SearchKnowledgeAsync(
         Guid userId, string text, int limit, CancellationToken cancellationToken)
     {
-        var rows = dbContext.KnowledgeNodes.AsNoTracking()
-            .Where(node => node.UserId == userId && node.Status == KnowledgeNodeStatus.Active)
-            .Select(node => new { Node = node,
-                Vector = EF.Functions.ToTsVector("simple", node.Title + " " + node.Content + " " + (node.Description ?? "")) })
-            .Where(row => row.Vector.Matches(EF.Functions.WebSearchToTsQuery("simple", text)));
-        var total = await rows.CountAsync(cancellationToken);
-        var matches = await rows.OrderByDescending(row => row.Vector.RankCoverDensity(
-                EF.Functions.WebSearchToTsQuery("simple", text)))
-            .Take(limit).Select(row => new
+        var exactPattern = EscapeLikePattern(text);
+        var prefixPattern = exactPattern + "%";
+        var rows = await dbContext.KnowledgeNodes.AsNoTracking()
+            .Where(node => node.UserId == userId
+                && node.Status == KnowledgeNodeStatus.Active)
+            .Select(node => new
             {
-                row.Node.Id, row.Node.Title, row.Node.Content, row.Node.Description,
+                Node = node,
+                Vector = EF.Functions.ToTsVector("simple",
+                    node.Title + " " + node.Content + " " + (node.Description ?? "")),
+                IsExact = EF.Functions.ILike(node.Title, exactPattern, "\\"),
+                IsPrefix = EF.Functions.ILike(node.Title, prefixPattern, "\\")
+            })
+            .Where(row => row.Vector.Matches(EF.Functions.WebSearchToTsQuery("simple", text)))
+            .OrderByDescending(row => row.IsExact)
+            .ThenByDescending(row => row.IsPrefix)
+            .ThenByDescending(row => row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text)))
+            .ThenByDescending(row => row.Node.UpdatedAtUtc)
+            .ThenBy(row => row.Node.Id)
+            .Take(limit)
+            .Select(row => new
+            {
+                row.Node.Id,
+                row.Node.Title,
+                Summary = row.Node.Description ?? (row.Node.Content.Length > SummaryLength
+                    ? row.Node.Content.Substring(0, SummaryLength) : row.Node.Content),
+                row.Node.UpdatedAtUtc,
+                row.IsExact,
+                row.IsPrefix,
                 Rank = row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text))
-            }).ToListAsync(cancellationToken);
-        var items = matches.Select(row => new GlobalSearchCandidate(
-            "Knowledge", row.Id, row.Title, row.Description ?? row.Content,
-            row.Rank, new Dictionary<string, string>())).ToList();
-        return new GlobalSearchReadResult(items.Select(TrimPreview).ToList(), total);
+            })
+            .ToListAsync(cancellationToken);
+        return rows.Select(row => new GlobalSearchCandidate(
+            row.Id, GlobalSearchResourceType.Knowledge, row.Title,
+            NormalizeSummary(row.Summary), Convert.ToDecimal(row.Rank),
+            row.UpdatedAtUtc, row.IsExact, row.IsPrefix)).ToList();
     }
 
-    private async Task<GlobalSearchReadResult> SearchInterviewAsync(
+    private async Task<IReadOnlyList<GlobalSearchCandidate>> SearchInterviewAsync(
         Guid userId, string text, int limit, CancellationToken cancellationToken)
     {
-        var rows = dbContext.InterviewQuestions.AsNoTracking()
-            .Where(item => item.UserId == userId && item.Status == InterviewQuestionStatus.Active)
-            .Select(item => new { Item = item,
-                Vector = EF.Functions.ToTsVector("simple", item.Title + " " + item.Question + " " + item.Topic + " " + (item.Notes ?? "")) })
-            .Where(row => row.Vector.Matches(EF.Functions.WebSearchToTsQuery("simple", text)));
-        var total = await rows.CountAsync(cancellationToken);
-        var matches = await rows.OrderByDescending(
-                row => row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text)))
-            .Take(limit).Select(row => new
+        var exactPattern = EscapeLikePattern(text);
+        var prefixPattern = exactPattern + "%";
+        var rows = await dbContext.InterviewQuestions.AsNoTracking()
+            .Where(item => item.UserId == userId
+                && item.Status == InterviewQuestionStatus.Active)
+            .Select(item => new
             {
-                row.Item.Id, row.Item.Title, row.Item.Question,
-                row.Item.Topic, row.Item.Difficulty,
+                Item = item,
+                Vector = EF.Functions.ToTsVector("simple",
+                    item.Title + " " + item.Question + " " + item.Topic + " " + (item.Notes ?? "")),
+                IsExact = EF.Functions.ILike(item.Title, exactPattern, "\\"),
+                IsPrefix = EF.Functions.ILike(item.Title, prefixPattern, "\\")
+            })
+            .Where(row => row.Vector.Matches(EF.Functions.WebSearchToTsQuery("simple", text)))
+            .OrderByDescending(row => row.IsExact)
+            .ThenByDescending(row => row.IsPrefix)
+            .ThenByDescending(row => row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text)))
+            .ThenByDescending(row => row.Item.UpdatedAtUtc)
+            .ThenBy(row => row.Item.Id)
+            .Take(limit)
+            .Select(row => new
+            {
+                row.Item.Id,
+                row.Item.Title,
+                Summary = row.Item.Question.Length > SummaryLength
+                    ? row.Item.Question.Substring(0, SummaryLength) : row.Item.Question,
+                row.Item.UpdatedAtUtc,
+                row.IsExact,
+                row.IsPrefix,
                 Rank = row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text))
-            }).ToListAsync(cancellationToken);
-        var items = matches.Select(row => new GlobalSearchCandidate(
-            "Interview", row.Id, row.Title, row.Question, row.Rank,
-            new Dictionary<string, string>
-            {
-                ["topic"] = row.Topic,
-                ["difficulty"] = row.Difficulty.ToString()
-            })).ToList();
-        return new GlobalSearchReadResult(items.Select(TrimPreview).ToList(), total);
+            })
+            .ToListAsync(cancellationToken);
+        return rows.Select(row => new GlobalSearchCandidate(
+            row.Id, GlobalSearchResourceType.InterviewQuestion, row.Title,
+            NormalizeSummary(row.Summary), Convert.ToDecimal(row.Rank),
+            row.UpdatedAtUtc, row.IsExact, row.IsPrefix)).ToList();
     }
 
-    private async Task<GlobalSearchReadResult> SearchDsaAsync(
+    private async Task<IReadOnlyList<GlobalSearchCandidate>> SearchDsaAsync(
         Guid userId, string text, int limit, CancellationToken cancellationToken)
     {
-        var rows = dbContext.DsaProblems.AsNoTracking()
-            .Where(item => item.UserId == userId && item.Status == DsaProblemStatus.Active)
-            .Select(item => new { Item = item,
-                Vector = EF.Functions.ToTsVector("simple", item.Title + " " + item.Description + " " + (item.Source ?? "")) })
-            .Where(row => row.Vector.Matches(EF.Functions.WebSearchToTsQuery("simple", text)));
-        var total = await rows.CountAsync(cancellationToken);
-        var matches = await rows.OrderByDescending(
-                row => row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text)))
-            .Take(limit).Select(row => new
+        var exactPattern = EscapeLikePattern(text);
+        var prefixPattern = exactPattern + "%";
+        var rows = await dbContext.DsaProblems.AsNoTracking()
+            .Where(item => item.UserId == userId
+                && item.Status == DsaProblemStatus.Active)
+            .Select(item => new
             {
-                row.Item.Id, row.Item.Title, row.Item.Description,
-                row.Item.Difficulty, row.Item.Source,
+                Item = item,
+                Vector = EF.Functions.ToTsVector("simple",
+                    item.Title + " " + item.Description + " " + (item.Source ?? "")),
+                IsExact = EF.Functions.ILike(item.Title, exactPattern, "\\"),
+                IsPrefix = EF.Functions.ILike(item.Title, prefixPattern, "\\")
+            })
+            .Where(row => row.Vector.Matches(EF.Functions.WebSearchToTsQuery("simple", text)))
+            .OrderByDescending(row => row.IsExact)
+            .ThenByDescending(row => row.IsPrefix)
+            .ThenByDescending(row => row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text)))
+            .ThenByDescending(row => row.Item.UpdatedAtUtc)
+            .ThenBy(row => row.Item.Id)
+            .Take(limit)
+            .Select(row => new
+            {
+                row.Item.Id,
+                row.Item.Title,
+                Summary = row.Item.Description.Length > SummaryLength
+                    ? row.Item.Description.Substring(0, SummaryLength) : row.Item.Description,
+                row.Item.UpdatedAtUtc,
+                row.IsExact,
+                row.IsPrefix,
                 Rank = row.Vector.RankCoverDensity(EF.Functions.WebSearchToTsQuery("simple", text))
-            }).ToListAsync(cancellationToken);
-        var items = matches.Select(row => new GlobalSearchCandidate(
-            "Dsa", row.Id, row.Title, row.Description, row.Rank,
-            new Dictionary<string, string>
-            {
-                ["difficulty"] = row.Difficulty.ToString(),
-                ["source"] = row.Source ?? ""
-            })).ToList();
-        return new GlobalSearchReadResult(items.Select(TrimPreview).ToList(), total);
+            })
+            .ToListAsync(cancellationToken);
+        return rows.Select(row => new GlobalSearchCandidate(
+            row.Id, GlobalSearchResourceType.DsaProblem, row.Title,
+            NormalizeSummary(row.Summary), Convert.ToDecimal(row.Rank),
+            row.UpdatedAtUtc, row.IsExact, row.IsPrefix)).ToList();
     }
 
-    private static GlobalSearchCandidate TrimPreview(GlobalSearchCandidate item) =>
-        item with { Preview = item.Preview is { Length: > 240 } preview
-            ? $"{preview[..240]}..." : item.Preview };
+    private static string? NormalizeSummary(string? summary)
+    {
+        var normalized = summary?.Trim();
+        return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
+    private static string EscapeLikePattern(string value) => value
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal);
 }

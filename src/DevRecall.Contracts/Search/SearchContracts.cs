@@ -1,24 +1,15 @@
-using DevRecall.Contracts.Common;
-
 namespace DevRecall.Contracts.Search;
 
 public sealed class SearchRequest
 {
     public string? Q { get; init; }
-    public string[]? Modules { get; init; }
-    public int Page { get; init; } = 1;
-    public int PageSize { get; init; } = 20;
+    public int TakePerType { get; init; } = 5;
 }
 
-public sealed record SearchResultResponse(
-    string ResourceType, Guid ResourceId, string Title,
-    string? Preview, double Rank,
-    IReadOnlyDictionary<string, string> Metadata);
-
-public static class SearchResponse
-{
-    public static PagedResponse<SearchResultResponse> Create(
-        IReadOnlyList<SearchResultResponse> items, int page, int pageSize,
-        int totalCount, int totalPages) =>
-        new(items, page, pageSize, totalCount, totalPages);
-}
+public sealed record SearchHighlightResponse(string Field, string Text);
+public sealed record GlobalSearchResultResponse(
+    Guid ResourceId, string ResourceType, string Title, string? Summary,
+    string TargetPath, decimal Rank, DateTimeOffset UpdatedAtUtc,
+    IReadOnlyList<SearchHighlightResponse> Highlights);
+public sealed record GlobalSearchResponse(
+    string Query, IReadOnlyList<GlobalSearchResultResponse> Results, bool HasMore);
