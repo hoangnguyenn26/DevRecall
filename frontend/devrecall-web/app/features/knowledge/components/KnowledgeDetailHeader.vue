@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { formatRelativeKnowledgeDate } from '../knowledge.meta'
 import type { KnowledgeDetail } from '../knowledge.types'
-defineProps<{ knowledge: KnowledgeDetail }>()
+const props = defineProps<{ knowledge: KnowledgeDetail }>()
 const emit = defineEmits<{ edit: []; delete: []; tag: [id: string] }>()
 const toast = useToast()
 const menuItems = computed(() => [[
-  { label: 'Copy internal link', icon: 'i-lucide-link', onSelect: async () => { await navigator.clipboard.writeText(window.location.href); toast.add({ title: 'Link copied' }) } },
+  { label: 'Copy internal link', icon: 'i-lucide-link', onSelect: async () => {
+    const link = new URL(`/app/knowledge/${props.knowledge.id}`, window.location.origin).toString()
+    try { await navigator.clipboard.writeText(link); toast.add({ title: 'Link copied' }) }
+    catch { toast.add({ title: 'Could not copy link', description: 'Your browser denied clipboard access.', color: 'error' }) }
+  } },
   { label: 'Delete', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => emit('delete') },
 ]])
 </script>
