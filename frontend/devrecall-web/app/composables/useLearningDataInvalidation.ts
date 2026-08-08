@@ -5,6 +5,8 @@ export function useLearningDataInvalidation() {
   const refreshToday = (): Promise<void> => refreshNuxtData(queryKeys.today)
   const refreshTodayAndNavigation = (): Promise<void> =>
     Promise.all([refreshNuxtData(queryKeys.today), refreshNuxtData(queryKeys.navigationIndicators)]).then(() => undefined)
+  const afterReviewEvaluation = (): Promise<void> =>
+    Promise.all([refreshNuxtData(queryKeys.reviewDue), refreshNuxtData(queryKeys.today), refreshNuxtData(queryKeys.navigationIndicators)]).then(() => undefined)
 
   async function refreshLearningEntryPoints(): Promise<void> {
     await refreshTodayAndNavigation()
@@ -20,5 +22,5 @@ export function useLearningDataInvalidation() {
     await Promise.all(keys.map(key => refreshNuxtData(key)))
   }
 
-  return { refreshToday, refreshTodayAndNavigation, refreshLearningEntryPoints, afterCapture }
+  return { refreshToday, refreshTodayAndNavigation, afterReviewEvaluation, refreshLearningEntryPoints, afterCapture }
 }

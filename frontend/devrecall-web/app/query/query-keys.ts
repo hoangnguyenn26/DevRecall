@@ -7,4 +7,5 @@ export const queryKeys = {
   knowledgeTags: (normalizedQuery = '') => `knowledge:tags:${normalizedQuery.trim().toLowerCase()}`,
   interviewList: 'interview:list',
   dsaList: 'dsa:list',
+  reviewDue: 'review:due',
 } as const

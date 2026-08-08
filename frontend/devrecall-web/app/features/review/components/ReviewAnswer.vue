@@ -1,0 +1,2 @@
+<script setup lang="ts">defineProps<{ answer?: string }>()</script>
+<template><section class="mx-auto mt-6 w-full max-w-3xl rounded-2xl border border-default bg-elevated/40 p-5 sm:p-7" aria-live="polite"><h2 tabindex="-1" class="font-semibold outline-none">Your reference answer</h2><p class="mt-3 whitespace-pre-wrap break-words leading-7">{{ answer || 'Open the source item after this session to expand the reference answer.' }}</p><span class="sr-only">Answer revealed</span></section></template>

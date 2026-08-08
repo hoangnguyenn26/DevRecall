@@ -35,4 +35,15 @@ describe('learning data invalidation', () => {
     expect(refresh).toHaveBeenCalledOnce()
     expect(refresh).toHaveBeenCalledWith(queryKeys.today)
   })
+
+  it('refreshes Review entry points after a successful rating', async () => {
+    const refresh = vi.fn<(key: string) => Promise<void>>(async () => undefined)
+    vi.stubGlobal('refreshNuxtData', refresh)
+
+    await useLearningDataInvalidation().afterReviewEvaluation()
+
+    expect(refresh.mock.calls.map(([key]) => key)).toEqual([
+      queryKeys.reviewDue, queryKeys.today, queryKeys.navigationIndicators,
+    ])
+  })
 })

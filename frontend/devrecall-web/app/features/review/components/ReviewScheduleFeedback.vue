@@ -1,0 +1,2 @@
+<script setup lang="ts">import type { ReviewResult } from '../review.types'; defineProps<{ result: ReviewResult }>()</script>
+<template><div class="mx-auto w-full max-w-2xl rounded-2xl border border-success/30 bg-success/10 p-6 text-center" role="status" aria-live="polite"><UIcon name="i-lucide-calendar-check" class="mx-auto size-7 text-success" /><h2 class="mt-3 text-lg font-semibold">Review saved</h2><p class="mt-1 text-muted">Next review in {{ result.nextIntervalDays }} {{ result.nextIntervalDays === 1 ? 'day' : 'days' }}.</p></div></template>
