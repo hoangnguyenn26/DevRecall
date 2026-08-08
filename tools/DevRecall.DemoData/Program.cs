@@ -170,7 +170,8 @@ async Task EnsureReviewAsync(string resourceType, Guid resourceId)
         var evaluation = resourceType == "KnowledgeNode" ? "Again" : "Hard";
         await client.PostAsync<EvaluateReviewItemRequest,
             EvaluateReviewItemResponse>($"review-items/{item.ReviewItemId}/evaluate",
-            new EvaluateReviewItemRequest(evaluation, item.ReviewCount));
+            new EvaluateReviewItemRequest(
+                evaluation, item.ReviewCount, Guid.NewGuid()));
     }
 }
 

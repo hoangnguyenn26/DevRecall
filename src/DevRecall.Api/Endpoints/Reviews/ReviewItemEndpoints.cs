@@ -74,7 +74,8 @@ public static class ReviewItemEndpoints
     {
         var result = await handler.HandleAsync(
             new EvaluateReviewItemCommand(
-                id, request.Evaluation, request.ExpectedReviewCount),
+                id, request.Evaluation, request.ExpectedReviewCount,
+                request.SubmissionId),
             cancellationToken);
         return Results.Ok(new EvaluateReviewItemResponse(
             result.ReviewItemId, result.ReviewHistoryId, result.Evaluation,

@@ -30,4 +30,8 @@ public static class ReviewErrors
     public static readonly DomainError ScheduleConflict = new(
         "REVIEW_SCHEDULE_CONFLICT",
         "The review item could not be updated because its schedule changed.");
+
+    public static readonly DomainError SubmissionReused = new(
+        "REVIEW_SUBMISSION_REUSED",
+        "The review submission identifier was already used for another item.");
 }

@@ -147,17 +147,25 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
         using var client = session.Client;
         var problem = await CreateProblemAsync(client, "Evaluate Problem");
         var item = await CreateReviewItemAsync(client, problem.Id);
+        var submissionId = Guid.NewGuid();
+        var request = new EvaluateReviewItemRequest("Good", 0, submissionId);
 
         using var evaluate = await client.PostAsJsonAsync(
             $"/api/v1/review-items/{item.Id}/evaluate",
-            new EvaluateReviewItemRequest("Good", 0));
+            request);
         var result = await evaluate.Content
+            .ReadFromJsonAsync<EvaluateReviewItemResponse>();
+        using var retry = await client.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate", request);
+        var retried = await retry.Content
             .ReadFromJsonAsync<EvaluateReviewItemResponse>();
         using var due = await client.GetAsync("/api/v1/review-items/due");
         var dueItems = await due.Content.ReadFromJsonAsync<
             PagedResponse<DueReviewItemResponse>>();
 
         evaluate.StatusCode.Should().Be(HttpStatusCode.OK);
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        retried.Should().Be(result);
         result!.NextIntervalDays.Should().Be(2);
         result.ReviewCount.Should().Be(1);
         result.NextDueAtUtc.Should()
@@ -178,6 +186,8 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
         persisted.ReviewCount.Should().Be(1);
         history.PreviousIntervalDays.Should().Be(0);
         history.NextDueAtUtc.Should().Be(persisted.DueAtUtc);
+        (await context.ReviewHistories.CountAsync(
+            candidate => candidate.ReviewItemId == item.Id)).Should().Be(1);
     }
 
     [Fact]
@@ -189,25 +199,29 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
         var item = await CreateReviewItemAsync(ownerClient, problem.Id);
         using var first = await ownerClient.PostAsJsonAsync(
             $"/api/v1/review-items/{item.Id}/evaluate",
-            new EvaluateReviewItemRequest("Good", 0));
+            new EvaluateReviewItemRequest("Good", 0, Guid.NewGuid()));
         first.EnsureSuccessStatusCode();
 
         using var stale = await ownerClient.PostAsJsonAsync(
             $"/api/v1/review-items/{item.Id}/evaluate",
-            new EvaluateReviewItemRequest("Easy", 0));
+            new EvaluateReviewItemRequest("Easy", 0, Guid.NewGuid()));
         using var invalid = await ownerClient.PostAsJsonAsync(
             $"/api/v1/review-items/{item.Id}/evaluate",
-            new EvaluateReviewItemRequest("Correct", 1));
+            new EvaluateReviewItemRequest("Correct", 1, Guid.NewGuid()));
+        using var numeric = await ownerClient.PostAsJsonAsync(
+            $"/api/v1/review-items/{item.Id}/evaluate",
+            new EvaluateReviewItemRequest("1", 1, Guid.NewGuid()));
         var other = await CreateAuthenticatedClientAsync();
         using var otherClient = other.Client;
         using var crossUser = await otherClient.PostAsJsonAsync(
             $"/api/v1/review-items/{item.Id}/evaluate",
-            new EvaluateReviewItemRequest("Good", 1));
+            new EvaluateReviewItemRequest("Good", 1, Guid.NewGuid()));
 
         stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ReadErrorCodeAsync(stale))
             .Should().Be("REVIEW_SCHEDULE_CONFLICT");
         invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        numeric.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         crossUser.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         using var scope = factory.Services.CreateScope();
@@ -215,6 +229,30 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
             .GetRequiredService<DevRecallDbContext>();
         (await context.ReviewHistories.CountAsync(
             history => history.ReviewItemId == item.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Evaluate_ShouldRejectSubmissionIdReusedForAnotherItem()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var firstProblem = await CreateProblemAsync(client, "First submission");
+        var secondProblem = await CreateProblemAsync(client, "Second submission");
+        var firstItem = await CreateReviewItemAsync(client, firstProblem.Id);
+        var secondItem = await CreateReviewItemAsync(client, secondProblem.Id);
+        var submissionId = Guid.NewGuid();
+
+        using var first = await client.PostAsJsonAsync(
+            $"/api/v1/review-items/{firstItem.Id}/evaluate",
+            new EvaluateReviewItemRequest("Good", 0, submissionId));
+        using var reused = await client.PostAsJsonAsync(
+            $"/api/v1/review-items/{secondItem.Id}/evaluate",
+            new EvaluateReviewItemRequest("Hard", 0, submissionId));
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        reused.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ReadErrorCodeAsync(reused))
+            .Should().Be("REVIEW_SUBMISSION_REUSED");
     }
 
     [Fact]
@@ -229,7 +267,8 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
         {
             using var response = await client.PostAsJsonAsync(
                 $"/api/v1/review-items/{item.Id}/evaluate",
-                new EvaluateReviewItemRequest(evaluations[index], index));
+                new EvaluateReviewItemRequest(
+                    evaluations[index], index, Guid.NewGuid()));
             response.EnsureSuccessStatusCode();
         }
 
@@ -275,7 +314,7 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
             $"/api/v1/review-items/{item.Id}/history");
         using var evaluate = await ownerClient.PostAsJsonAsync(
             $"/api/v1/review-items/{item.Id}/evaluate",
-            new EvaluateReviewItemRequest("Good", 0));
+            new EvaluateReviewItemRequest("Good", 0, Guid.NewGuid()));
         using var crossUser = await otherClient.GetAsync(
             $"/api/v1/review-items/{item.Id}");
 

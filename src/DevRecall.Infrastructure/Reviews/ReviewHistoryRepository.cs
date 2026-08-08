@@ -1,5 +1,6 @@
 using DevRecall.Application.Common.Pagination;
 using DevRecall.Application.Reviews;
+using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
 using DevRecall.Domain.Reviews;
 using DevRecall.Infrastructure.Persistence;
@@ -12,6 +13,21 @@ internal sealed class ReviewHistoryRepository(DevRecallDbContext dbContext)
 {
     public void Add(ReviewHistory history) =>
         dbContext.ReviewHistories.Add(history);
+
+    public Task<ReviewSubmissionReadModel?> GetBySubmissionAsync(
+        Guid userId, Guid submissionId, CancellationToken cancellationToken) =>
+        dbContext.ReviewHistories
+            .AsNoTracking()
+            .Where(history => history.UserId == userId
+                && history.SubmissionId == submissionId)
+            .Select(history => new ReviewSubmissionReadModel(
+                history.UserId!.Value, history.SubmissionId!.Value,
+                history.ReviewItemId, history.Id,
+                history.Evaluation.ToString(), history.PreviousIntervalDays,
+                history.NextIntervalDays, history.PreviousDueAtUtc,
+                history.ReviewedAtUtc, history.NextDueAtUtc,
+                history.ResultReviewCount!.Value))
+            .SingleOrDefaultAsync(cancellationToken);
 
     public Task<List<ReviewHistoryReadModel>> GetRecentAsync(
         Guid reviewItemId, int take, CancellationToken cancellationToken) =>

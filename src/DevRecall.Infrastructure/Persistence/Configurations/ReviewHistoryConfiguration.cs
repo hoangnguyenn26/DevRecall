@@ -32,6 +32,9 @@ internal sealed class ReviewHistoryConfiguration
         builder.Property(history => history.NextDueAtUtc).IsRequired();
         builder.Property(history => history.ReviewedAtUtc).IsRequired();
         builder.Property(history => history.CreatedAtUtc).IsRequired();
+        builder.Property(history => history.UserId);
+        builder.Property(history => history.SubmissionId);
+        builder.Property(history => history.ResultReviewCount);
 
         builder.HasOne<ReviewItem>()
             .WithMany()
@@ -43,5 +46,14 @@ internal sealed class ReviewHistoryConfiguration
             history.ReviewItemId,
             history.ReviewedAtUtc
         }).HasDatabaseName("ix_review_histories_item_reviewed_at");
+
+        builder.HasIndex(history => new
+        {
+            history.UserId,
+            history.SubmissionId
+        })
+            .IsUnique()
+            .HasFilter("submission_id IS NOT NULL")
+            .HasDatabaseName("ux_review_histories_user_submission");
     }
 }

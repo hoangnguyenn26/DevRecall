@@ -16,9 +16,16 @@ internal static class ReviewEvaluationParser
                 });
         }
 
-        var parsed = Enum.TryParse<ReviewEvaluation>(
-            value.Trim(), true, out var evaluation);
-        if (!parsed || !Enum.IsDefined(evaluation))
+        var normalized = value.Trim();
+        var evaluation = normalized.ToLowerInvariant() switch
+        {
+            "again" => ReviewEvaluation.Again,
+            "hard" => ReviewEvaluation.Hard,
+            "good" => ReviewEvaluation.Good,
+            "easy" => ReviewEvaluation.Easy,
+            _ => (ReviewEvaluation?)null
+        };
+        if (evaluation is null)
         {
             throw new ValidationException(
                 new Dictionary<string, string[]>
@@ -28,6 +35,6 @@ internal static class ReviewEvaluationParser
                 });
         }
 
-        return evaluation;
+        return evaluation.Value;
     }
 }

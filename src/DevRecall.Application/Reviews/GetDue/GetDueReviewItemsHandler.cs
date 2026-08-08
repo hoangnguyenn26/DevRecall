@@ -12,7 +12,7 @@ public sealed class GetDueReviewItemsHandler(
     ICurrentUser currentUser,
     IUtcClock utcClock)
 {
-    private const int MaximumPageSize = 100;
+    private const int MaximumPageSize = 50;
 
     public async Task<GetDueReviewItemsResult> HandleAsync(
         GetDueReviewItemsQuery query, CancellationToken cancellationToken)

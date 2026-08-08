@@ -15,9 +15,25 @@ public sealed class EvaluateReviewItemHandler(
         EvaluateReviewItemCommand command, CancellationToken cancellationToken)
     {
         ValidateExpectedReviewCount(command.ExpectedReviewCount);
+        ValidateSubmissionId(command.SubmissionId);
         var evaluation = ReviewEvaluationParser.Parse(command.Evaluation);
+        var userId = GetCurrentUserId();
+        var prior = await reviewHistoryRepository.GetBySubmissionAsync(
+            userId, command.SubmissionId, cancellationToken);
+        if (prior is not null)
+        {
+            if (prior.ReviewItemId != command.ReviewItemId)
+            {
+                throw new ConflictException(
+                    ReviewErrors.SubmissionReused.Code,
+                    ReviewErrors.SubmissionReused.Message);
+            }
+
+            return MapPrior(prior);
+        }
+
         var item = await reviewItemRepository.GetByIdAndUserIdForUpdateAsync(
-            command.ReviewItemId, GetCurrentUserId(), cancellationToken);
+            command.ReviewItemId, userId, cancellationToken);
         if (item is null)
         {
             throw new NotFoundException(
@@ -45,8 +61,9 @@ public sealed class EvaluateReviewItemHandler(
                 ReviewErrors.ScheduleConflict.Message);
         }
 
-        var history = ReviewHistory.Create(
-            Guid.NewGuid(), item.Id, evaluation, schedule, reviewedAtUtc);
+        var history = ReviewHistory.CreateForSubmission(
+            Guid.NewGuid(), userId, command.SubmissionId, item.Id, evaluation,
+            schedule, item.ReviewCount, reviewedAtUtc);
         reviewHistoryRepository.Add(history);
         await reviewItemRepository.SaveChangesAsync(cancellationToken);
 
@@ -55,6 +72,25 @@ public sealed class EvaluateReviewItemHandler(
             schedule.PreviousIntervalDays, schedule.NextIntervalDays,
             schedule.PreviousDueAtUtc, schedule.ReviewedAtUtc,
             schedule.NextDueAtUtc, item.ReviewCount);
+    }
+
+    private static EvaluateReviewItemResult MapPrior(
+        ReviewSubmissionReadModel prior) => new(
+            prior.ReviewItemId, prior.ReviewHistoryId, prior.Evaluation,
+            prior.PreviousIntervalDays, prior.NextIntervalDays,
+            prior.PreviousDueAtUtc, prior.ReviewedAtUtc,
+            prior.NextDueAtUtc, prior.ReviewCount);
+
+    private static void ValidateSubmissionId(Guid submissionId)
+    {
+        if (submissionId == Guid.Empty)
+        {
+            throw new ValidationException(
+                new Dictionary<string, string[]>
+                {
+                    ["submissionId"] = ["Submission id is required."]
+                });
+        }
     }
 
     private static void ValidateExpectedReviewCount(int expectedReviewCount)

@@ -1,4 +1,5 @@
 using DevRecall.Application.Common.Pagination;
+using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
 using DevRecall.Domain.Reviews;
 
@@ -7,6 +8,9 @@ namespace DevRecall.Application.Reviews;
 public interface IReviewHistoryRepository
 {
     void Add(ReviewHistory history);
+
+    Task<ReviewSubmissionReadModel?> GetBySubmissionAsync(
+        Guid userId, Guid submissionId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ReviewHistoryReadModel>> GetRecentAsync(
         Guid reviewItemId, int take, CancellationToken cancellationToken);
