@@ -1,4 +1,4 @@
-export type ShortcutScope = 'global' | 'knowledge-workspace' | 'editor' | 'modal'
+export type ShortcutScope = 'global' | 'focus' | 'knowledge-workspace' | 'editor' | 'modal'
 
 export function useShortcutScope() {
   const scope = useState<ShortcutScope>('shortcuts:scope', () => 'global')

@@ -2,16 +2,19 @@ export type PracticeModule = 'Review' | 'Interview' | 'Dsa' | 'StudySession'
 export type PracticePhase = 'loading' | 'ready' | 'active' | 'submitting' | 'completed' | 'error'
 
 export interface PracticeProgress {
+  kind?: 'items'
   current: number
   total: number
   completed: number
   percent: number
 }
+export interface PracticeStepProgress { kind: 'steps'; currentStep: number; totalSteps: number; label: string }
+export type PracticeProgressModel = PracticeProgress | PracticeStepProgress
 
 export interface PracticeShellContext {
   module: PracticeModule
   title: string
-  progress?: PracticeProgress
+  progress?: PracticeProgressModel
   startedAtUtc?: string
 }
 

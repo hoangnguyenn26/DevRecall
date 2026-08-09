@@ -5,6 +5,7 @@ const routesByKey: Record<string, string> = {
 
 export function useNavigationShortcuts() {
   const router = useRouter()
+  const { shortcutScope } = useShortcutScope()
   const pendingPrefix = useState<string | null>('shortcuts:navigation-prefix', () => null)
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
@@ -15,7 +16,7 @@ export function useNavigationShortcuts() {
   }
 
   async function handleKeydown(event: KeyboardEvent): Promise<void> {
-    if (isEditableTarget(event.target)) return
+    if (shortcutScope.value !== 'global' || isEditableTarget(event.target)) return
     const key = event.key.toLowerCase()
 
     if (pendingPrefix.value === 'g') {
