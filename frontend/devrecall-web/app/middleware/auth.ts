@@ -5,5 +5,5 @@ export default defineNuxtRouteMiddleware(async (to) => {
   } catch {
     throw createError({ statusCode: 503, statusMessage: 'Unable to verify your session.' })
   }
-  if (!auth.isAuthenticated.value) return navigateTo({ path: '/login', query: { redirect: to.fullPath } })
+  if (!auth.isAuthenticated.value) return navigateTo({ path: '/login', query: { returnTo: to.fullPath } })
 })

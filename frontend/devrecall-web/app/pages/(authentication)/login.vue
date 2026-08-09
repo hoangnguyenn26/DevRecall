@@ -12,8 +12,12 @@ usePageSeo({
 
 const route = useRoute()
 const auth = useAuth()
+const { resolveAuthenticatedDestination } = useAuthNavigation()
 const toast = useToast()
-const state = reactive<LoginFormState>({ email: '', password: '' })
+const state = reactive<LoginFormState>({
+  email: typeof route.query.email === 'string' ? route.query.email : '',
+  password: '',
+})
 const submitting = ref(false)
 const formError = ref<string | null>(null)
 
@@ -30,7 +34,7 @@ async function submit(event: FormSubmitEvent<LoginFormState>): Promise<void> {
       color: 'success',
       duration: 3500,
     })
-    await navigateTo(resolveSafeRedirect(route.query.redirect))
+    await navigateTo(await resolveAuthenticatedDestination(route.query.returnTo))
   } catch (error) {
     const normalized = normalizeApiError(error)
     if (normalized.status === 401 || normalized.code === 'IDENTITY_INVALID_CREDENTIALS') {
@@ -61,15 +65,6 @@ async function submit(event: FormSubmitEvent<LoginFormState>): Promise<void> {
     </template>
 
     <UAlert
-      v-if="route.query.registered === 'true'"
-      class="mb-5"
-      color="success"
-      variant="subtle"
-      icon="i-lucide-circle-check"
-      title="Account created"
-      description="Log in with your new account to continue."
-    />
-    <UAlert
       v-if="formError"
       class="mb-5"
       color="error"
@@ -77,6 +72,7 @@ async function submit(event: FormSubmitEvent<LoginFormState>): Promise<void> {
       icon="i-lucide-circle-alert"
       title="Unable to log in"
       :description="formError"
+      aria-live="assertive"
     />
 
     <UForm :schema="loginSchema" :state="state" class="space-y-5" @submit="submit">

@@ -78,7 +78,7 @@ export function useApi() {
         try {
           const currentRoute = useNuxtApp().$router.currentRoute.value
           useAuthStore().clearSession()
-          await navigateTo({ path: '/login', query: { redirect: currentRoute.fullPath } })
+          await navigateTo({ path: '/login', query: { returnTo: currentRoute.fullPath } })
         } finally {
           redirectingToLogin.value = false
         }

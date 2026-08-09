@@ -40,6 +40,7 @@ public static class AuthEndpoints
     private static async Task<IResult> RegisterAsync(
         RegisterRequest request,
         RegisterUserHandler handler,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(
@@ -52,6 +53,14 @@ public static class AuthEndpoints
             result.Id,
             result.Email,
             result.DisplayName);
+        var principal = ClaimsPrincipalFactory.Create(
+            result.Id,
+            result.Email,
+            result.DisplayName);
+
+        await httpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            principal);
 
         return Results.Created(
             $"/api/v1/users/{result.Id}",

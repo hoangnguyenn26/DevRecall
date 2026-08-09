@@ -48,7 +48,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function register(request: RegisterRequest): Promise<CurrentUser> {
-    return await api.post<CurrentUser>('/auth/register', request)
+    const currentUser = await api.post<CurrentUser>('/auth/register', request)
+    api.resetSecurityContext()
+    user.value = currentUser
+    status.value = 'authenticated'
+    return currentUser
   }
 
   async function logout(): Promise<void> {
@@ -60,6 +64,10 @@ export const useAuthStore = defineStore('auth', () => {
   function clearSession(): void {
     user.value = null
     status.value = 'anonymous'
+    if (import.meta.client) {
+      clearNuxtData()
+      clearNuxtState()
+    }
   }
 
   return { user, status, initialized, isAuthenticated, restore, login, register, logout, clearSession }

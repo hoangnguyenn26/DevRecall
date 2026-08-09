@@ -11,12 +11,12 @@ async function signOut(): Promise<void> {
   signingOut.value = true
   try {
     await auth.logout()
-    await navigateTo('/login')
+    await navigateTo('/login', { replace: true })
   } catch (error) {
     const normalized = normalizeApiError(error)
     if (normalized.status === 401) {
       auth.clearSession()
-      await navigateTo('/login')
+      await navigateTo('/login', { replace: true })
       return
     }
     toast.add({

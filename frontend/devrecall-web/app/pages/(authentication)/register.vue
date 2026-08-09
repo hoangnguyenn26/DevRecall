@@ -11,6 +11,7 @@ usePageSeo({
 })
 
 const auth = useAuth()
+const { resolveAuthenticatedDestination } = useAuthNavigation()
 const toast = useToast()
 const state = reactive<RegisterFormState>({
   displayName: '',
@@ -43,11 +44,11 @@ async function submit(event: FormSubmitEvent<RegisterFormState>): Promise<void> 
     })
     toast.add({
       title: 'Account created',
-      description: 'Log in to start using DevRecall.',
+      description: 'Let us tailor your learning workspace.',
       color: 'success',
       duration: 3500,
     })
-    await navigateTo({ path: '/login', query: { registered: 'true' } })
+    await navigateTo(await resolveAuthenticatedDestination())
   } catch (error) {
     const normalized = normalizeApiError(error)
     serverFieldErrors.value = { ...normalized.fieldErrors }
@@ -68,8 +69,8 @@ async function submit(event: FormSubmitEvent<RegisterFormState>): Promise<void> 
 <template>
   <UCard>
     <template #header>
-      <h1 class="text-2xl font-semibold tracking-tight">Create your workspace</h1>
-      <p class="mt-2 text-sm text-muted">Your learning data stays under your account.</p>
+      <h1 class="text-2xl font-semibold tracking-tight">Create your DevRecall account</h1>
+      <p class="mt-2 text-sm text-muted">Build your knowledge, practice deliberately, and know what to study next.</p>
     </template>
 
     <UAlert
@@ -80,6 +81,7 @@ async function submit(event: FormSubmitEvent<RegisterFormState>): Promise<void> 
       icon="i-lucide-circle-alert"
       title="Unable to create account"
       :description="formError"
+      aria-live="assertive"
     />
     <UForm :schema="registerSchema" :state="state" class="space-y-5" @submit="submit">
       <UFormField
@@ -115,6 +117,10 @@ async function submit(event: FormSubmitEvent<RegisterFormState>): Promise<void> 
       <UButton type="submit" block :loading="submitting" :disabled="submitting"
         >Create account</UButton
       >
+      <p v-if="serverFieldErrors.email?.[0]?.includes('already exists')" class="text-center text-sm">
+        Already have this account?
+        <NuxtLink :to="{ path: '/login', query: { email: state.email } }" class="font-medium text-primary hover:underline">Sign in</NuxtLink>
+      </p>
     </UForm>
 
     <template #footer>

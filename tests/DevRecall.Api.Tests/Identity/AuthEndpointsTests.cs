@@ -12,7 +12,7 @@ namespace DevRecall.Api.Tests.Identity;
 public sealed class AuthEndpointsTests(AuthApiFactory factory)
 {
     [Fact]
-    public async Task Register_ShouldReturnCreated()
+    public async Task Register_ShouldReturnCreatedAndAuthenticateTheNewUser()
     {
         using var client = CreateClient();
         var email = CreateUniqueEmail();
@@ -26,6 +26,12 @@ public sealed class AuthEndpointsTests(AuthApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         result.Should().NotBeNull();
         result!.Email.Should().Be(email);
+
+        using var meResponse = await client.GetAsync("/api/v1/auth/me");
+        var currentUser = await meResponse.Content
+            .ReadFromJsonAsync<CurrentUserResponse>();
+        meResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        currentUser!.Email.Should().Be(email);
     }
 
     [Fact]
@@ -135,7 +141,7 @@ public sealed class AuthEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
-    public async Task AuthFlow_ShouldRegisterLoginGetMeAndLogout()
+    public async Task AuthFlow_ShouldRegisterGetMeAndLogout()
     {
         using var client = CreateClient();
         var email = CreateUniqueEmail();
@@ -144,11 +150,6 @@ public sealed class AuthEndpointsTests(AuthApiFactory factory)
             "/api/v1/auth/register",
             new RegisterRequest(email, "Hoang Nguyen", "Example123!"));
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-
-        using var loginResponse = await client.PostAsJsonAsync(
-            "/api/v1/auth/login",
-            new LoginRequest(email, "Example123!"));
-        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         using var meResponse = await client.GetAsync("/api/v1/auth/me");
         var currentUser = await meResponse.Content

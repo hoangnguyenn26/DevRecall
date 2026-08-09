@@ -81,7 +81,7 @@ describe('DevRecall UI foundation', () => {
     const { default: guard } = await import('~/middleware/auth')
 
     await guard({ fullPath: '/app' } as never, {} as never)
-    expect(navigateTo).toHaveBeenCalledWith({ path: '/login', query: { redirect: '/app' } })
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/login', query: { returnTo: '/app' } })
 
     navigateTo.mockClear()
     auth.isAuthenticated.value = true

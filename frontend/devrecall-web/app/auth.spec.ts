@@ -12,6 +12,8 @@ const post = vi.fn<(path: string, body?: unknown) => Promise<CurrentUser | undef
 const resetSecurityContext = vi.fn<() => void>()
 
 vi.stubGlobal('useApi', () => ({ get, post, resetSecurityContext }))
+vi.stubGlobal('clearNuxtData', vi.fn())
+vi.stubGlobal('clearNuxtState', vi.fn())
 const { useAuthStore } = await import('~/stores/auth')
 
 describe('authentication foundation', () => {
@@ -31,12 +33,13 @@ describe('authentication foundation', () => {
     expect(resetSecurityContext).toHaveBeenCalledOnce()
   })
 
-  it('does not authenticate a registration response because the backend does not create a session', async () => {
+  it('stores the authenticated user returned by registration', async () => {
     post.mockResolvedValue(currentUser)
     const auth = useAuthStore()
     await auth.register({ email: currentUser.email, displayName: currentUser.displayName, password: 'Example123!' })
-    expect(auth.status).toBe('unknown')
-    expect(auth.user).toBeNull()
+    expect(auth.status).toBe('authenticated')
+    expect(auth.user).toEqual(currentUser)
+    expect(resetSecurityContext).toHaveBeenCalledOnce()
   })
 
   it('deduplicates concurrent session restoration', async () => {
@@ -80,7 +83,11 @@ describe('authentication foundation', () => {
     expect(resolveSafeRedirect('https://malicious.example')).toBe('/app')
     expect(resolveSafeRedirect('//malicious.example')).toBe('/app')
     expect(resolveSafeRedirect('/\\malicious.example')).toBe('/app')
-    expect(resolveSafeRedirect('/login?redirect=/app')).toBe('/app')
+    expect(resolveSafeRedirect('/login?returnTo=/app')).toBe('/app')
+    expect(resolveSafeRedirect('/features')).toBe('/app')
+    expect(resolveSafeRedirect('javascript:alert(1)')).toBe('/app')
+    expect(resolveSafeRedirect('%2F%2Fevil.example')).toBe('/app')
+    expect(resolveSafeRedirect('https%3A%2F%2Fevil.example')).toBe('/app')
   })
 
   it('validates login fields without duplicating backend authentication rules', () => {
