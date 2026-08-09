@@ -1,8 +1,6 @@
+import { buildSitemapXml } from '../../app/features/marketing/public-seo'
+
 export default defineEventHandler((event) => {
   setHeader(event, 'content-type', 'application/xml; charset=utf-8')
-  const siteUrl = useRuntimeConfig(event).public.siteUrl.replace(/\/$/, '')
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${siteUrl}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-</urlset>`
+  return buildSitemapXml(useRuntimeConfig(event).public.siteUrl)
 })

@@ -2,6 +2,12 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { usePageSeo } from '~/composables/usePageSeo'
+import {
+  buildPublicStructuredData,
+  buildRobotsTxt,
+  buildSitemapXml,
+  normalizeSiteUrl,
+} from './public-seo'
 
 const readAppFile = (path: string) => readFileSync(resolve(process.cwd(), 'app', path), 'utf8')
 
@@ -101,5 +107,42 @@ describe('public website foundation', () => {
     const previews = readAppFile('features/marketing/components/FeaturePreviews.vue')
     expect(previews).toContain('aria-hidden="true"')
     expect(previews).not.toMatch(/<(button|a|input|select|textarea)\b/)
+  })
+
+  it('publishes only canonical public routes in the sitemap', () => {
+    const sitemap = buildSitemapXml('https://devrecall.example/')
+    expect(sitemap).toContain('<loc>https://devrecall.example/</loc>')
+    expect(sitemap).toContain('<loc>https://devrecall.example/features</loc>')
+    expect(sitemap).not.toMatch(/\/app|\/login|\/register|changefreq|priority/)
+  })
+
+  it('guides crawlers away from private and auth routes', () => {
+    const robots = buildRobotsTxt('https://devrecall.example', true)
+    expect(robots).toContain('Disallow: /app')
+    expect(robots).toContain('Disallow: /login')
+    expect(robots).toContain('Disallow: /register')
+    expect(robots).toContain('Sitemap: https://devrecall.example/sitemap.xml')
+    expect(buildRobotsTxt('https://preview.devrecall.example', false)).toBe(
+      'User-agent: *\nDisallow: /\n',
+    )
+  })
+
+  it('normalizes configured origins without copying query strings or fragments', () => {
+    expect(normalizeSiteUrl('https://devrecall.example/?utm_source=test#features')).toBe(
+      'https://devrecall.example',
+    )
+  })
+
+  it('emits truthful parseable product structured data', () => {
+    const schemas = buildPublicStructuredData('https://devrecall.example')
+    const serialized = JSON.stringify(schemas)
+    expect(JSON.parse(serialized)).toEqual(schemas)
+    expect(schemas.map((schema) => schema['@type'])).toEqual(['WebSite', 'SoftwareApplication'])
+    expect(
+      schemas.every(
+        (schema) => schema.name === 'DevRecall' && schema.url === 'https://devrecall.example/',
+      ),
+    ).toBe(true)
+    expect(serialized).not.toMatch(/aggregateRating|reviewCount|offers|price/)
   })
 })

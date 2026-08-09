@@ -10,15 +10,18 @@ export default defineNuxtConfig({
     public: {
       apiBaseUrl: '/api/v1',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+      siteIndexable: process.env.NUXT_PUBLIC_SITE_INDEXABLE !== 'false',
     },
   },
   routeRules: {
-    '/app/**': { ssr: false },
+    '/app/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/login': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/register': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
   },
   app: {
     head: {
       htmlAttrs: { lang: 'en' },
-      titleTemplate: '%s · DevRecall',
+      titleTemplate: '%s — DevRecall',
       meta: [
         { name: 'theme-color', content: '#4f46e5' },
         { name: 'color-scheme', content: 'light dark' },

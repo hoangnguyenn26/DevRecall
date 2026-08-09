@@ -5,7 +5,8 @@ import MarketingContainer from '~/features/marketing/components/MarketingContain
 
 definePageMeta({ layout: 'public' })
 usePageSeo({
-  title: 'Features — Knowledge, Practice, Study & Insights',
+  title: 'Features',
+  ogTitle: 'Build Knowledge, Practice & Study with DevRecall',
   description:
     'Explore DevRecall for developer knowledge management, spaced review, interview and DSA practice, focused study plans, and explainable learning insights.',
   path: '/features',

@@ -7,8 +7,10 @@ import ProductPreview from '~/features/marketing/components/ProductPreview.vue'
 import { learningLoopSteps, productFeatures } from '~/features/marketing/marketing.constants'
 
 definePageMeta({ layout: 'public' })
+usePublicStructuredData()
 usePageSeo({
-  title: 'DevRecall — Developer Learning Workspace',
+  title: 'Developer Learning Workspace',
+  ogTitle: 'DevRecall — Developer Learning Workspace',
   description:
     'Build your developer knowledge base, practice interview questions and DSA, review what you learn, and know what to study next.',
   path: '/',
