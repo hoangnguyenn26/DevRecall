@@ -100,6 +100,7 @@ public static class DependencyInjection
         services.AddScoped<GetModuleBreakdownHandler>();
         services.AddScoped<GetProgressOverviewHandler>();
         services.AddScoped<AnalyticsInsightsHandler>();
+        services.AddScoped<GetLearningInsightsHandler>();
         services.AddScoped<GetReviewPerformanceHandler>();
         services.AddScoped<CreateDsaAttemptHandler>();
         services.AddScoped<GetDsaAttemptsHandler>();

@@ -50,6 +50,17 @@ public sealed class AnalyticsInsightsEndpointsTests(AuthApiFactory factory)
         result.DsaCurrent.Total.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Insights_ReturnsBoundedEmptyResultForNewUser()
+    {
+        var auth = await CreateAuthenticatedClientAsync();
+        using var response = await auth.Client.GetAsync("/api/v1/analytics/insights?range=7d&take=10");
+        var result = await response.Content.ReadFromJsonAsync<LearningInsightsResponse>();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Range.Should().Be("7d");
+        result.Items.Should().BeEmpty();
+    }
+
     private async Task<(HttpClient Client, RegisterResponse User)> CreateAuthenticatedClientAsync()
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions

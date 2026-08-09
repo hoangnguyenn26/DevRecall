@@ -33,6 +33,14 @@ public static class AnalyticsEndpoints
             return Results.Ok(new LearningPerformanceResponse(result.Range, new(result.Period.StartUtc, result.Period.EndUtc),
                 Map(result.ReviewCurrent), Map(result.ReviewPrevious), Map(result.InterviewCurrent), Map(result.InterviewPrevious), Map(result.DsaCurrent), Map(result.DsaPrevious)));
         }).WithName("GetLearningPerformance").Produces<LearningPerformanceResponse>().ProducesProblem(StatusCodes.Status400BadRequest);
+        group.MapGet("/insights", async (string? range, int? take, GetLearningInsightsHandler handler, CancellationToken ct) =>
+        {
+            var result = await handler.HandleAsync(range, take ?? 10, ct);
+            return Results.Ok(new LearningInsightsResponse(result.GeneratedAtUtc, result.Range,
+                result.Items.Select(item => new LearningInsightResponse(item.Type, item.Tone, item.Priority, item.Title, item.Summary,
+                    item.Signals.Select(signal => new LearningInsightSignalResponse(signal.Type, signal.Label, signal.Value)).ToArray(),
+                    item.Action is null ? null : new LearningInsightActionResponse(item.Action.Type, item.Action.Label, item.Action.TargetType, item.Action.TargetId, item.Action.IsAvailable))).ToArray()));
+        }).WithName("GetLearningInsights").Produces<LearningInsightsResponse>().ProducesProblem(StatusCodes.Status400BadRequest);
         group.MapGet(
             "/dsa-performance",
             async (
