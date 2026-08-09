@@ -9,7 +9,8 @@ public sealed class StudySessionItem
     private StudySessionItem(
         Guid id, Guid studySessionId, StudyResourceType resourceType,
         Guid resourceId, int position, string? notes,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc, string? titleSnapshot,
+        int plannedDurationMinutes)
     {
         Id = id;
         StudySessionId = studySessionId;
@@ -18,6 +19,9 @@ public sealed class StudySessionItem
         Position = position;
         Status = StudySessionItemStatus.Pending;
         Notes = notes;
+        TitleSnapshot = string.IsNullOrWhiteSpace(titleSnapshot)
+            ? "Learning resource" : titleSnapshot.Trim();
+        PlannedDurationMinutes = Math.Max(0, plannedDurationMinutes);
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
     }
@@ -31,13 +35,18 @@ public sealed class StudySessionItem
     public DateTimeOffset? StartedAtUtc { get; private set; }
     public DateTimeOffset? CompletedAtUtc { get; private set; }
     public string? Notes { get; private set; }
+    public string TitleSnapshot { get; private set; } = string.Empty;
+    public int PlannedDurationMinutes { get; private set; }
+    public Guid? CompletionSubmissionId { get; private set; }
+    public Guid? EvidenceId { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
     internal static StudySessionItem Create(
         Guid id, Guid studySessionId, StudyResourceType resourceType,
         Guid resourceId, int position, string? notes,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc, string? titleSnapshot = null,
+        int plannedDurationMinutes = 0)
     {
         if (id == Guid.Empty)
         {
@@ -67,7 +76,8 @@ public sealed class StudySessionItem
         EnsureUtc(createdAtUtc, nameof(createdAtUtc));
         return new StudySessionItem(
             id, studySessionId, resourceType, resourceId, position,
-            NormalizeNotes(notes, nameof(notes)), createdAtUtc);
+            NormalizeNotes(notes, nameof(notes)), createdAtUtc,
+            titleSnapshot, plannedDurationMinutes);
     }
 
     internal void Start(DateTimeOffset startedAtUtc)
@@ -101,6 +111,21 @@ public sealed class StudySessionItem
         UpdatedAtUtc = completedAtUtc;
     }
 
+    internal bool Complete(
+        Guid submissionId, Guid? evidenceId, string? notes,
+        DateTimeOffset completedAtUtc)
+    {
+        if (CompletionSubmissionId == submissionId)
+        {
+            return false;
+        }
+
+        Complete(notes, completedAtUtc);
+        CompletionSubmissionId = submissionId;
+        EvidenceId = evidenceId;
+        return true;
+    }
+
     internal void Skip(string? notes, DateTimeOffset skippedAtUtc)
     {
         EnsureUtc(skippedAtUtc, nameof(skippedAtUtc));
@@ -109,6 +134,19 @@ public sealed class StudySessionItem
         CompletedAtUtc = skippedAtUtc;
         Notes = NormalizeNotes(notes, nameof(notes));
         UpdatedAtUtc = skippedAtUtc;
+    }
+
+    internal bool Skip(
+        Guid submissionId, string? notes, DateTimeOffset skippedAtUtc)
+    {
+        if (CompletionSubmissionId == submissionId)
+        {
+            return false;
+        }
+
+        Skip(notes, skippedAtUtc);
+        CompletionSubmissionId = submissionId;
+        return true;
     }
 
     internal bool ChangePosition(int position)

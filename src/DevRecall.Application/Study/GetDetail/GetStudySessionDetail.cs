@@ -13,7 +13,8 @@ public sealed record StudySessionProgressSummary(
 public sealed record StudySessionDetailItem(
     Guid Id, string ResourceType, Guid ResourceId,
     string ResourceTitle, string? ResourcePreview,
-    bool IsResourceAvailable, int Position, string Status,
+    bool IsResourceAvailable, int PlannedDurationMinutes,
+    int Position, string Status,
     DateTimeOffset? StartedAtUtc, DateTimeOffset? CompletedAtUtc,
     string? Notes, DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
@@ -22,6 +23,7 @@ public sealed record GetStudySessionDetailResult(
     int? ActualDurationMinutes, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? Notes, int Version,
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
+    Guid? CurrentItemId, int RemainingPlannedMinutes,
     StudySessionProgressSummary Progress,
     IReadOnlyList<StudySessionDetailItem> Items);
 
@@ -58,17 +60,26 @@ public sealed class GetStudySessionDetailHandler(
                 (item.ResourceType, item.ResourceId), out var resource);
             return new StudySessionDetailItem(
                 item.Id, item.ResourceType.ToString(), item.ResourceId,
-                resource?.Title ?? "Unavailable resource",
-                resource?.Preview, resource is not null, item.Position,
+                resource?.Title ?? item.TitleSnapshot,
+                resource?.Preview, resource is not null,
+                item.PlannedDurationMinutes, item.Position,
                 item.Status.ToString(), item.StartedAtUtc,
                 item.CompletedAtUtc, item.Notes,
                 item.CreatedAtUtc, item.UpdatedAtUtc);
         }).ToList();
+        var current = ordered.FirstOrDefault(item =>
+            item.Status == StudySessionItemStatus.InProgress)
+            ?? ordered.FirstOrDefault(item =>
+                item.Status == StudySessionItemStatus.Pending);
+        var remaining = ordered.Where(item => item.Status is
+            StudySessionItemStatus.Pending or StudySessionItemStatus.InProgress)
+            .Sum(item => item.PlannedDurationMinutes);
         return new GetStudySessionDetailResult(
             session.Id, session.Title, session.Status.ToString(),
             session.PlannedDurationMinutes, session.ActualDurationMinutes,
             session.StartedAtUtc, session.CompletedAtUtc, session.Notes,
             session.Version, session.CreatedAtUtc, session.UpdatedAtUtc,
+            current?.Id, remaining,
             BuildProgress(ordered), items);
     }
 
@@ -77,9 +88,11 @@ public sealed class GetStudySessionDetailHandler(
     {
         var completed = items.Count(item =>
             item.Status == StudySessionItemStatus.Completed);
+        var handled = completed + items.Count(item =>
+            item.Status == StudySessionItemStatus.Skipped);
         var percentage = items.Count == 0
             ? 0
-            : Math.Round(completed / (double)items.Count * 100, 2);
+            : Math.Round(handled / (double)items.Count * 100, 2);
         return new StudySessionProgressSummary(
             items.Count,
             items.Count(item =>

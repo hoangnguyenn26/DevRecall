@@ -28,6 +28,10 @@ internal sealed class StudySessionItemConfiguration
         builder.Property(item => item.StartedAtUtc);
         builder.Property(item => item.CompletedAtUtc);
         builder.Property(item => item.Notes).HasColumnType("text");
+        builder.Property(item => item.TitleSnapshot).HasMaxLength(500).IsRequired();
+        builder.Property(item => item.PlannedDurationMinutes).IsRequired();
+        builder.Property(item => item.CompletionSubmissionId);
+        builder.Property(item => item.EvidenceId);
         builder.Property(item => item.CreatedAtUtc).IsRequired();
         builder.Property(item => item.UpdatedAtUtc).IsRequired();
 
@@ -49,5 +53,9 @@ internal sealed class StudySessionItemConfiguration
             item.StudySessionId,
             item.Status
         }).HasDatabaseName("ix_study_session_items_session_status");
+        builder.HasIndex(item => item.CompletionSubmissionId)
+            .IsUnique()
+            .HasFilter("completion_submission_id IS NOT NULL")
+            .HasDatabaseName("uq_study_session_item_completion_submission_id");
     }
 }

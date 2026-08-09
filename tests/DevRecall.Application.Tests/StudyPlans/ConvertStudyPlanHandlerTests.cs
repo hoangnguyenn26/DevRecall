@@ -15,7 +15,7 @@ public sealed class ConvertStudyPlanHandlerTests
         new(2026, 9, 25, 10, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task Handle_ShouldCreatePlannedSessionAndConvertPlanOnce()
+    public async Task Handle_ShouldCreateAndStartSessionAndConvertPlanOnce()
     {
         var context = new Context(CreateReadyPlan(3));
 
@@ -23,11 +23,11 @@ public sealed class ConvertStudyPlanHandlerTests
             new(context.Plan.Id, context.Plan.Version), CancellationToken.None);
 
         result.StudyPlanStatus.Should().Be("Converted");
-        result.StudySessionStatus.Should().Be("Planned");
+        result.StudySessionStatus.Should().Be("InProgress");
         result.Title.Should().Be(context.Plan.Title);
         result.TotalPlannedDurationMinutes.Should().Be(60);
         result.ItemCount.Should().Be(3);
-        result.StudySessionVersion.Should().Be(1);
+        result.StudySessionVersion.Should().Be(2);
         context.Persistence.Added!.Items.Select(x => x.ResourceId)
             .Should().Equal(context.Plan.Items.OrderBy(x => x.Position)
                 .Select(x => x.ResourceId));

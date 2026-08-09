@@ -89,6 +89,7 @@ public static class StudySessionEndpoints
             result.PlannedDurationMinutes, result.ActualDurationMinutes,
             result.StartedAtUtc, result.CompletedAtUtc, result.Notes,
             result.Version, result.CreatedAtUtc, result.UpdatedAtUtc,
+            result.CurrentItemId, result.RemainingPlannedMinutes,
             new StudySessionProgressSummaryResponse(
                 result.Progress.TotalItems, result.Progress.PendingItems,
                 result.Progress.InProgressItems,
@@ -102,7 +103,8 @@ public static class StudySessionEndpoints
             result.Items.Select(item => new StudySessionDetailItemResponse(
                 item.Id, item.ResourceType, item.ResourceId,
                 item.ResourceTitle, item.ResourcePreview,
-                item.IsResourceAvailable, item.Position, item.Status,
+                item.IsResourceAvailable, item.PlannedDurationMinutes,
+                item.Position, item.Status,
                 item.StartedAtUtc, item.CompletedAtUtc, item.Notes,
                 item.CreatedAtUtc, item.UpdatedAtUtc)).ToList()));
     }
@@ -195,7 +197,10 @@ public static class StudySessionEndpoints
     {
         var result = await handler.HandleAsync(
             new CompleteStudySessionItemCommand(
-                id, itemId, request.Notes, request.ExpectedVersion),
+                id, itemId, request.Notes, request.ExpectedVersion,
+                request.SubmissionId == Guid.Empty
+                    ? Guid.NewGuid() : request.SubmissionId,
+                request.EvidenceId),
             cancellationToken);
         return Results.Ok(MapItemState(result));
     }
@@ -207,7 +212,9 @@ public static class StudySessionEndpoints
     {
         var result = await handler.HandleAsync(
             new SkipStudySessionItemCommand(
-                id, itemId, request.Notes, request.ExpectedVersion),
+                id, itemId, request.Notes, request.ExpectedVersion,
+                request.SubmissionId == Guid.Empty
+                    ? Guid.NewGuid() : request.SubmissionId),
             cancellationToken);
         return Results.Ok(MapItemState(result));
     }

@@ -331,7 +331,7 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
         var persisted = await context.StudySessions.AsNoTracking()
             .Include(candidate => candidate.Items)
             .SingleAsync(candidate => candidate.Id == session.Id);
-        persisted.Status.Should().Be(StudySessionStatus.InProgress);
+        persisted.Status.Should().Be(StudySessionStatus.Completed);
         persisted.Items.Single(item => item.Id == first.Id).Status
             .Should().Be(StudySessionItemStatus.Completed);
         persisted.Items.Single(item => item.Id == second.Id).Status

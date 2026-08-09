@@ -7,7 +7,7 @@ namespace DevRecall.Application.Study.Items.Skip;
 
 public sealed record SkipStudySessionItemCommand(
     Guid StudySessionId, Guid StudySessionItemId,
-    string? Notes, int ExpectedVersion);
+    string? Notes, int ExpectedVersion, Guid SubmissionId);
 
 public sealed class SkipStudySessionItemHandler(
     IStudySessionRepository repository,
@@ -34,7 +34,7 @@ public sealed class SkipStudySessionItemHandler(
         {
             session.SkipItem(
                 command.ExpectedVersion, command.StudySessionItemId,
-                command.Notes, utcClock.UtcNow);
+                command.SubmissionId, command.Notes, utcClock.UtcNow);
         }
         catch (StudySessionDomainException exception)
         {
@@ -51,8 +51,9 @@ public sealed class SkipStudySessionItemHandler(
             throw StudySessionSupport.ItemMutationConflict(session);
         }
 
-        await StudySessionSupport.SaveWithConcurrencyMappingAsync(
-            repository, cancellationToken);
+        if (session.Version != command.ExpectedVersion)
+            await StudySessionSupport.SaveWithConcurrencyMappingAsync(
+                repository, cancellationToken);
         return StudyResultMapper.MapState(
             session.Items.Single(
                 item => item.Id == command.StudySessionItemId),

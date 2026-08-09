@@ -1,7 +1,8 @@
 namespace DevRecall.Domain.Study;
 
 public sealed record InitialStudySessionItem(
-    Guid ItemId, StudyResourceType ResourceType, Guid ResourceId);
+    Guid ItemId, StudyResourceType ResourceType, Guid ResourceId,
+    string? TitleSnapshot = null, int PlannedDurationMinutes = 0);
 
 public sealed class StudySession
 {
@@ -90,7 +91,8 @@ public sealed class StudySession
 
             session._items.Add(StudySessionItem.Create(
                 item.ItemId, session.Id, item.ResourceType, item.ResourceId,
-                position, null, createdAtUtc));
+                position, null, createdAtUtc, item.TitleSnapshot,
+                item.PlannedDurationMinutes));
             position++;
         }
 
@@ -300,6 +302,24 @@ public sealed class StudySession
         IncrementVersion();
     }
 
+    public bool CompleteItem(
+        int expectedVersion, Guid itemId, Guid submissionId, Guid? evidenceId,
+        string? notes, DateTimeOffset completedAtUtc)
+    {
+        var item = GetItem(itemId);
+        if (item.CompletionSubmissionId == submissionId) return false;
+        EnsureExpectedVersion(expectedVersion);
+        EnsureInProgress();
+        EnsureSubmissionAvailable(itemId, submissionId);
+        var changed = item.Complete(
+            submissionId, evidenceId, notes, completedAtUtc);
+        if (!changed) return false;
+        UpdatedAtUtc = completedAtUtc;
+        IncrementVersion();
+        CompleteWhenHandled(completedAtUtc);
+        return true;
+    }
+
     public void SkipItem(
         Guid itemId, string? notes, DateTimeOffset skippedAtUtc) =>
         SkipItem(Version, itemId, notes, skippedAtUtc);
@@ -313,6 +333,23 @@ public sealed class StudySession
         GetItem(itemId).Skip(notes, skippedAtUtc);
         UpdatedAtUtc = skippedAtUtc;
         IncrementVersion();
+    }
+
+    public bool SkipItem(
+        int expectedVersion, Guid itemId, Guid submissionId,
+        string? notes, DateTimeOffset skippedAtUtc)
+    {
+        var item = GetItem(itemId);
+        if (item.CompletionSubmissionId == submissionId) return false;
+        EnsureExpectedVersion(expectedVersion);
+        EnsureInProgress();
+        EnsureSubmissionAvailable(itemId, submissionId);
+        var changed = item.Skip(submissionId, notes, skippedAtUtc);
+        if (!changed) return false;
+        UpdatedAtUtc = skippedAtUtc;
+        IncrementVersion();
+        CompleteWhenHandled(skippedAtUtc);
+        return true;
     }
 
     public void Complete(DateTimeOffset completedAtUtc) =>
@@ -387,6 +424,30 @@ public sealed class StudySession
     private StudySessionItem GetItem(Guid itemId) =>
         _items.SingleOrDefault(item => item.Id == itemId)
         ?? throw new KeyNotFoundException(StudySessionErrors.ItemNotFound.Message);
+
+    private void EnsureSubmissionAvailable(Guid itemId, Guid submissionId)
+    {
+        if (submissionId == Guid.Empty)
+        {
+            throw new ArgumentException("Submission id is required.", nameof(submissionId));
+        }
+
+        if (_items.Any(item => item.Id != itemId
+            && item.CompletionSubmissionId == submissionId))
+        {
+            throw new StudySessionDomainException(StudySessionErrors.Conflict);
+        }
+    }
+
+    private void CompleteWhenHandled(DateTimeOffset completedAtUtc)
+    {
+        if (_items.Any(item => item.Status is StudySessionItemStatus.Pending
+            or StudySessionItemStatus.InProgress)) return;
+        Status = StudySessionStatus.Completed;
+        CompletedAtUtc = completedAtUtc;
+        ActualDurationMinutes = StartedAtUtc is null ? 0
+            : CalculateActualDurationMinutes(completedAtUtc - StartedAtUtc.Value);
+    }
 
     private void EnsurePlanned()
     {

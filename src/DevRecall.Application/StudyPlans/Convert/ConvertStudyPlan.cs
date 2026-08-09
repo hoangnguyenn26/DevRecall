@@ -86,7 +86,8 @@ public sealed class ConvertStudyPlanHandler(
 
         var convertedAtUtc = utcClock.UtcNow;
         var session = CreateSessionFromPlan(
-            Guid.NewGuid(), userId, plan, convertedAtUtc);
+            Guid.NewGuid(), userId, plan, summaries, convertedAtUtc);
+        session.Start(session.Version, convertedAtUtc);
         try
         {
             plan.MarkConverted(
@@ -129,14 +130,23 @@ public sealed class ConvertStudyPlanHandler(
 
     private static StudySession CreateSessionFromPlan(
         Guid sessionId, Guid userId, StudyPlan plan,
+        IReadOnlyList<StudyPlanResourceSummary> summaries,
         DateTimeOffset createdAtUtc)
     {
+        var byResource = summaries.ToDictionary(
+            item => (item.ResourceType, item.ResourceId));
         var items = plan.Items.OrderBy(item => item.Position)
-            .Select(item => new InitialStudySessionItem(
-                Guid.NewGuid(),
-                StudyPlanMappingPolicy.MapToStudyResourceType(
-                    item.ResourceType),
-                item.ResourceId)).ToArray();
+            .Select(item =>
+            {
+                byResource.TryGetValue(
+                    (item.ResourceType, item.ResourceId), out var resource);
+                return new InitialStudySessionItem(
+                    Guid.NewGuid(),
+                    StudyPlanMappingPolicy.MapToStudyResourceType(
+                        item.ResourceType),
+                    item.ResourceId, resource?.Title,
+                    item.PlannedDurationMinutes);
+            }).ToArray();
         return StudySession.CreateFromPlan(
             sessionId, userId, plan.Title,
             plan.TotalPlannedDurationMinutes, items, createdAtUtc);

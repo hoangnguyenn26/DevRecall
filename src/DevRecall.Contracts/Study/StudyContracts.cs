@@ -17,9 +17,10 @@ public sealed record ReorderStudySessionItemsRequest(
 public sealed record StartStudySessionRequest(int ExpectedVersion);
 public sealed record StartStudySessionItemRequest(int ExpectedVersion);
 public sealed record CompleteStudySessionItemRequest(
-    string? Notes, int ExpectedVersion);
+    string? Notes, int ExpectedVersion, Guid SubmissionId = default,
+    Guid? EvidenceId = null);
 public sealed record SkipStudySessionItemRequest(
-    string? Notes, int ExpectedVersion);
+    string? Notes, int ExpectedVersion, Guid SubmissionId = default);
 
 public sealed class RemoveStudySessionItemRequest
 {
@@ -94,7 +95,8 @@ public sealed record StudySessionProgressSummaryResponse(
 public sealed record StudySessionDetailItemResponse(
     Guid Id, string ResourceType, Guid ResourceId,
     string ResourceTitle, string? ResourcePreview,
-    bool IsResourceAvailable, int Position, string Status,
+    bool IsResourceAvailable, int PlannedDurationMinutes,
+    int Position, string Status,
     DateTimeOffset? StartedAtUtc, DateTimeOffset? CompletedAtUtc,
     string? Notes, DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
@@ -104,5 +106,6 @@ public sealed record StudySessionDetailResponse(
     int? ActualDurationMinutes, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, string? Notes, int Version,
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
+    Guid? CurrentItemId, int RemainingPlannedMinutes,
     StudySessionProgressSummaryResponse Progress,
     IReadOnlyList<StudySessionDetailItemResponse> Items);

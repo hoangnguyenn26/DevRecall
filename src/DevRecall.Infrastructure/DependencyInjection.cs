@@ -27,6 +27,7 @@ using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Search;
 using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetList;
+using DevRecall.Application.Study.Items.Complete;
 using DevRecall.Application.Study.Resources;
 using DevRecall.Application.StudyPlans;
 using DevRecall.Application.StudyPlans.Convert;
@@ -150,6 +151,7 @@ public static class DependencyInjection
         services.AddSingleton<IUtcClock, SystemUtcClock>();
         services.AddScoped<IStudySessionRepository, StudySessionRepository>();
         services.AddScoped<IStudyResourceResolver, StudyResourceResolver>();
+        services.AddScoped<IStudySessionEvidenceValidator, StudySessionEvidenceValidator>();
         services.AddScoped<
             IStudyReviewItemResourceReader,
             StudyReviewItemResourceReader>();
