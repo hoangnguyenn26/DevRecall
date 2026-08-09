@@ -376,6 +376,8 @@ Completed:
 
 See [Public Web](./docs/public-web.md) for the route matrix, indexing policy, conversion flow, and delivery constraints.
 
+Release validation uses the [regression checklist](./docs/regression-checklist.md). Authentication, ownership, input, rendering, privacy, and deployment decisions are documented in the [security model](./docs/security.md).
+
 ## Contributing
 
 Before implementing a feature:
