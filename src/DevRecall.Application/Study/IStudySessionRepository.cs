@@ -2,6 +2,13 @@ using DevRecall.Domain.Study;
 
 namespace DevRecall.Application.Study;
 
+public sealed class StudySessionPersistenceConflictException(
+    string constraintName, Exception innerException)
+    : Exception("The study session could not be persisted.", innerException)
+{
+    public string ConstraintName { get; } = constraintName;
+}
+
 public interface IStudySessionRepository
 {
     Task<StudySession?> GetByIdAndUserIdAsync(

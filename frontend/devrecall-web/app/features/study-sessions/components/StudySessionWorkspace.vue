@@ -163,6 +163,11 @@ onMounted(load)
       @retry="load"
     />
     <div v-else-if="detail" class="session">
+      <p class="sr-only" aria-live="polite">
+        {{ handled }} of {{ detail.progress.totalItems }} learning items handled.
+        {{ detail.progress.completedItems }} completed,
+        {{ detail.progress.skippedItems }} skipped.
+      </p>
       <div v-if="conflict" class="conflict" role="alert">
         <div>
           <strong>This study session changed elsewhere.</strong>
@@ -250,6 +255,11 @@ onMounted(load)
       </div>
       <template v-if="detail.status !== 'Completed'">
         <section v-if="current" class="current-card">
+          <p class="sr-only">
+            Current learning item: {{ current.resourceTitle }},
+            {{ current.resourceType }}, planned for
+            {{ current.plannedDurationMinutes }} minutes.
+          </p>
           <p>Current learning item</p>
           <h1>{{ current.resourceTitle }}</h1>
           <span>{{ current.resourceType }} · ~{{ current.plannedDurationMinutes }} min</span>
@@ -466,11 +476,22 @@ aside em {
   .session {
     grid-template-columns: 1fr;
   }
-  .session aside {
-    order: -1;
-  }
   .current-card {
     min-height: 20rem;
+  }
+  .current-card > div,
+  .current-card > div > * {
+    width: 100%;
+  }
+  .metrics {
+    display: grid;
+  }
+  .summary-items article {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .summary-items article > :last-child {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 </style>

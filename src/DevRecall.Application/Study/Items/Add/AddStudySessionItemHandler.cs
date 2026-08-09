@@ -3,7 +3,6 @@ using DevRecall.Application.Common.Time;
 using DevRecall.Application.Identity;
 using DevRecall.Application.Study.Resources;
 using DevRecall.Domain.Study;
-using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Application.Study.Items.Add;
 
@@ -86,16 +85,16 @@ public sealed class AddStudySessionItemHandler(
         {
             await repository.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (StudySessionPersistenceConflictException exception)
+            when (exception.ConstraintName == "concurrency")
         {
             throw new ConflictException(
                 StudySessionErrors.Conflict.Code,
                 StudySessionErrors.Conflict.Message);
         }
-        catch (DbUpdateException exception)
-            when (exception.InnerException?.Message.Contains(
-                "ux_study_session_items_session_resource",
-                StringComparison.Ordinal) == true)
+        catch (StudySessionPersistenceConflictException exception)
+            when (exception.ConstraintName ==
+                "ux_study_session_items_session_resource")
         {
             throw new ConflictException(
                 StudySessionErrors.ItemAlreadyExists.Code,

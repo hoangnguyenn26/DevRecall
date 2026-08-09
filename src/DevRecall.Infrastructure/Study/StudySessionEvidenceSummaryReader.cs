@@ -22,7 +22,9 @@ internal sealed class StudySessionEvidenceSummaryReader(
                 .Where(item => item.UserId == userId && ids.Contains(item.Id))
                 .Select(item => new
                 {
-                    item.Id, item.SelfRating, item.DurationSeconds
+                    item.Id,
+                    item.SelfRating,
+                    item.DurationSeconds
                 }).ToListAsync(cancellationToken);
             foreach (var reference in interview)
             {
@@ -50,7 +52,9 @@ internal sealed class StudySessionEvidenceSummaryReader(
                 where problem.UserId == userId && ids.Contains(attempt.Id)
                 select new
                 {
-                    attempt.Id, attempt.Result, attempt.DurationMinutes,
+                    attempt.Id,
+                    attempt.Result,
+                    attempt.DurationMinutes,
                     attempt.TimeComplexity
                 }).ToListAsync(cancellationToken);
             foreach (var reference in dsa)

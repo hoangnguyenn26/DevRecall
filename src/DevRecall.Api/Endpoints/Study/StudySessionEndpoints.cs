@@ -206,8 +206,8 @@ public static class StudySessionEndpoints
         var result = await handler.HandleAsync(
             new CompleteStudySessionItemCommand(
                 id, itemId, request.Notes, request.ExpectedVersion,
-                request.SubmissionId == Guid.Empty
-                    ? Guid.NewGuid() : request.SubmissionId,
+                request.SubmissionId.GetValueOrDefault() == Guid.Empty
+                    ? Guid.NewGuid() : request.SubmissionId!.Value,
                 request.EvidenceId),
             cancellationToken);
         return Results.Ok(MapItemState(result));
@@ -221,8 +221,8 @@ public static class StudySessionEndpoints
         var result = await handler.HandleAsync(
             new SkipStudySessionItemCommand(
                 id, itemId, request.Notes, request.ExpectedVersion,
-                request.SubmissionId == Guid.Empty
-                    ? Guid.NewGuid() : request.SubmissionId),
+                request.SubmissionId.GetValueOrDefault() == Guid.Empty
+                    ? Guid.NewGuid() : request.SubmissionId!.Value),
             cancellationToken);
         return Results.Ok(MapItemState(result));
     }

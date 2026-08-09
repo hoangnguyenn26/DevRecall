@@ -17,10 +17,10 @@ public sealed record ReorderStudySessionItemsRequest(
 public sealed record StartStudySessionRequest(int ExpectedVersion);
 public sealed record StartStudySessionItemRequest(int ExpectedVersion);
 public sealed record CompleteStudySessionItemRequest(
-    string? Notes, int ExpectedVersion, Guid SubmissionId = default,
+    string? Notes, int ExpectedVersion, Guid? SubmissionId = null,
     Guid? EvidenceId = null);
 public sealed record SkipStudySessionItemRequest(
-    string? Notes, int ExpectedVersion, Guid SubmissionId = default);
+    string? Notes, int ExpectedVersion, Guid? SubmissionId = null);
 
 public sealed class RemoveStudySessionItemRequest
 {

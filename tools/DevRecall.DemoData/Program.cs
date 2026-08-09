@@ -10,7 +10,6 @@ using DevRecall.Contracts.Interview.FollowUps;
 using DevRecall.Contracts.Knowledge;
 using DevRecall.Contracts.Recommendations;
 using DevRecall.Contracts.Reviews;
-using DevRecall.Contracts.Study;
 using DevRecall.Contracts.StudyPlans;
 using DevRecall.Contracts.WeakTopics;
 
@@ -187,14 +186,9 @@ async Task EnsureStudyPlanAndSessionAsync()
     var ready = await client.PostAsync<StudyPlanMutationRequest,
         StudyPlanMutationResponse>($"study-plans/{generated.StudyPlanId}/ready",
         new StudyPlanMutationRequest(generated.Version));
-    var converted = await client.PostAsync<ConvertStudyPlanRequest,
+    _ = await client.PostAsync<ConvertStudyPlanRequest,
         ConvertStudyPlanResponse>($"study-plans/{generated.StudyPlanId}/convert",
         new ConvertStudyPlanRequest(ready.Version));
-    var session = await client.GetAsync<StudySessionDetailResponse>(
-        $"study-sessions/{converted.StudySessionId}");
-    await client.PostAsync<StartStudySessionRequest, StartStudySessionResponse>(
-        $"study-sessions/{session.Id}/start",
-        new StartStudySessionRequest(session.Version));
 }
 
 static IEnumerable<KnowledgeTreeNodeResponse> Flatten(

@@ -349,6 +349,20 @@ Completed:
 - Phase-scoped keyboard workflows and global-shortcut isolation
 - Responsive, accessible completion, error, and draft-recovery states
 
+### Week 21 — Study Experience
+
+Completed:
+
+- Study Plans workspace and editable Draft builder
+- Accessible resource reordering and planned-duration editing
+- Optimistic Study Plan concurrency and Ready lifecycle
+- Atomic, idempotent Study Session start and backend-driven resume
+- Knowledge, Interview, and DSA learning-item execution
+- Evidence-backed practice completion and explicit skip flow
+- Automatic final-item Session completion
+- Completed Session summaries, reflections, and bounded history
+- Today Next Best Action integration and focused query invalidation
+
 ## Contributing
 
 Before implementing a feature:

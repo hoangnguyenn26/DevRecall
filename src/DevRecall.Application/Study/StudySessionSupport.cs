@@ -1,7 +1,6 @@
 using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Identity;
 using DevRecall.Domain.Study;
-using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Application.Study;
 
@@ -89,7 +88,7 @@ internal static class StudySessionSupport
         {
             await repository.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (StudySessionPersistenceConflictException)
         {
             throw new ConflictException(
                 StudySessionErrors.Conflict.Code,
