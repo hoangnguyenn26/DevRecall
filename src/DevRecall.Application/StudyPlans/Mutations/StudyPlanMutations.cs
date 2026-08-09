@@ -1,6 +1,7 @@
 using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Common.Time;
 using DevRecall.Application.Identity;
+using DevRecall.Application.StudyPlans.Resources;
 using DevRecall.Domain.Common.Errors;
 using DevRecall.Domain.StudyPlans;
 
@@ -8,6 +9,12 @@ namespace DevRecall.Application.StudyPlans.Mutations;
 
 public sealed record UpdateStudyPlanCommand(
     Guid StudyPlanId, string Title, int ExpectedVersion);
+public sealed record ReplaceStudyPlanDraftItem(
+    Guid? ItemId, string ResourceType, Guid ResourceId,
+    int PlannedDurationMinutes);
+public sealed record ReplaceStudyPlanDraftCommand(
+    Guid StudyPlanId, string Title,
+    IReadOnlyList<ReplaceStudyPlanDraftItem> Items, int ExpectedVersion);
 public sealed record UpdateStudyPlanItemCommand(
     Guid StudyPlanId, Guid ItemId, int PlannedDurationMinutes,
     int ExpectedVersion);
@@ -32,6 +39,9 @@ public abstract class StudyPlanMutationHandler(
 {
     protected IStudyPlanRepository Repository { get; } = repository;
     protected DateTimeOffset UtcNow => utcClock.UtcNow;
+    protected Guid UserId => currentUser.UserId
+        ?? throw new UnauthorizedException(
+            "AUTH_REQUIRED", "Authentication is required.");
 
     protected async Task<StudyPlan> LoadAsync(
         Guid planId, int expectedVersion, CancellationToken cancellationToken)
@@ -110,7 +120,9 @@ public abstract class StudyPlanMutationHandler(
         || ReferenceEquals(error, StudyPlanErrors.TitleTooLong)
         || ReferenceEquals(error, StudyPlanErrors.InvalidItemDuration)
         || ReferenceEquals(error, StudyPlanErrors.InvalidItemOrder)
-        || ReferenceEquals(error, StudyPlanErrors.DurationLimitExceeded);
+        || ReferenceEquals(error, StudyPlanErrors.DurationLimitExceeded)
+        || ReferenceEquals(error, StudyPlanErrors.ItemLimitReached)
+        || ReferenceEquals(error, StudyPlanErrors.DuplicateResource);
 }
 
 public sealed class UpdateStudyPlanHandler(
@@ -135,6 +147,71 @@ public sealed class UpdateStudyPlanHandler(
         await SaveIfChangedAsync(changed, cancellationToken);
         return Result(plan);
     }
+}
+
+public sealed class ReplaceStudyPlanDraftHandler(
+    IStudyPlanRepository repository, ICurrentUser currentUser, IUtcClock utcClock,
+    IStudyPlanResourceSummaryReader resourceReader)
+    : StudyPlanMutationHandler(repository, currentUser, utcClock)
+{
+    public async Task<StudyPlanMutationResult> HandleAsync(
+        ReplaceStudyPlanDraftCommand command, CancellationToken cancellationToken)
+    {
+        if (command.Items is null)
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["items"] = ["Study plan items are required."]
+            });
+        }
+
+        var plan = await LoadAsync(
+            command.StudyPlanId, command.ExpectedVersion, cancellationToken);
+        var items = command.Items.Select((item, index) => new DraftStudyPlanItem(
+            item.ItemId ?? Guid.NewGuid(), ParseResourceType(item.ResourceType),
+            item.ResourceId, item.PlannedDurationMinutes)).ToArray();
+        var userId = UserId;
+        var references = items.Select(item => new StudyPlanResourceReference(
+            item.ResourceType, item.ResourceId)).Distinct().ToArray();
+        var resources = await resourceReader.ReadManyAsync(
+            userId, references, cancellationToken);
+        var available = resources.Where(item => item.IsAvailable)
+            .Select(item => (item.ResourceType, item.ResourceId)).ToHashSet();
+        if (references.Any(item => !available.Contains(
+            (item.ResourceType, item.ResourceId))))
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["items"] = [StudyPlanErrors.ResourceUnavailable.Message]
+            });
+        }
+
+        bool changed;
+        try
+        {
+            changed = plan.ReplaceDraft(
+                command.Title, items, command.ExpectedVersion, UtcNow);
+        }
+        catch (StudyPlanDomainException exception)
+        {
+            throw Map(exception);
+        }
+
+        await SaveIfChangedAsync(changed, cancellationToken);
+        return Result(plan);
+    }
+
+    private static StudyPlanResourceType ParseResourceType(string value) =>
+        value?.Trim() switch
+        {
+            "KnowledgeNode" or "Knowledge" => StudyPlanResourceType.KnowledgeNode,
+            "InterviewQuestion" => StudyPlanResourceType.InterviewQuestion,
+            "DsaProblem" => StudyPlanResourceType.DsaProblem,
+            _ => throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["resourceType"] = ["Resource type is invalid."]
+            })
+        };
 }
 
 public sealed class UpdateStudyPlanItemHandler(
@@ -241,7 +318,8 @@ public sealed class ReorderStudyPlanItemsHandler(
 }
 
 public sealed class MarkStudyPlanReadyHandler(
-    IStudyPlanRepository repository, ICurrentUser currentUser, IUtcClock utcClock)
+    IStudyPlanRepository repository, ICurrentUser currentUser, IUtcClock utcClock,
+    IStudyPlanResourceSummaryReader resourceReader)
     : StudyPlanMutationHandler(repository, currentUser, utcClock)
 {
     public async Task<StudyPlanMutationResult> HandleAsync(
@@ -250,6 +328,21 @@ public sealed class MarkStudyPlanReadyHandler(
     {
         var plan = await LoadAsync(
             command.StudyPlanId, command.ExpectedVersion, cancellationToken);
+        var references = plan.Items.Select(item => new StudyPlanResourceReference(
+            item.ResourceType, item.ResourceId)).ToArray();
+        var resources = await resourceReader.ReadManyAsync(
+            UserId, references, cancellationToken);
+        var available = resources.Where(item => item.IsAvailable)
+            .Select(item => (item.ResourceType, item.ResourceId)).ToHashSet();
+        if (references.Any(item => !available.Contains(
+            (item.ResourceType, item.ResourceId))))
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["items"] = [StudyPlanErrors.ResourceUnavailable.Message]
+            });
+        }
+
         bool changed;
         try
         {

@@ -255,6 +255,45 @@ public sealed class StudyPlanTests
         action.Should().Throw<ArgumentOutOfRangeException>();
     }
 
+    [Fact]
+    public void ReplaceDraft_ShouldApplyMultipleChangesWithOneVersionIncrement()
+    {
+        var plan = CreatePlan();
+        var first = AddItem(plan, Guid.NewGuid(), 20);
+        var second = AddItem(plan, Guid.NewGuid(), 20);
+        var version = plan.Version;
+        var addedResource = Guid.NewGuid();
+
+        var changed = plan.ReplaceDraft(
+            "Updated plan",
+            [
+                new(second.Id, second.ResourceType, second.ResourceId, 30),
+                new(Guid.NewGuid(), StudyPlanResourceType.DsaProblem, addedResource, 25)
+            ],
+            version, Now.AddHours(1));
+
+        changed.Should().BeTrue();
+        plan.Version.Should().Be(version + 1);
+        plan.Title.Should().Be("Updated plan");
+        plan.Items.OrderBy(item => item.Position).Select(item => item.ResourceId)
+            .Should().Equal(second.ResourceId, addedResource);
+        plan.Items.Should().NotContain(item => item.Id == first.Id);
+    }
+
+    [Fact]
+    public void ReplaceDraft_ShouldSkipNormalizedNoOp()
+    {
+        var plan = CreatePlan();
+        var item = AddItem(plan, Guid.NewGuid(), 20);
+        var version = plan.Version;
+
+        plan.ReplaceDraft(
+            "  Plan  ", [new(item.Id, item.ResourceType, item.ResourceId, 20)],
+            version, Now.AddHours(1)).Should().BeFalse();
+
+        plan.Version.Should().Be(version);
+    }
+
     private static StudyPlan CreatePlan(string title = "Plan") =>
         StudyPlan.Create(
             Guid.NewGuid(), Guid.NewGuid(), title, Now,

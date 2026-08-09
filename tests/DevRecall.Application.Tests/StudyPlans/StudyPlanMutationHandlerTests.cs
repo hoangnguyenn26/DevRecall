@@ -3,6 +3,7 @@ using DevRecall.Application.Common.Time;
 using DevRecall.Application.Identity;
 using DevRecall.Application.StudyPlans;
 using DevRecall.Application.StudyPlans.Mutations;
+using DevRecall.Application.StudyPlans.Resources;
 using DevRecall.Domain.StudyPlans;
 using FluentAssertions;
 
@@ -95,13 +96,13 @@ public sealed class StudyPlanMutationHandlerTests
     {
         var empty = new Context(CreatePlan());
         var invalid = () => new MarkStudyPlanReadyHandler(
-            empty.Repository, empty.User, empty.Clock).HandleAsync(
+            empty.Repository, empty.User, empty.Clock, new ResourceReaderStub()).HandleAsync(
             new(empty.Plan.Id, empty.Plan.Version), CancellationToken.None);
         await invalid.Should().ThrowAsync<ConflictException>()
             .Where(x => x.ErrorCode == StudyPlanErrors.EmptyPlan.Code);
         var context = new Context(CreatePlan(withItems: 1));
         var handler = new MarkStudyPlanReadyHandler(
-            context.Repository, context.User, context.Clock);
+            context.Repository, context.User, context.Clock, new ResourceReaderStub());
 
         var ready = await handler.HandleAsync(
             new(context.Plan.Id, context.Plan.Version), CancellationToken.None);
@@ -150,6 +151,50 @@ public sealed class StudyPlanMutationHandlerTests
             .Where(x => x.ErrorCode == StudyPlanErrors.Conflict.Code);
     }
 
+    [Fact]
+    public async Task ReplaceDraft_ShouldValidateResourcesAndSaveAggregateOnce()
+    {
+        var context = new Context(CreatePlan(withItems: 2));
+        var existing = context.Plan.Items.OrderBy(item => item.Position).First();
+        var addedId = Guid.NewGuid();
+        var resources = new ResourceReaderStub([
+            new(existing.ResourceType, existing.ResourceId, "Existing", null, true),
+            new(StudyPlanResourceType.DsaProblem, addedId, "Added", null, true)
+        ]);
+        var handler = new ReplaceStudyPlanDraftHandler(
+            context.Repository, context.User, context.Clock, resources);
+
+        var result = await handler.HandleAsync(new(
+            context.Plan.Id, "Updated",
+            [
+                new(existing.Id, existing.ResourceType.ToString(), existing.ResourceId, 30),
+                new(null, "DsaProblem", addedId, 25)
+            ], context.Plan.Version), CancellationToken.None);
+
+        result.Version.Should().Be(4);
+        result.ItemCount.Should().Be(2);
+        context.Repository.SaveCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task MarkReady_ShouldRejectUnavailableResourcesWithoutSaving()
+    {
+        var context = new Context(CreatePlan(withItems: 1));
+        var item = context.Plan.Items.Single();
+        var reader = new ResourceReaderStub([
+            new(item.ResourceType, item.ResourceId, "Archived", null, false)
+        ]);
+        var handler = new MarkStudyPlanReadyHandler(
+            context.Repository, context.User, context.Clock, reader);
+
+        var action = () => handler.HandleAsync(
+            new(context.Plan.Id, context.Plan.Version), CancellationToken.None);
+
+        await action.Should().ThrowAsync<ValidationException>();
+        context.Plan.Status.Should().Be(StudyPlanStatus.Draft);
+        context.Repository.SaveCount.Should().Be(0);
+    }
+
     private sealed class Context(StudyPlan plan)
     {
         public StudyPlan Plan { get; } = plan;
@@ -186,6 +231,18 @@ public sealed class StudyPlanMutationHandlerTests
     private sealed class ClockStub : IUtcClock
     {
         public DateTimeOffset UtcNow => Now;
+    }
+
+    private sealed class ResourceReaderStub(
+        IReadOnlyList<StudyPlanResourceSummary>? resources = null)
+        : IStudyPlanResourceSummaryReader
+    {
+        public Task<IReadOnlyList<StudyPlanResourceSummary>> ReadManyAsync(
+            Guid userId,
+            IReadOnlyCollection<StudyPlanResourceReference> requested,
+            CancellationToken cancellationToken) => Task.FromResult(
+                resources ?? requested.Select(item => new StudyPlanResourceSummary(
+                    item.ResourceType, item.ResourceId, "Resource", null, true)).ToArray());
     }
 
     private static StudyPlan CreatePlan(int withItems = 0)

@@ -69,6 +69,12 @@ public sealed record StudyPlanDetailResponse(
 
 public sealed record StudyPlanMutationRequest(int ExpectedVersion);
 public sealed record UpdateStudyPlanRequest(string Title, int ExpectedVersion);
+public sealed record ReplaceStudyPlanDraftItemRequest(
+    Guid? ItemId, string ResourceType, Guid ResourceId,
+    int PlannedDurationMinutes);
+public sealed record ReplaceStudyPlanDraftRequest(
+    string Title, IReadOnlyList<ReplaceStudyPlanDraftItemRequest> Items,
+    int ExpectedVersion);
 public sealed record UpdateStudyPlanItemRequest(
     int PlannedDurationMinutes, int ExpectedVersion);
 public sealed record ReorderStudyPlanItemsRequest(

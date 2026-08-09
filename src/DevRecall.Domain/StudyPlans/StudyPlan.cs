@@ -7,6 +7,10 @@ public sealed record InitialStudyPlanItem(
     Guid ResourceId,
     int PlannedDurationMinutes);
 
+public sealed record DraftStudyPlanItem(
+    Guid ItemId, StudyPlanResourceType ResourceType, Guid ResourceId,
+    int PlannedDurationMinutes);
+
 public sealed class StudyPlan
 {
     private readonly List<StudyPlanItem> _items = [];
@@ -148,6 +152,107 @@ public sealed class StudyPlan
         }
 
         Title = normalizedTitle;
+        Touch(updatedAtUtc);
+        return true;
+    }
+
+    public bool ReplaceDraft(
+        string title, IReadOnlyList<DraftStudyPlanItem> items,
+        int expectedVersion, DateTimeOffset updatedAtUtc)
+    {
+        EnsureExpectedVersion(expectedVersion);
+        EnsureDraft();
+        ArgumentNullException.ThrowIfNull(items);
+        EnsureUtc(updatedAtUtc, nameof(updatedAtUtc));
+        var normalizedTitle = NormalizeTitle(title);
+        if (items.Count > StudyPlanDefaults.MaximumItems)
+        {
+            throw new StudyPlanDomainException(StudyPlanErrors.ItemLimitReached);
+        }
+
+        if (items.Any(item => item.ItemId == Guid.Empty || item.ResourceId == Guid.Empty)
+            || items.Select(item => item.ItemId).Distinct().Count() != items.Count
+            || items.Any(item => !Enum.IsDefined(item.ResourceType)))
+        {
+            throw new StudyPlanDomainException(StudyPlanErrors.InvalidItemOrder);
+        }
+
+        foreach (var item in items)
+        {
+            EnsureDuration(item.PlannedDurationMinutes);
+        }
+
+        if (items.Sum(item => item.PlannedDurationMinutes)
+            > StudyPlanDefaults.MaximumTotalDurationMinutes)
+        {
+            throw new StudyPlanDomainException(StudyPlanErrors.DurationLimitExceeded);
+        }
+
+        if (items.Select(item => (item.ResourceType, item.ResourceId)).Distinct().Count()
+            != items.Count)
+        {
+            throw new StudyPlanDomainException(StudyPlanErrors.DuplicateResource);
+        }
+
+        var existingById = _items.ToDictionary(item => item.Id);
+        foreach (var item in items.Where(item => existingById.ContainsKey(item.ItemId)))
+        {
+            var existing = existingById[item.ItemId];
+            if (existing.ResourceType != item.ResourceType
+                || existing.ResourceId != item.ResourceId)
+            {
+                throw new StudyPlanDomainException(StudyPlanErrors.InvalidItemOrder);
+            }
+        }
+
+        var unchanged = Title == normalizedTitle && _items.Count == items.Count
+            && items.Select((item, index) => new
+            {
+                item.ItemId,
+                item.ResourceType,
+                item.ResourceId,
+                item.PlannedDurationMinutes,
+                Position = index + 1
+            }).SequenceEqual(_items.OrderBy(item => item.Position).Select(item => new
+            {
+                ItemId = item.Id,
+                item.ResourceType,
+                item.ResourceId,
+                item.PlannedDurationMinutes,
+                item.Position
+            }));
+        if (unchanged)
+        {
+            return false;
+        }
+
+        Title = normalizedTitle;
+        var desiredIds = items.Select(item => item.ItemId).ToHashSet();
+        _items.RemoveAll(item => !desiredIds.Contains(item.Id));
+        for (var index = 0; index < items.Count; index++)
+        {
+            var desired = items[index];
+            if (existingById.TryGetValue(desired.ItemId, out var existing))
+            {
+                if (existing.PlannedDurationMinutes != desired.PlannedDurationMinutes)
+                {
+                    existing.UpdateDuration(desired.PlannedDurationMinutes, updatedAtUtc);
+                }
+
+                if (existing.Position != index + 1)
+                {
+                    existing.SetPosition(index + 1, updatedAtUtc);
+                }
+
+                continue;
+            }
+
+            _items.Add(new StudyPlanItem(
+                desired.ItemId, null, StudyPlanSourceType.Manual,
+                desired.ResourceType, desired.ResourceId,
+                desired.PlannedDurationMinutes, index + 1, updatedAtUtc));
+        }
+
         Touch(updatedAtUtc);
         return true;
     }

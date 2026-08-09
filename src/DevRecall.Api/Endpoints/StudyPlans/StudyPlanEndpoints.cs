@@ -41,6 +41,13 @@ public static class StudyPlanEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPut("/{studyPlanId:guid}/draft", ReplaceDraftAsync)
+            .WithName("ReplaceStudyPlanDraft")
+            .Produces<StudyPlanMutationResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{studyPlanId:guid}/items/{itemId:guid}", UpdateItemAsync)
             .WithName("UpdateStudyPlanItem")
             .Produces<StudyPlanMutationResponse>()
@@ -99,6 +106,18 @@ public static class StudyPlanEndpoints
         UpdateStudyPlanHandler handler, CancellationToken cancellationToken) =>
         Results.Ok(MapMutation(await handler.HandleAsync(
             new(studyPlanId, request.Title, request.ExpectedVersion),
+            cancellationToken)));
+
+    private static async Task<IResult> ReplaceDraftAsync(
+        Guid studyPlanId, ReplaceStudyPlanDraftRequest request,
+        ReplaceStudyPlanDraftHandler handler, CancellationToken cancellationToken) =>
+        Results.Ok(MapMutation(await handler.HandleAsync(
+            new(
+                studyPlanId, request.Title,
+                request.Items.Select(item => new ReplaceStudyPlanDraftItem(
+                    item.ItemId, item.ResourceType, item.ResourceId,
+                    item.PlannedDurationMinutes)).ToArray(),
+                request.ExpectedVersion),
             cancellationToken)));
 
     private static async Task<IResult> UpdateItemAsync(

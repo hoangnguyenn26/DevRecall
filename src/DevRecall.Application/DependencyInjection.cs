@@ -182,6 +182,7 @@ public static class DependencyInjection
         services.AddScoped<GetStudyPlansHandler>();
         services.AddScoped<GetStudyPlanDetailHandler>();
         services.AddScoped<UpdateStudyPlanHandler>();
+        services.AddScoped<ReplaceStudyPlanDraftHandler>();
         services.AddScoped<UpdateStudyPlanItemHandler>();
         services.AddScoped<RemoveStudyPlanItemHandler>();
         services.AddScoped<ReorderStudyPlanItemsHandler>();
