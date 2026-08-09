@@ -7,11 +7,13 @@ using DevRecall.Application.Interview.Create;
 using DevRecall.Application.Interview.FollowUps;
 using DevRecall.Application.Interview.GetDetail;
 using DevRecall.Application.Interview.GetList;
+using DevRecall.Application.Interview.Practice;
 using DevRecall.Application.Interview.Update;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Interview;
 using DevRecall.Contracts.Interview.Answers;
 using DevRecall.Contracts.Interview.FollowUps;
+using DevRecall.Contracts.Interview.Practice;
 
 namespace DevRecall.Api.Endpoints.Interview;
 
@@ -50,7 +52,47 @@ public static class InterviewQuestionEndpoints
         group.MapPost(
             "/{questionId:guid}/follow-ups/{followUpId:guid}/archive",
             ArchiveFollowUpAsync);
+        group.MapGet("/{questionId:guid}/practice", GetPracticeAsync);
+        group.MapPost("/{questionId:guid}/attempts", CompletePracticeAsync);
+        group.MapGet("/{questionId:guid}/attempts", GetPracticeAttemptsAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> GetPracticeAttemptsAsync(
+        Guid questionId, GetInterviewPracticeAttemptsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(questionId, cancellationToken);
+        return Results.Ok(result.Select(item => new InterviewPracticeAttemptListItemResponse(
+            item.AttemptId, item.QuestionSnapshot, item.SelfRating,
+            item.FollowUpsAnswered, item.DurationSeconds, item.CompletedAtUtc)).ToList());
+    }
+
+    private static async Task<IResult> GetPracticeAsync(
+        Guid questionId, GetInterviewPracticeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(questionId, cancellationToken);
+        return Results.Ok(new GetInterviewPracticeResponse(
+            result.QuestionId, result.Question, result.Category, result.Difficulty,
+            result.ReferenceAnswer is null ? null : new InterviewReferenceAnswerResponse(
+                result.ReferenceAnswer.AnswerId, result.ReferenceAnswer.Content, result.ReferenceAnswer.Version),
+            result.FollowUps.Select(item => new InterviewPracticeFollowUpResponse(
+                item.FollowUpId, item.Question, item.ReferenceAnswer)).ToList(), result.QuestionVersion));
+    }
+
+    private static async Task<IResult> CompletePracticeAsync(
+        Guid questionId, CompleteInterviewPracticeRequest request,
+        CompleteInterviewPracticeHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(new CompleteInterviewPracticeCommand(
+            questionId, request.Answer, request.SelfRating,
+            request.FollowUps.Select(item => new InterviewFollowUpAttemptInput(item.FollowUpId, item.Answer)).ToList(),
+            request.StartedAtUtc, request.SubmissionId), cancellationToken);
+        return Results.Ok(new CompleteInterviewPracticeResponse(
+            result.AttemptId, result.QuestionId, result.SelfRating,
+            result.FollowUpsAnswered, result.FollowUpsSkipped,
+            result.DurationSeconds, result.CompletedAtUtc));
     }
 
     private static async Task<IResult> CreateFollowUpAsync(

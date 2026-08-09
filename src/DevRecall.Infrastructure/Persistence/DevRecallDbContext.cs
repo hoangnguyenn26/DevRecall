@@ -5,6 +5,7 @@ using DevRecall.Domain.Identity;
 using DevRecall.Domain.Interview;
 using DevRecall.Domain.Interview.Answers;
 using DevRecall.Domain.Interview.FollowUps;
+using DevRecall.Domain.Interview.Practice;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
 using DevRecall.Domain.Recommendations;
@@ -38,6 +39,9 @@ public sealed class DevRecallDbContext(
     public DbSet<DsaAttempt> DsaAttempts =>
         Set<DsaAttempt>();
 
+    public DbSet<DsaPracticeSubmission> DsaPracticeSubmissions =>
+        Set<DsaPracticeSubmission>();
+
     public DbSet<InterviewQuestion> InterviewQuestions =>
         Set<InterviewQuestion>();
 
@@ -46,6 +50,12 @@ public sealed class DevRecallDbContext(
 
     public DbSet<InterviewFollowUpQuestion> InterviewFollowUpQuestions =>
         Set<InterviewFollowUpQuestion>();
+
+    public DbSet<InterviewPracticeAttempt> InterviewPracticeAttempts =>
+        Set<InterviewPracticeAttempt>();
+
+    public DbSet<InterviewPracticeFollowUpAttempt> InterviewPracticeFollowUpAttempts =>
+        Set<InterviewPracticeFollowUpAttempt>();
 
     public DbSet<KnowledgeNode> KnowledgeNodes =>
         Set<KnowledgeNode>();
