@@ -60,16 +60,18 @@ public sealed class SystemMetadataPersistenceTests(
     }
 
     [Fact]
-    public async Task DatabaseShouldHaveInitialMigrationApplied()
+    public async Task FreshDatabaseShouldHaveEveryMigrationAppliedAndNoPendingMigrations()
     {
         await using var context = fixture.CreateDbContext();
 
+        var defined = context.Database.GetMigrations().ToArray();
         var applied = await context.Database
             .GetAppliedMigrationsAsync(CancellationToken.None);
+        var pending = await context.Database
+            .GetPendingMigrationsAsync(CancellationToken.None);
 
-        applied.Should().ContainSingle(
-            migration => migration.EndsWith(
-                "_InitialCreate",
-                StringComparison.Ordinal));
+        defined.Should().NotBeEmpty();
+        applied.Should().Equal(defined);
+        pending.Should().BeEmpty();
     }
 }

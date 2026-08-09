@@ -15,7 +15,7 @@ namespace DevRecall.Infrastructure.Persistence.Migrations
                 table: "weak_topic_profiles",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddCheckConstraint(
                 name: "ck_weak_topic_profiles_version_positive",
