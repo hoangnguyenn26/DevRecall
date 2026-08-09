@@ -55,17 +55,35 @@ public static class InterviewQuestionEndpoints
         group.MapGet("/{questionId:guid}/practice", GetPracticeAsync);
         group.MapPost("/{questionId:guid}/attempts", CompletePracticeAsync);
         group.MapGet("/{questionId:guid}/attempts", GetPracticeAttemptsAsync);
+        group.MapGet("/{questionId:guid}/attempts/{attemptId:guid}", GetPracticeAttemptAsync);
         return endpoints;
     }
 
     private static async Task<IResult> GetPracticeAttemptsAsync(
-        Guid questionId, GetInterviewPracticeAttemptsHandler handler,
+        Guid questionId, [AsParameters] GetInterviewPracticeHistoryRequest request,
+        GetInterviewPracticeHistoryHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(questionId, cancellationToken);
-        return Results.Ok(result.Select(item => new InterviewPracticeAttemptListItemResponse(
-            item.AttemptId, item.QuestionSnapshot, item.SelfRating,
-            item.FollowUpsAnswered, item.DurationSeconds, item.CompletedAtUtc)).ToList());
+        var result = await handler.HandleAsync(
+            new InterviewPracticeHistoryQuery(questionId, request.Page, request.PageSize), cancellationToken);
+        return Results.Ok(new GetInterviewPracticeHistoryResponse(
+            result.Items.Select(item => new InterviewPracticeAttemptSummaryResponse(
+                item.AttemptId, item.SelfRating, item.DurationSeconds,
+                item.FollowUpsAnswered, item.CompletedAtUtc)).ToList(),
+            result.Page, result.PageSize, result.TotalCount, result.TotalPages));
+    }
+
+    private static async Task<IResult> GetPracticeAttemptAsync(
+        Guid questionId, Guid attemptId, GetInterviewPracticeAttemptHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(questionId, attemptId, cancellationToken);
+        return Results.Ok(new GetInterviewPracticeAttemptResponse(
+            result.AttemptId, result.QuestionId, result.QuestionSnapshot,
+            result.AnswerSnapshot, result.ReferenceAnswerSnapshot, result.SelfRating,
+            result.FollowUps.Select(item => new InterviewFollowUpAttemptResponse(
+                item.FollowUpId, item.QuestionSnapshot, item.AnswerSnapshot)).ToList(),
+            result.StartedAtUtc, result.CompletedAtUtc, result.DurationSeconds));
     }
 
     private static async Task<IResult> GetPracticeAsync(
@@ -88,7 +106,8 @@ public static class InterviewQuestionEndpoints
         var result = await handler.HandleAsync(new CompleteInterviewPracticeCommand(
             questionId, request.Answer, request.SelfRating,
             request.FollowUps.Select(item => new InterviewFollowUpAttemptInput(item.FollowUpId, item.Answer)).ToList(),
-            request.StartedAtUtc, request.SubmissionId), cancellationToken);
+            request.StartedAtUtc, request.SubmissionId,
+            request.ReferenceAnswerId), cancellationToken);
         return Results.Ok(new CompleteInterviewPracticeResponse(
             result.AttemptId, result.QuestionId, result.SelfRating,
             result.FollowUpsAnswered, result.FollowUpsSkipped,

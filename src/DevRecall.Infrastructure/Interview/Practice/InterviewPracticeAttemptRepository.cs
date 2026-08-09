@@ -15,14 +15,6 @@ internal sealed class InterviewPracticeAttemptRepository(DevRecallDbContext dbCo
         dbContext.InterviewPracticeAttempts.Include(item => item.FollowUps)
             .SingleOrDefaultAsync(item => item.UserId == userId && item.SubmissionId == submissionId, cancellationToken);
 
-    public async Task<IReadOnlyList<InterviewPracticeAttempt>> GetRecentAsync(
-        Guid userId, Guid questionId, int take, CancellationToken cancellationToken) =>
-        await dbContext.InterviewPracticeAttempts.AsNoTracking()
-            .Include(item => item.FollowUps)
-            .Where(item => item.UserId == userId && item.QuestionId == questionId)
-            .OrderByDescending(item => item.CompletedAtUtc).ThenByDescending(item => item.Id)
-            .Take(take).ToListAsync(cancellationToken);
-
     public void Add(InterviewPracticeAttempt attempt) => dbContext.InterviewPracticeAttempts.Add(attempt);
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)

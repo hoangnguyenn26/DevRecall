@@ -13,4 +13,9 @@ public sealed record GetDsaAttemptDetailResult(
     int DurationMinutes,
     string? Notes,
     DateTimeOffset AttemptedAtUtc,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    string? ProblemTitleSnapshot = null,
+    string? DifficultySnapshot = null,
+    DateTimeOffset? StartedAtUtc = null,
+    DateTimeOffset? CompletedAtUtc = null,
+    int? DurationSeconds = null);

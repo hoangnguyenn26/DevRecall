@@ -7,6 +7,8 @@ public interface IDsaAttemptRepository
 {
     Task<(DsaPracticeSubmission Submission, DsaAttempt Attempt)?> GetPracticeSubmissionAsync(
         Guid userId, Guid submissionId, CancellationToken cancellationToken);
+    Task<DsaPracticeSubmission?> GetPracticeSubmissionByAttemptAsync(
+        Guid userId, Guid dsaProblemId, Guid attemptId, CancellationToken cancellationToken);
 
     Task<DsaAttempt?> GetByIdAndProblemIdAsync(
         Guid id, Guid dsaProblemId, CancellationToken cancellationToken);

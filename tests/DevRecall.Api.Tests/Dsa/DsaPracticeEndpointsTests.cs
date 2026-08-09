@@ -43,6 +43,12 @@ public sealed class DsaPracticeEndpointsTests(AuthApiFactory factory)
             $"/api/v1/dsa-problems/{problem.Id}/attempts", request);
         retry.Id.Should().Be(first.Id);
         first.DurationMinutes.Should().BeInRange(3, 4);
+        var detail = await client.GetFromJsonAsync<DsaAttemptDetailResponse>(
+            $"/api/v1/dsa-problems/{problem.Id}/attempts/{first.Id}");
+        detail!.ProblemTitleSnapshot.Should().Be("Two Sum");
+        detail.DifficultySnapshot.Should().Be("Easy");
+        detail.StartedAtUtc.Should().BeCloseTo(started, TimeSpan.FromMilliseconds(1));
+        detail.DurationSeconds.Should().BeInRange(180, 240);
 
         var otherProblem = await CreateProblemAsync(client, "Three Sum");
         using var conflict = await client.PostAsJsonAsync(

@@ -33,6 +33,8 @@ public sealed class GetDsaAttemptDetailHandler(
                 DsaAttemptErrors.NotFound.Message);
         }
 
-        return DsaAttemptDetailMapper.Map(attempt);
+        var submission = await attemptRepository.GetPracticeSubmissionByAttemptAsync(
+            userId, problem.Id, attempt.Id, cancellationToken);
+        return DsaAttemptDetailMapper.Map(attempt, submission);
     }
 }

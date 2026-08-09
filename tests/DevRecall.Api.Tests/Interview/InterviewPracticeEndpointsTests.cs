@@ -55,9 +55,25 @@ public sealed class InterviewPracticeEndpointsTests(AuthApiFactory factory)
             $"/api/v1/interview-questions/{question.Id}/attempts", request);
         retry.AttemptId.Should().Be(first.AttemptId);
         retry.CompletedAtUtc.Should().Be(first.CompletedAtUtc);
-        var history = await client.GetFromJsonAsync<IReadOnlyList<InterviewPracticeAttemptListItemResponse>>(
+        var history = await client.GetFromJsonAsync<GetInterviewPracticeHistoryResponse>(
             $"/api/v1/interview-questions/{question.Id}/attempts");
-        history.Should().ContainSingle(item => item.AttemptId == first.AttemptId);
+        history!.PageSize.Should().Be(10);
+        history.Items.Should().ContainSingle(item => item.AttemptId == first.AttemptId);
+        var detail = await client.GetFromJsonAsync<GetInterviewPracticeAttemptResponse>(
+            $"/api/v1/interview-questions/{question.Id}/attempts/{first.AttemptId}");
+        detail!.QuestionSnapshot.Should().Be("Explain IQueryable.");
+        detail.AnswerSnapshot.Should().Be("My answer");
+        detail.SelfRating.Should().Be("Good");
+
+        using var other = await CreateClientAsync();
+        using var hidden = await other.GetAsync(
+            $"/api/v1/interview-questions/{question.Id}/attempts/{first.AttemptId}");
+        hidden.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await hidden.Content.ReadAsStringAsync()).Should().Contain("INTERVIEW_ATTEMPT_NOT_FOUND");
+
+        using var unbounded = await client.GetAsync(
+            $"/api/v1/interview-questions/{question.Id}/attempts?pageSize=51");
+        unbounded.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     private async Task<HttpClient> CreateClientAsync()

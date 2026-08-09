@@ -18,41 +18,17 @@ public sealed record InterviewFollowUpAttemptInput(Guid FollowUpId, string Answe
 public sealed record CompleteInterviewPracticeCommand(
     Guid QuestionId, string Answer, string SelfRating,
     IReadOnlyList<InterviewFollowUpAttemptInput> FollowUps,
-    DateTimeOffset StartedAtUtc, Guid SubmissionId);
+    DateTimeOffset StartedAtUtc, Guid SubmissionId,
+    Guid? ReferenceAnswerId = null);
 public sealed record CompleteInterviewPracticeResult(
     Guid AttemptId, Guid QuestionId, string SelfRating,
     int FollowUpsAnswered, int FollowUpsSkipped, int DurationSeconds,
     DateTimeOffset CompletedAtUtc);
-public sealed record InterviewPracticeAttemptListItem(
-    Guid AttemptId, string QuestionSnapshot, string SelfRating,
-    int FollowUpsAnswered, int DurationSeconds, DateTimeOffset CompletedAtUtc);
-
 public interface IInterviewPracticeAttemptRepository
 {
     Task<InterviewPracticeAttempt?> GetBySubmissionIdAsync(Guid userId, Guid submissionId, CancellationToken cancellationToken);
-    Task<IReadOnlyList<InterviewPracticeAttempt>> GetRecentAsync(
-        Guid userId, Guid questionId, int take, CancellationToken cancellationToken);
     void Add(InterviewPracticeAttempt attempt);
     Task SaveChangesAsync(CancellationToken cancellationToken);
-}
-
-public sealed class GetInterviewPracticeAttemptsHandler(
-    IInterviewQuestionRepository questionRepository,
-    IInterviewPracticeAttemptRepository attemptRepository,
-    ICurrentUser currentUser)
-{
-    public async Task<IReadOnlyList<InterviewPracticeAttemptListItem>> HandleAsync(
-        Guid questionId, CancellationToken cancellationToken)
-    {
-        var userId = InterviewHandlerSupport.GetCurrentUserId(currentUser);
-        var question = await questionRepository.GetByIdAndUserIdAsync(questionId, userId, cancellationToken);
-        if (question is null)
-            throw new NotFoundException(InterviewQuestionErrors.NotFound.Code, InterviewQuestionErrors.NotFound.Message);
-        var attempts = await attemptRepository.GetRecentAsync(userId, questionId, 20, cancellationToken);
-        return attempts.Select(item => new InterviewPracticeAttemptListItem(
-            item.Id, item.QuestionSnapshot, item.SelfRating.ToString(),
-            item.FollowUps.Count, item.DurationSeconds, item.CompletedAtUtc)).ToList();
-    }
 }
 
 public sealed class GetInterviewPracticeHandler(
@@ -79,6 +55,7 @@ public sealed class GetInterviewPracticeHandler(
 
 public sealed class CompleteInterviewPracticeHandler(
     IInterviewQuestionRepository questionRepository,
+    IInterviewAnswerVersionRepository answerRepository,
     IInterviewFollowUpQuestionRepository followUpRepository,
     IInterviewPracticeAttemptRepository attemptRepository,
     ICurrentUser currentUser,
@@ -101,6 +78,9 @@ public sealed class CompleteInterviewPracticeHandler(
         if (question is null || question.Status != InterviewQuestionStatus.Active)
             throw new NotFoundException(InterviewQuestionErrors.NotFound.Code, InterviewQuestionErrors.NotFound.Message);
         var availableFollowUps = await followUpRepository.GetActiveByQuestionIdAsync(question.Id, false, cancellationToken);
+        var referenceAnswer = command.ReferenceAnswerId is Guid referenceAnswerId
+            ? await answerRepository.GetByIdAndQuestionIdAsync(referenceAnswerId, question.Id, cancellationToken)
+            : await answerRepository.GetCurrentPublishedAsync(question.Id, cancellationToken);
         var followUpMap = availableFollowUps.ToDictionary(item => item.Id);
         if (command.FollowUps.Any(item => !followUpMap.ContainsKey(item.FollowUpId)) || command.FollowUps.Select(item => item.FollowUpId).Distinct().Count() != command.FollowUps.Count)
             throw Validation("followUps", "Follow-up answers must reference unique, active follow-up questions.");
@@ -114,7 +94,7 @@ public sealed class CompleteInterviewPracticeHandler(
             .Select(item => (item.FollowUpId, followUpMap[item.FollowUpId].Prompt, item.Answer));
         var attempt = InterviewPracticeAttempt.Create(
             Guid.NewGuid(), userId, question.Id, command.SubmissionId,
-            question.Question, 1, command.Answer, rating,
+            question.Question, 1, command.Answer, referenceAnswer?.Content, rating,
             command.StartedAtUtc, completedAtUtc, snapshots, availableFollowUps.Count);
         attemptRepository.Add(attempt);
         await attemptRepository.SaveChangesAsync(cancellationToken);

@@ -127,7 +127,8 @@ public static class DependencyInjection
         services.AddScoped<ArchiveInterviewFollowUpHandler>();
         services.AddScoped<GetInterviewPracticeHandler>();
         services.AddScoped<CompleteInterviewPracticeHandler>();
-        services.AddScoped<GetInterviewPracticeAttemptsHandler>();
+        services.AddScoped<GetInterviewPracticeHistoryHandler>();
+        services.AddScoped<GetInterviewPracticeAttemptHandler>();
         services.AddScoped<CreateKnowledgeNodeHandler>();
         services.AddScoped<GetKnowledgeNodeDetailHandler>();
         services.AddScoped<GetKnowledgeByTagsHandler>();

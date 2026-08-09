@@ -10,7 +10,7 @@ public sealed class GetDsaAttemptsHandler(
     IDsaAttemptRepository attemptRepository,
     ICurrentUser currentUser)
 {
-    private const int MaximumPageSize = 100;
+    private const int MaximumPageSize = 50;
 
     public async Task<GetDsaAttemptsResult> HandleAsync(
         GetDsaAttemptsQuery query,

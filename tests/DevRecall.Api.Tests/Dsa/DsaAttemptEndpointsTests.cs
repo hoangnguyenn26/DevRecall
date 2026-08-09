@@ -288,7 +288,7 @@ public sealed class DsaAttemptEndpointsTests(AuthApiFactory factory)
     [Theory]
     [InlineData("?page=0")]
     [InlineData("?pageSize=0")]
-    [InlineData("?pageSize=101")]
+    [InlineData("?pageSize=51")]
     [InlineData("?result=Success")]
     public async Task History_WithInvalidQuery_ShouldReturnValidationError(
         string query)

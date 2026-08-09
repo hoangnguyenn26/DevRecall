@@ -22,6 +22,12 @@ internal sealed class DsaAttemptRepository(DevRecallDbContext dbContext)
         return item is null ? null : (item.submission, item.attempt);
     }
 
+    public Task<DsaPracticeSubmission?> GetPracticeSubmissionByAttemptAsync(
+        Guid userId, Guid dsaProblemId, Guid attemptId, CancellationToken cancellationToken) =>
+        dbContext.DsaPracticeSubmissions.AsNoTracking().SingleOrDefaultAsync(
+            item => item.UserId == userId && item.DsaProblemId == dsaProblemId && item.DsaAttemptId == attemptId,
+            cancellationToken);
+
     public Task<DsaAttempt?> GetByIdAndProblemIdAsync(
         Guid id, Guid dsaProblemId, CancellationToken cancellationToken) =>
         dbContext.DsaAttempts

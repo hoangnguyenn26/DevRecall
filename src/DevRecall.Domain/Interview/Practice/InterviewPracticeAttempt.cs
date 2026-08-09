@@ -11,6 +11,7 @@ public sealed class InterviewPracticeAttempt
     private InterviewPracticeAttempt(
         Guid id, Guid userId, Guid questionId, Guid submissionId,
         string questionSnapshot, int questionVersion, string answerSnapshot,
+        string? referenceAnswerSnapshot,
         InterviewSelfRating selfRating, DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc, int followUpsSkipped)
     {
@@ -21,6 +22,7 @@ public sealed class InterviewPracticeAttempt
         QuestionSnapshot = questionSnapshot;
         QuestionVersion = questionVersion;
         AnswerSnapshot = answerSnapshot;
+        ReferenceAnswerSnapshot = referenceAnswerSnapshot;
         SelfRating = selfRating;
         StartedAtUtc = startedAtUtc;
         CompletedAtUtc = completedAtUtc;
@@ -36,6 +38,7 @@ public sealed class InterviewPracticeAttempt
     public string QuestionSnapshot { get; private set; } = null!;
     public int QuestionVersion { get; private set; }
     public string AnswerSnapshot { get; private set; } = null!;
+    public string? ReferenceAnswerSnapshot { get; private set; }
     public InterviewSelfRating SelfRating { get; private set; }
     public DateTimeOffset StartedAtUtc { get; private set; }
     public DateTimeOffset CompletedAtUtc { get; private set; }
@@ -46,6 +49,7 @@ public sealed class InterviewPracticeAttempt
     public static InterviewPracticeAttempt Create(
         Guid id, Guid userId, Guid questionId, Guid submissionId,
         string questionSnapshot, int questionVersion, string answer,
+        string? referenceAnswer,
         InterviewSelfRating selfRating, DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc,
         IEnumerable<(Guid FollowUpId, string Prompt, string Answer)> followUps,
@@ -61,6 +65,7 @@ public sealed class InterviewPracticeAttempt
             id, userId, questionId, submissionId,
             InterviewAnswerContent.Normalize(questionSnapshot),
             questionVersion, InterviewAnswerContent.Normalize(answer),
+            string.IsNullOrWhiteSpace(referenceAnswer) ? null : InterviewAnswerContent.Normalize(referenceAnswer),
             selfRating, startedAtUtc, completedAtUtc, 0);
         foreach (var followUp in followUps)
             attempt._followUps.Add(InterviewPracticeFollowUpAttempt.Create(

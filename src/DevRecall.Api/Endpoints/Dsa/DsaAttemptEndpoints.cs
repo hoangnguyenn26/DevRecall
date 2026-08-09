@@ -62,7 +62,7 @@ public static class DsaAttemptEndpoints
         var result = await handler.HandleAsync(
             new GetDsaAttemptsQuery(
                 problemId, request.Result, request.Page ?? 1,
-                request.PageSize ?? 20),
+                request.PageSize ?? 10),
             cancellationToken);
         return Results.Ok(new PagedResponse<DsaAttemptListItemResponse>(
             result.Items.Select(attempt =>
@@ -84,7 +84,13 @@ public static class DsaAttemptEndpoints
         var result = await handler.HandleAsync(
             new GetDsaAttemptDetailQuery(problemId, attemptId),
             cancellationToken);
-        return Results.Ok(MapResponse(result));
+        return Results.Ok(new DsaAttemptDetailResponse(
+            result.Id, result.DsaProblemId, result.AttemptNumber, result.Result,
+            result.Language, result.SolutionCode, result.Approach,
+            result.TimeComplexity, result.SpaceComplexity, result.DurationMinutes,
+            result.Notes, result.AttemptedAtUtc, result.CreatedAtUtc,
+            result.ProblemTitleSnapshot, result.DifficultySnapshot,
+            result.StartedAtUtc, result.CompletedAtUtc, result.DurationSeconds));
     }
 
     private static async Task<IResult> GetLatestSuccessfulAsync(

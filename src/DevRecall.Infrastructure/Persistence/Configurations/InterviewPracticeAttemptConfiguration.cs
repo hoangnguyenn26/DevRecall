@@ -15,6 +15,7 @@ internal sealed class InterviewPracticeAttemptConfiguration : IEntityTypeConfigu
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.QuestionSnapshot).HasColumnType("text").IsRequired();
         builder.Property(item => item.AnswerSnapshot).HasColumnType("text").IsRequired();
+        builder.Property(item => item.ReferenceAnswerSnapshot).HasColumnType("text");
         builder.Property(item => item.SelfRating).HasConversion<int>().IsRequired();
         builder.HasIndex(item => new { item.UserId, item.SubmissionId }).IsUnique()
             .HasDatabaseName("ux_interview_practice_attempts_user_submission");

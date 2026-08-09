@@ -112,6 +112,8 @@ public static class DependencyInjection
             InterviewFollowUpQuestionRepository>();
         services.AddScoped<IInterviewPracticeAttemptRepository,
             InterviewPracticeAttemptRepository>();
+        services.AddScoped<IInterviewPracticeHistoryReader,
+            InterviewPracticeHistoryReader>();
         services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
         services.AddScoped<IKnowledgeNodeRepository, KnowledgeNodeRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
