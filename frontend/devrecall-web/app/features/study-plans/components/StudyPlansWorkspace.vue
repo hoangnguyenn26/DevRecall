@@ -8,6 +8,7 @@ import StudyPlanDetailView from './StudyPlanDetail.vue'
 const props = defineProps<{ selectedId?: string }>()
 const api = useStudyPlanApi()
 const { refreshToday } = useLearningDataInvalidation()
+const { refreshAfterMutation } = useBestEffortRefresh()
 const plans = ref<StudyPlanListItem[]>([])
 const detail = ref<StudyPlanDetail>()
 const listLoading = ref(true)
@@ -45,12 +46,12 @@ async function loadDetail(): Promise<void> {
 }
 async function accept(detailValue: StudyPlanDetail): Promise<void> {
   detail.value = detailValue
-  await Promise.all([loadList(), refreshToday()])
+  await refreshAfterMutation(() => Promise.all([loadList(), refreshToday()]))
 }
 async function startStudy(): Promise<void> {
   if (!detail.value) return
   const result = await api.start(detail.value.studyPlanId, detail.value.version)
-  await Promise.all([loadList(), refreshToday()])
+  await refreshAfterMutation(() => Promise.all([loadList(), refreshToday()]))
   await navigateTo(`/app/study-sessions/${result.studySessionId}`)
 }
 watch(() => props.selectedId, loadDetail)

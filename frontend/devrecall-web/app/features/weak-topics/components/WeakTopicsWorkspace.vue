@@ -6,6 +6,7 @@ import type { WeakTopicDetail, WeakTopicSummary } from '../weak-topic.types'
 const props = defineProps<{ selectedId?: string }>()
 const api = useWeakTopicApi()
 const { refreshTodayAndNavigation } = useLearningDataInvalidation()
+const { refreshAfterMutation } = useBestEffortRefresh()
 const items = ref<WeakTopicSummary[]>([])
 const detail = ref<WeakTopicDetail>()
 const level = ref('')
@@ -42,7 +43,7 @@ async function recalculate() {
   recalculating.value = true
   try {
     await api.recalculateAll()
-    await Promise.all([loadList(), loadDetail(), refreshTodayAndNavigation()])
+    await refreshAfterMutation(() => Promise.all([loadList(), loadDetail(), refreshTodayAndNavigation()]))
   } finally {
     recalculating.value = false
   }

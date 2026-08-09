@@ -10,6 +10,7 @@ import type { RecommendationDetail, RecommendationSummary } from '../recommendat
 const props = defineProps<{ selectedId?: string }>()
 const api = useRecommendationApi()
 const { afterRecommendationDismissed, afterRecommendationsChanged } = useLearningDataInvalidation()
+const { refreshAfterMutation } = useBestEffortRefresh()
 const items = ref<RecommendationSummary[]>([])
 const detail = ref<RecommendationDetail>()
 const status = ref('Active')
@@ -48,7 +49,7 @@ async function generate() {
   generating.value = true
   try {
     await api.generate()
-    await Promise.all([loadList(), afterRecommendationsChanged()])
+    await refreshAfterMutation(() => Promise.all([loadList(), afterRecommendationsChanged()]))
   } finally {
     generating.value = false
   }
@@ -57,7 +58,7 @@ async function dismiss(item: RecommendationSummary) {
   mutating.value = true
   try {
     await api.dismiss(item.recommendationId, item.version)
-    await Promise.all([loadList(), afterRecommendationDismissed()])
+    await refreshAfterMutation(() => Promise.all([loadList(), afterRecommendationDismissed()]))
     if (props.selectedId) await navigateTo('/app/recommendations')
   } finally {
     mutating.value = false

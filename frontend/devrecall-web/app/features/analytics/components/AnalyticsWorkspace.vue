@@ -26,41 +26,53 @@ const insightsLoading = ref(true)
 let overviewSequence = 0
 let performanceSequence = 0
 let insightsSequence = 0
+let overviewController: AbortController | undefined
+let performanceController: AbortController | undefined
+let insightsController: AbortController | undefined
+function isAbort(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
 async function loadOverview() {
+  overviewController?.abort()
+  overviewController = new AbortController()
   const sequence = ++overviewSequence
   loading.value = true
   overviewError.value = undefined
   try {
-    const value = await api.overview(range.value)
+    const value = await api.overview(range.value, overviewController.signal)
     if (sequence === overviewSequence) overview.value = value
   } catch (error) {
-    if (sequence === overviewSequence) overviewError.value = error
+    if (sequence === overviewSequence && !isAbort(error)) overviewError.value = error
   } finally {
     if (sequence === overviewSequence) loading.value = false
   }
 }
 async function loadPerformance() {
+  performanceController?.abort()
+  performanceController = new AbortController()
   const sequence = ++performanceSequence
   performanceLoading.value = true
   performanceError.value = undefined
   try {
-    const value = await api.performance(range.value)
+    const value = await api.performance(range.value, performanceController.signal)
     if (sequence === performanceSequence) performance.value = value
   } catch (error) {
-    if (sequence === performanceSequence) performanceError.value = error
+    if (sequence === performanceSequence && !isAbort(error)) performanceError.value = error
   } finally {
     if (sequence === performanceSequence) performanceLoading.value = false
   }
 }
 async function loadInsights() {
+  insightsController?.abort()
+  insightsController = new AbortController()
   const sequence = ++insightsSequence
   insightsLoading.value = true
   insightsError.value = undefined
   try {
-    const value = await api.insights(range.value)
+    const value = await api.insights(range.value, insightsController.signal)
     if (sequence === insightsSequence) insights.value = value
   } catch (error) {
-    if (sequence === insightsSequence) insightsError.value = error
+    if (sequence === insightsSequence && !isAbort(error)) insightsError.value = error
   } finally {
     if (sequence === insightsSequence) insightsLoading.value = false
   }
@@ -72,6 +84,11 @@ watch(range, () => Promise.all([loadOverview(), loadPerformance(), loadInsights(
 onMounted(() => {
   if (route.query.range !== range.value) setQuery('range', range.value)
   Promise.all([loadOverview(), loadPerformance(), loadInsights()])
+})
+onBeforeUnmount(() => {
+  overviewController?.abort()
+  performanceController?.abort()
+  insightsController?.abort()
 })
 const activityOption = computed<EChartsCoreOption>(() => ({
   aria: { enabled: true, description: 'Daily study minutes for the selected period.' },

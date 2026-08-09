@@ -7,11 +7,11 @@ import type {
 export function useAnalyticsApi() {
   const api = useApi()
   return {
-    overview: (range: AnalyticsRange) =>
-      api.get<AnalyticsOverview>('/analytics/overview', { range }),
-    performance: (range: AnalyticsRange) =>
-      api.get<LearningPerformance>('/analytics/performance', { range }),
-    insights: (range: AnalyticsRange) =>
-      api.get<LearningInsights>('/analytics/insights', { range, take: 10 }),
+    overview: (range: AnalyticsRange, signal?: AbortSignal) =>
+      api.get<AnalyticsOverview>('/analytics/overview', { range }, signal),
+    performance: (range: AnalyticsRange, signal?: AbortSignal) =>
+      api.get<LearningPerformance>('/analytics/performance', { range }, signal),
+    insights: (range: AnalyticsRange, signal?: AbortSignal) =>
+      api.get<LearningInsights>('/analytics/insights', { range, take: 10 }, signal),
   }
 }

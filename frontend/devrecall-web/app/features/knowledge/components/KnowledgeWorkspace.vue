@@ -13,6 +13,7 @@ import KnowledgeTopicPane from './KnowledgeTopicPane.vue'
 
 const api = useApi(); const route = useRoute(); const router = useRouter(); const toast = useToast()
 const quickCapture = useQuickCapture(); const currentUser = useCurrentUser(); const topicDrawerOpen = ref(false)
+const { refreshAfterMutation } = useBestEffortRefresh()
 interface KnowledgeListPaneHandle { focusSearch(): void; focusActive(): void; getScrollTop(): number; restoreList(scrollTop: number, focusedId?: string): void }
 interface KnowledgeDetailPaneHandle { focusHeading(): void }
 const listPane = useTemplateRef<KnowledgeListPaneHandle>('listPane'); const detailPane = useTemplateRef<KnowledgeDetailPaneHandle>('detailPane')
@@ -116,7 +117,8 @@ async function saveKnowledge() {
     const refreshes: Promise<unknown>[] = [refreshList()]
     if (tagsChanged) refreshes.push(refreshNuxtData(queryKeys.knowledgeTags()))
     if (response.topicChanged) refreshes.push(refreshTree())
-    await Promise.all(refreshes); toast.add({ title: 'Knowledge saved', color: 'success' })
+    const refreshed = await refreshAfterMutation(() => Promise.all(refreshes))
+    if (refreshed) toast.add({ title: 'Knowledge saved', color: 'success' })
   } catch (error) { if (error instanceof ApiError && error.problem.status === 409) conflict.value = true; else throw error }
   finally { saving.value = false }
 }
@@ -129,7 +131,7 @@ async function deleteKnowledge() {
     await api.delete(`/knowledge/${detail.value.id}`, { expectedVersion: detail.value.version })
     const previousPage = listPage.value?.items.length === 1 && pageNumber.value > 1 ? pageNumber.value - 1 : pageNumber.value
     await router.push({ path: '/app/knowledge', query: { ...route.query, page: previousPage === 1 ? undefined : previousPage } })
-    await Promise.all([refreshList(), refreshTree(), refreshNuxtData(queryKeys.knowledgeTags())])
+    await refreshAfterMutation(() => Promise.all([refreshList(), refreshTree(), refreshNuxtData(queryKeys.knowledgeTags())]))
     toast.add({ title: 'Knowledge deleted' })
   } catch (error) { if (error instanceof ApiError && error.problem.status === 409) { conflict.value = true; mode.value = 'edit'; if (!form.value && detail.value) startEdit() } else throw error }
 }
