@@ -154,7 +154,8 @@ internal static class StudyResourceTypeParser
             .Replace(" ", string.Empty, StringComparison.Ordinal)
             .Replace("-", string.Empty, StringComparison.Ordinal)
             .Replace("_", string.Empty, StringComparison.Ordinal);
-        if (!Enum.TryParse<StudyResourceType>(
+        if (int.TryParse(normalized, out _)
+            || !Enum.TryParse<StudyResourceType>(
                 normalized, true, out var resourceType)
             || !Enum.IsDefined(resourceType))
         {
@@ -180,7 +181,8 @@ internal static class StudySessionStatusParser
             .Replace(" ", string.Empty, StringComparison.Ordinal)
             .Replace("-", string.Empty, StringComparison.Ordinal)
             .Replace("_", string.Empty, StringComparison.Ordinal);
-        if (!Enum.TryParse<StudySessionStatus>(
+        if (int.TryParse(normalized, out _)
+            || !Enum.TryParse<StudySessionStatus>(
                 normalized, true, out var status)
             || !Enum.IsDefined(status))
         {

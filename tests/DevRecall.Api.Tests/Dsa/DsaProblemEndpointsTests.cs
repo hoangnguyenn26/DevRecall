@@ -54,6 +54,7 @@ public sealed class DsaProblemEndpointsTests(AuthApiFactory factory)
 
     [Theory]
     [InlineData("Intermediate", null)]
+    [InlineData("1", null)]
     [InlineData("Easy", "leetcode.com/problems/two-sum")]
     public async Task Create_WithInvalidInput_ShouldReturnValidationError(
         string difficulty,

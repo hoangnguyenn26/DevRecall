@@ -65,6 +65,16 @@ describe('public website foundation', () => {
     )
   })
 
+  it('sets security and private cache headers at the Nuxt boundary', () => {
+    const config = readFileSync(resolve(process.cwd(), 'nuxt.config.ts'), 'utf8')
+
+    expect(config).toContain("'X-Content-Type-Options': 'nosniff'")
+    expect(config).toContain("'Referrer-Policy': 'strict-origin-when-cross-origin'")
+    expect(config).toContain("'X-Frame-Options': 'DENY'")
+    expect(config.match(/'Cache-Control': 'no-store'/g)).toHaveLength(3)
+    expect(config).toContain("devtools: { enabled: process.env.NODE_ENV !== 'production' }")
+  })
+
   it('keeps public conversion components deterministic and free of private data calls', () => {
     const header = readAppFile('features/marketing/components/PublicHeader.vue')
     const cta = readAppFile('features/marketing/components/MarketingCta.vue')

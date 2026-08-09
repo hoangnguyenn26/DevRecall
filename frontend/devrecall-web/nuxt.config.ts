@@ -1,3 +1,9 @@
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Frame-Options': 'DENY',
+}
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-08-01',
   modules: ['@nuxt/ui', '@pinia/nuxt', '@nuxt/eslint'],
@@ -17,7 +23,7 @@ export default defineNuxtConfig({
       ],
     },
   },
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     apiInternalBaseUrl: 'http://localhost:5012',
@@ -28,11 +34,19 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
+    '/**': { headers: securityHeaders },
     '/': { prerender: true },
     '/features': { prerender: true },
-    '/app/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
-    '/login': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
-    '/register': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/app/**': {
+      ssr: false,
+      headers: { ...securityHeaders, 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' },
+    },
+    '/login': {
+      headers: { ...securityHeaders, 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' },
+    },
+    '/register': {
+      headers: { ...securityHeaders, 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' },
+    },
   },
   app: {
     head: {

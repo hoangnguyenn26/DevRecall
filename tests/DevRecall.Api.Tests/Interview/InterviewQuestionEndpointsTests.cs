@@ -50,15 +50,18 @@ public sealed class InterviewQuestionEndpointsTests(AuthApiFactory factory)
         ownerId.Should().Be(session.User.Id);
     }
 
-    [Fact]
-    public async Task Create_WithInvalidDifficulty_ShouldReturnValidationError()
+    [Theory]
+    [InlineData("Intermediate")]
+    [InlineData("1")]
+    public async Task Create_WithInvalidDifficulty_ShouldReturnValidationError(
+        string difficulty)
     {
         var session = await CreateAuthenticatedClientAsync();
         using var client = session.Client;
 
         using var response = await client.PostAsJsonAsync(
             "/api/v1/interview-questions",
-            ValidRequest(difficulty: "Intermediate"));
+            ValidRequest(difficulty: difficulty));
         using var document = JsonDocument.Parse(
             await response.Content.ReadAsStringAsync());
 

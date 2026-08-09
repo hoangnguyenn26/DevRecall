@@ -35,6 +35,25 @@ public sealed class AuthEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task Register_ShouldIssueHardenedAuthenticationCookie()
+    {
+        using var client = CreateClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/auth/register",
+            new RegisterRequest(
+                CreateUniqueEmail(), "Hoang Nguyen", "Example123!"));
+        var cookie = response.Headers.GetValues("Set-Cookie")
+            .Single(value => value.StartsWith(
+                "devrecall.auth=", StringComparison.Ordinal));
+
+        cookie.Should().Contain("path=/");
+        cookie.Should().Contain("secure");
+        cookie.Should().Contain("httponly");
+        cookie.Should().Contain("samesite=lax");
+    }
+
+    [Fact]
     public async Task Register_ShouldReturnConflictForDuplicateEmail()
     {
         using var client = CreateClient();
@@ -85,6 +104,41 @@ public sealed class AuthEndpointsTests(AuthApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         document.RootElement.GetProperty("errorCode").GetString()
             .Should().Be("IDENTITY_INVALID_CREDENTIALS");
+    }
+
+    [Fact]
+    public async Task AuthenticationRateLimit_ShouldReturnStableProblemDetails()
+    {
+        await using var limitedFactory = new AuthApiFactory(2);
+        await limitedFactory.InitializeAsync();
+        using var client = limitedFactory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                BaseAddress = new Uri("https://localhost"),
+                AllowAutoRedirect = false,
+                HandleCookies = true
+            });
+
+        using var first = await client.PostAsJsonAsync(
+            "/api/v1/auth/login",
+            new LoginRequest("missing@example.com", "WrongPassword"));
+        using var second = await client.PostAsJsonAsync(
+            "/api/v1/auth/login",
+            new LoginRequest("missing@example.com", "WrongPassword"));
+        using var limited = await client.PostAsJsonAsync(
+            "/api/v1/auth/login",
+            new LoginRequest("missing@example.com", "WrongPassword"));
+        using var document = JsonDocument.Parse(
+            await limited.Content.ReadAsStringAsync());
+
+        first.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        second.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        limited.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        limited.Headers.RetryAfter.Should().NotBeNull();
+        document.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be("RATE_LIMIT_EXCEEDED");
+        document.RootElement.GetProperty("detail").GetString()
+            .Should().NotContain("missing@example.com");
     }
 
     [Fact]

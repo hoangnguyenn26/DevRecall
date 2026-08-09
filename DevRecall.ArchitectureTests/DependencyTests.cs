@@ -14,7 +14,8 @@ public sealed class DependencyTests
         references.Should().NotContain(
         [
             "DevRecall.Infrastructure",
-            "DevRecall.Api"
+            "DevRecall.Api",
+            "Microsoft.EntityFrameworkCore"
         ]);
     }
 

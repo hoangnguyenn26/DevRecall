@@ -76,6 +76,7 @@ public sealed class ReviewItemEndpointsTests(AuthApiFactory factory)
 
     [Theory]
     [InlineData("", "00000000-0000-0000-0000-000000000001")]
+    [InlineData("1", "00000000-0000-0000-0000-000000000001")]
     [InlineData("Algorithm", "00000000-0000-0000-0000-000000000001")]
     [InlineData("DsaProblem", "00000000-0000-0000-0000-000000000000")]
     public async Task Create_WithInvalidRequest_ShouldReturnValidationProblem(

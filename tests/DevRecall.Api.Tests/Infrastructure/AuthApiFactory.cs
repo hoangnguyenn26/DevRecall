@@ -12,12 +12,22 @@ namespace DevRecall.Api.Tests.Infrastructure;
 public sealed class AuthApiFactory
     : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    private readonly int _authenticationPermitLimit;
     private readonly PostgreSqlContainer _postgres =
         new PostgreSqlBuilder("postgres:17")
             .WithDatabase("devrecall_api_tests")
             .WithUsername("devrecall")
             .WithPassword("devrecall_tests_password")
             .Build();
+
+    public AuthApiFactory() : this(10000)
+    {
+    }
+
+    internal AuthApiFactory(int authenticationPermitLimit)
+    {
+        _authenticationPermitLimit = authenticationPermitLimit;
+    }
 
     public async Task InitializeAsync()
     {
@@ -44,7 +54,11 @@ public sealed class AuthApiFactory
             .UseEnvironment("Testing")
             .UseSetting(
                 "ConnectionStrings:Database",
-                _postgres.GetConnectionString());
+                _postgres.GetConnectionString())
+            .UseSetting(
+                "RateLimiting:Authentication:PermitLimit",
+                _authenticationPermitLimit.ToString(
+                    global::System.Globalization.CultureInfo.InvariantCulture));
         builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureServices(services =>
         {

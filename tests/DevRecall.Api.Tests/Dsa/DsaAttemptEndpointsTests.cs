@@ -289,6 +289,7 @@ public sealed class DsaAttemptEndpointsTests(AuthApiFactory factory)
     [InlineData("?page=0")]
     [InlineData("?pageSize=0")]
     [InlineData("?pageSize=51")]
+    [InlineData("?result=1")]
     [InlineData("?result=Success")]
     public async Task History_WithInvalidQuery_ShouldReturnValidationError(
         string query)
@@ -299,6 +300,20 @@ public sealed class DsaAttemptEndpointsTests(AuthApiFactory factory)
 
         using var response = await client.GetAsync(
             $"/api/v1/dsa-problems/{problem.Id}/attempts{query}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Create_WithNumericResult_ShouldReturnValidationError()
+    {
+        var session = await CreateAuthenticatedClientAsync();
+        using var client = session.Client;
+        var problem = await CreateProblemAsync(client);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/v1/dsa-problems/{problem.Id}/attempts",
+            ValidAttemptRequest("1"));
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }

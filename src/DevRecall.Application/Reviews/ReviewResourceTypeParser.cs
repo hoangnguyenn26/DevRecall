@@ -20,21 +20,28 @@ internal static class ReviewResourceTypeParser
             .Replace(" ", string.Empty)
             .Replace("-", string.Empty)
             .Replace("_", string.Empty);
+        if (int.TryParse(normalized, out _))
+        {
+            throw InvalidResourceType();
+        }
+
         var parsed = Enum.TryParse<ReviewResourceType>(
             normalized, true, out var resourceType);
 
         if (!parsed || !Enum.IsDefined(resourceType))
         {
-            throw new ValidationException(
-                new Dictionary<string, string[]>
-                {
-                    ["resourceType"] =
-                    [
-                        "Resource type must be KnowledgeNode, InterviewQuestion, or DsaProblem."
-                    ]
-                });
+            throw InvalidResourceType();
         }
 
         return resourceType;
     }
+
+    private static ValidationException InvalidResourceType() =>
+        new(new Dictionary<string, string[]>
+        {
+            ["resourceType"] =
+            [
+                "Resource type must be KnowledgeNode, InterviewQuestion, or DsaProblem."
+            ]
+        });
 }

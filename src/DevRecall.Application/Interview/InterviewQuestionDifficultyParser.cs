@@ -12,8 +12,15 @@ internal static class InterviewQuestionDifficultyParser
             throw CreateValidationException("Difficulty is required.");
         }
 
+        var normalized = value.Trim();
+        if (int.TryParse(normalized, out _))
+        {
+            throw CreateValidationException(
+                "Difficulty must be Easy, Medium, or Hard.");
+        }
+
         var parsed = Enum.TryParse<InterviewQuestionDifficulty>(
-            value.Trim(), ignoreCase: true, out var difficulty);
+            normalized, ignoreCase: true, out var difficulty);
 
         if (!parsed || !Enum.IsDefined(difficulty))
         {

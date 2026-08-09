@@ -2,6 +2,7 @@ using DevRecall.Application.Interview.Answers;
 using DevRecall.Domain.Interview.Answers;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace DevRecall.Infrastructure.Interview.Answers;
 
@@ -76,6 +77,22 @@ internal sealed class InterviewAnswerVersionRepository(
     public void Add(InterviewAnswerVersion answerVersion) =>
         dbContext.InterviewAnswerVersions.Add(answerVersion);
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException
+            {
+                ConstraintName:
+                    "ux_interview_answer_versions_one_draft_per_question"
+                    or "ux_interview_answer_versions_question_version"
+            })
+        {
+            throw new InterviewAnswerVersionPersistenceConflictException(
+                "The answer version changed concurrently.", exception);
+        }
+    }
 }

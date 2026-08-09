@@ -2,7 +2,6 @@ using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Identity;
 using DevRecall.Domain.Interview;
 using DevRecall.Domain.Interview.Answers;
-using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Application.Interview.Answers.CreateDraft;
 
@@ -53,7 +52,7 @@ public sealed class CreateInterviewAnswerDraftHandler(
         {
             await answerRepository.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (InterviewAnswerVersionPersistenceConflictException)
         {
             throw new ConflictException(
                 InterviewAnswerVersionErrors.VersionConflict.Code,

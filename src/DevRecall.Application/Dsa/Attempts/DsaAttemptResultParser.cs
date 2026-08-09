@@ -16,6 +16,12 @@ internal static class DsaAttemptResultParser
             .Replace(" ", string.Empty, StringComparison.Ordinal)
             .Replace("-", string.Empty, StringComparison.Ordinal)
             .Replace("_", string.Empty, StringComparison.Ordinal);
+        if (int.TryParse(normalized, out _))
+        {
+            throw Error(
+                "Result must be Solved, PartiallySolved, Failed, or Skipped.");
+        }
+
         var parsed = Enum.TryParse<DsaAttemptResult>(
             normalized, ignoreCase: true, out var result);
         if (!parsed || !Enum.IsDefined(result))

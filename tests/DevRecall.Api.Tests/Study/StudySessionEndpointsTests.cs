@@ -166,10 +166,13 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
             PagedResponse<StudySessionListItemResponse>>();
         using var invalid = await client.GetAsync(
             "/api/v1/study-sessions?status=Running");
+        using var numeric = await client.GetAsync(
+            "/api/v1/study-sessions?status=1");
 
         result!.TotalCount.Should().Be(1);
         result.Items.Single().Id.Should().Be(second.Id);
         invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        numeric.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]

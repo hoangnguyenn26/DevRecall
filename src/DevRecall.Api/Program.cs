@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using DevRecall.Api.Authentication;
 using DevRecall.Api.Authorization;
 using DevRecall.Api.Endpoints.Analytics;
@@ -24,6 +25,7 @@ using DevRecall.Infrastructure;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -32,6 +34,8 @@ const string DevelopmentCorsPolicy = "DevelopmentCors";
 var builder = WebApplication.CreateBuilder(args);
 var requireHttpsCookies = builder.Configuration.GetValue(
     "Authentication:RequireHttpsCookies", true);
+var authenticationPermitLimit = builder.Configuration.GetValue(
+    "RateLimiting:Authentication:PermitLimit", 10);
 
 builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -41,6 +45,8 @@ builder.Services.AddAntiforgery(options =>
     options.HeaderName = "X-CSRF-TOKEN";
     options.Cookie.Name = "devrecall.csrf";
     options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Path = "/";
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = requireHttpsCookies
         ? CookieSecurePolicy.Always
@@ -54,6 +60,8 @@ builder.Services
     {
         options.Cookie.Name = "devrecall.auth";
         options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.Path = "/";
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = requireHttpsCookies
             ? CookieSecurePolicy.Always
@@ -79,6 +87,39 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var httpContext = context.HttpContext;
+        httpContext.Response.ContentType = "application/problem+json";
+        httpContext.Response.Headers.RetryAfter = "60";
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status429TooManyRequests,
+            Title = "Too many requests",
+            Detail = "Too many authentication attempts. Please try again shortly.",
+            Instance = httpContext.Request.Path,
+            Type = "https://devrecall/errors/rate_limit_exceeded"
+        };
+        problem.Extensions["errorCode"] = "RATE_LIMIT_EXCEEDED";
+        problem.Extensions["traceId"] = httpContext.TraceIdentifier;
+        await httpContext.Response.WriteAsJsonAsync(
+            problem, cancellationToken);
+    };
+    options.AddPolicy(
+        RateLimitingPolicies.Authentication,
+        context => RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = authenticationPermitLimit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 
 var connectionString =
     builder.Configuration.GetConnectionString("Database")
@@ -121,6 +162,7 @@ if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
@@ -130,6 +172,7 @@ if (app.Environment.IsDevelopment())
 
 if (!app.Environment.IsDevelopment())
 {
+    app.UseHsts();
     app.UseHttpsRedirection();
 }
 
@@ -140,6 +183,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseMiddleware<AntiforgeryValidationMiddleware>();
 
 app.MapHealthChecks(

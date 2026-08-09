@@ -4,9 +4,9 @@ using DevRecall.Application.Identity.GetCurrentUser;
 using DevRecall.Application.Identity.Login;
 using DevRecall.Application.Identity.Register;
 using DevRecall.Contracts.Auth;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Antiforgery;
 
 namespace DevRecall.Api.Endpoints.Auth;
 
@@ -19,8 +19,10 @@ public static class AuthEndpoints
             .MapGroup("/api/v1/auth")
             .WithTags("Auth");
 
-        group.MapPost("/register", RegisterAsync);
-        group.MapPost("/login", LoginAsync);
+        group.MapPost("/register", RegisterAsync)
+            .RequireRateLimiting(RateLimitingPolicies.Authentication);
+        group.MapPost("/login", LoginAsync)
+            .RequireRateLimiting(RateLimitingPolicies.Authentication);
         group.MapGet("/csrf-token", (IAntiforgery antiforgery, HttpContext context) =>
         {
             var tokens = antiforgery.GetAndStoreTokens(context);

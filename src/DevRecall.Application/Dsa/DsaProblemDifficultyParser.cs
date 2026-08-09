@@ -12,8 +12,14 @@ internal static class DsaProblemDifficultyParser
             throw Error("Difficulty is required.");
         }
 
+        var normalized = value.Trim();
+        if (int.TryParse(normalized, out _))
+        {
+            throw Error("Difficulty must be Easy, Medium, or Hard.");
+        }
+
         var parsed = Enum.TryParse<DsaProblemDifficulty>(
-            value.Trim(), ignoreCase: true, out var difficulty);
+            normalized, ignoreCase: true, out var difficulty);
         if (!parsed || !Enum.IsDefined(difficulty))
         {
             throw Error("Difficulty must be Easy, Medium, or Hard.");

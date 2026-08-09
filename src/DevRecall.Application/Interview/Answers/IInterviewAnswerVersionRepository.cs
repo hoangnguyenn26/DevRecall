@@ -2,6 +2,10 @@ using DevRecall.Domain.Interview.Answers;
 
 namespace DevRecall.Application.Interview.Answers;
 
+public sealed class InterviewAnswerVersionPersistenceConflictException(
+    string message, Exception innerException)
+    : Exception(message, innerException);
+
 public interface IInterviewAnswerVersionRepository
 {
     Task<InterviewAnswerVersion?> GetByIdAsync(
