@@ -9,7 +9,7 @@ export default defineNuxtConfig({
     apiInternalBaseUrl: 'http://localhost:5012',
     public: {
       apiBaseUrl: '/api/v1',
-      siteUrl: 'http://localhost:3000',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
     },
   },
   routeRules: {

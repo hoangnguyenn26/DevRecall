@@ -3,7 +3,12 @@ import type { FormSubmitEvent } from '@nuxt/ui'
 import { loginSchema, type LoginFormState } from '~/validation/auth'
 
 definePageMeta({ layout: 'auth', middleware: 'guest' })
-useSeoMeta({ title: 'Log in', description: 'Continue your DevRecall learning system.', robots: 'noindex, nofollow' })
+usePageSeo({
+  title: 'Log in',
+  description: 'Continue your DevRecall learning system.',
+  path: '/login',
+  robots: 'noindex, nofollow',
+})
 
 const route = useRoute()
 const auth = useAuth()
@@ -19,7 +24,12 @@ async function submit(event: FormSubmitEvent<LoginFormState>): Promise<void> {
 
   try {
     await auth.login(event.data)
-    toast.add({ title: 'Signed in', description: 'Welcome back to DevRecall.', color: 'success', duration: 3500 })
+    toast.add({
+      title: 'Signed in',
+      description: 'Welcome back to DevRecall.',
+      color: 'success',
+      duration: 3500,
+    })
     await navigateTo(resolveSafeRedirect(route.query.redirect))
   } catch (error) {
     const normalized = normalizeApiError(error)
@@ -71,7 +81,15 @@ async function submit(event: FormSubmitEvent<LoginFormState>): Promise<void> {
 
     <UForm :schema="loginSchema" :state="state" class="space-y-5" @submit="submit">
       <UFormField label="Email" name="email" required>
-        <UInput v-model="state.email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" autofocus class="w-full" />
+        <UInput
+          v-model="state.email"
+          type="email"
+          autocomplete="email"
+          inputmode="email"
+          placeholder="you@example.com"
+          autofocus
+          class="w-full"
+        />
       </UFormField>
       <UFormField label="Password" name="password" required>
         <AuthPasswordInput v-model="state.password" autocomplete="current-password" />
@@ -80,7 +98,12 @@ async function submit(event: FormSubmitEvent<LoginFormState>): Promise<void> {
     </UForm>
 
     <template #footer>
-      <p class="text-center text-sm text-muted">New to DevRecall? <NuxtLink to="/register" class="font-medium text-primary hover:underline">Create an account</NuxtLink></p>
+      <p class="text-center text-sm text-muted">
+        New to DevRecall?
+        <NuxtLink to="/register" class="font-medium text-primary hover:underline"
+          >Create an account</NuxtLink
+        >
+      </p>
     </template>
   </UCard>
 </template>
