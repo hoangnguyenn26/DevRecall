@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DsaAttempt, DsaProblemDetail } from '~/types/domain'
+import DsaAttemptHistory from '~/features/dsa/history/DsaAttemptHistory.vue'
 import { formatDateTime } from '~/utils/format'
 definePageMeta({ layout: 'app' })
 const route = useRoute()

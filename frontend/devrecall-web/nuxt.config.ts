@@ -8,9 +8,12 @@ export default defineNuxtConfig({
   runtimeConfig: {
     apiInternalBaseUrl: 'https://localhost:7081',
     public: {
-      apiBaseUrl: 'https://localhost:7081/api/v1',
+      apiBaseUrl: '/api/v1',
       siteUrl: 'http://localhost:3000',
     },
+  },
+  routeRules: {
+    '/app/**': { ssr: false },
   },
   app: {
     head: {

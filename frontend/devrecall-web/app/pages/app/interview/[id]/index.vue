@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AnswerSummary, FollowUp, InterviewQuestionDetail } from '~/types/domain'
+import InterviewPracticeHistory from '~/features/interview/history/InterviewPracticeHistory.vue'
 definePageMeta({ layout: 'app' })
 const route = useRoute()
 const api = useApi()

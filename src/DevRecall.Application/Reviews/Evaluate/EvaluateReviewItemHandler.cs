@@ -41,7 +41,10 @@ public sealed class EvaluateReviewItemHandler(
                 ReviewErrors.ItemNotFound.Message);
         }
 
-        var reviewedAtUtc = utcClock.UtcNow;
+        // PostgreSQL stores timestamp precision to microseconds. Normalize before
+        // scheduling so the initial response and an idempotent retry are identical.
+        var reviewedAtUtc = new DateTimeOffset(
+            utcClock.UtcNow.Ticks / 10 * 10, TimeSpan.Zero);
         ReviewSchedule schedule;
         try
         {

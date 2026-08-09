@@ -26,6 +26,7 @@ describe('interview practice', () => {
     expect(session.phase.value).toBe('follow-up')
     expect(await session.nextFollowUp(true)).toBe(true)
     expect(session.phase.value).toBe('completed')
+    expect(session.dirty.value).toBe(false)
   })
 
   it('blocks duplicate submit and reuses the submission ID after failure', async () => {

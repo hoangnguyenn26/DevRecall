@@ -24,7 +24,7 @@ export function useInterviewPractice(complete: CompleteInterviewPractice, create
   const error = ref<unknown>()
   const busy = computed(() => phase.value === 'submitting')
   const currentFollowUp = computed(() => practice.value?.followUps[currentFollowUpIndex.value])
-  const dirty = computed(() => !!answer.value.trim() || !!selfRating.value || !!currentFollowUpAnswer.value.trim() || Object.keys(followUpAnswers.value).length > 0)
+  const dirty = computed(() => phase.value !== 'completed' && (!!answer.value.trim() || !!selfRating.value || !!currentFollowUpAnswer.value.trim() || Object.keys(followUpAnswers.value).length > 0))
 
   function start(payload: InterviewPractice): void { practice.value = payload }
   function compare(): boolean {

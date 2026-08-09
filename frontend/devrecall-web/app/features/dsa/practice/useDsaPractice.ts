@@ -17,7 +17,7 @@ export function useDsaPractice(complete: CompleteDsaPractice, createId: () => st
   const result = ref<DsaPracticeResult>()
   const error = ref<unknown>()
   const busy = computed(() => phase.value === 'submitting')
-  const dirty = computed(() => [solution.value, approach.value, timeComplexity.value, spaceComplexity.value, reflection.value].some(value => value.trim()) || !!outcome.value)
+  const dirty = computed(() => phase.value !== 'completed' && ([solution.value, approach.value, timeComplexity.value, spaceComplexity.value, reflection.value].some(value => value.trim()) || !!outcome.value))
   function finish(): boolean { if (phase.value !== 'solving') return false; phase.value = 'reflection'; return true }
   async function submit(): Promise<boolean> {
     if (!outcome.value || busy.value) return false

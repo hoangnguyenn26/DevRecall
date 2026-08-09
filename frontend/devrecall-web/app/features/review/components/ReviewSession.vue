@@ -21,6 +21,7 @@ import ReviewCompletionSummary from './ReviewCompletionSummary.vue'
 
 const reviewApi = useReviewApi()
 const { afterReviewEvaluation } = useLearningDataInvalidation()
+const toast = useToast()
 const loading = ref(true)
 const loadError = ref<unknown>()
 const helpOpen = ref(false)
@@ -40,7 +41,12 @@ async function load(): Promise<void> {
 }
 
 function reveal(): void { session.reveal(); nextTick(() => document.querySelector<HTMLElement>('[aria-live="polite"] h2')?.focus()) }
-async function rate(rating: ReviewRating): Promise<void> { if (await session.rate(rating)) await afterReviewEvaluation() }
+async function rate(rating: ReviewRating): Promise<void> {
+  if (!await session.rate(rating)) return
+  try { await afterReviewEvaluation() } catch {
+    toast.add({ title: 'Review saved', description: 'Dashboard indicators will refresh when you return.', color: 'warning' })
+  }
+}
 function next(): void { session.next(); nextTick(() => document.querySelector<HTMLElement>('h1')?.focus()) }
 function isConflict(): boolean { return session.mutationError.value instanceof ApiError && session.mutationError.value.problem.status === 409 }
 function skipConflict(): void { session.mutationError.value = undefined; session.phase.value = 'feedback'; next() }

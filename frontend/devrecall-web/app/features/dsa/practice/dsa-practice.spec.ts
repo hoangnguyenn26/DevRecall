@@ -23,6 +23,7 @@ describe('DSA practice', () => {
     expect(await session.submit()).toBe(false)
     expect(await session.submit()).toBe(true)
     expect(complete.mock.calls.map(call => call[0].submissionId)).toEqual(['stable-id', 'stable-id'])
+    expect(session.dirty.value).toBe(false)
   })
 
   it('practice again resets private draft and creates a fresh submission', () => {

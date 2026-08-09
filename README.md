@@ -335,6 +335,20 @@ Completed:
 - Keyboard-first workspace navigation
 - Unsaved-change and concurrency protection
 
+### Week 20 — Focus Practice
+
+Completed:
+
+- Shared distraction-free Focus Practice shell
+- Due Review practice with scheduling feedback
+- Interview answer, comparison, self-rating, and follow-up practice
+- DSA solution, outcome, complexity, and reflection practice
+- Immutable Interview and DSA attempts with owner-scoped history
+- Deterministic latest-versus-previous attempt comparison
+- Submission idempotency and resource-mismatch protection
+- Phase-scoped keyboard workflows and global-shortcut isolation
+- Responsive, accessible completion, error, and draft-recovery states
+
 ## Contributing
 
 Before implementing a feature:
