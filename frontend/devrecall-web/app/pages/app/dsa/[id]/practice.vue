@@ -11,6 +11,7 @@ import PracticeLoadingState from '~/features/practice/components/PracticeLoading
 import PracticeErrorState from '~/features/practice/components/PracticeErrorState.vue'
 import PracticeCompletion from '~/features/practice/components/PracticeCompletion.vue'
 import PracticeShortcutHelp from '~/features/practice/components/PracticeShortcutHelp.vue'
+import { useStudySessionHandoff } from '~/features/study-sessions/useStudySessionHandoff'
 
 definePageMeta({ layout: 'focus', middleware: 'auth' })
 useSeoMeta({ title: 'DSA practice', robots: 'noindex, nofollow' })
@@ -25,6 +26,7 @@ const shortcutsOpen = ref(false)
 const toast = useToast()
 const { afterDsaPractice } = useLearningDataInvalidation()
 const { copyDraft } = useDraftClipboard()
+const handoff = useStudySessionHandoff()
 const outcomes: { value: DsaAttemptOutcome; label: string; description: string }[] = [
   { value: 'Solved', label: 'Solved', description: 'I solved it independently.' },
   {
@@ -94,7 +96,13 @@ const shortcuts = computed<PracticeShortcut[]>(() => [
     keys: ['Escape'],
     label: 'Exit practice',
     enabled: () => !session.busy.value,
-    execute: () => { if (shortcutsOpen.value) { shortcutsOpen.value = false; return } return exit.exit() },
+    execute: () => {
+      if (shortcutsOpen.value) {
+        shortcutsOpen.value = false
+        return
+      }
+      return exit.exit()
+    },
   },
 ])
 usePracticeShortcuts(shortcuts)
@@ -128,7 +136,12 @@ onMounted(load)
 <template>
   <PracticeShell :context="context" :busy="session.busy.value" wide @exit="exit.exit">
     <PracticeLoadingState v-if="loading" label="Preparing DSA practice" />
-    <PracticeErrorState v-else-if="loadError" :error="loadError" return-to="/app/dsa" @retry="load" />
+    <PracticeErrorState
+      v-else-if="loadError"
+      :error="loadError"
+      return-to="/app/dsa"
+      @retry="load"
+    />
     <PracticeCompletion
       v-else-if="session.phase.value === 'completed' && session.result.value"
       :summary="{
@@ -143,8 +156,15 @@ onMounted(load)
           { label: 'Space', value: session.result.value.spaceComplexity || 'Not recorded' },
         ],
       }"
-      :primary-to="`/app/dsa/${problemId}?attempt=${session.result.value.id}`"
-      primary-label="View attempt history"
+      :primary-to="
+        handoff.hasContext.value
+          ? undefined
+          : `/app/dsa/${problemId}?attempt=${session.result.value.id}`
+      "
+      :primary-label="handoff.hasContext.value ? 'Continue study session' : 'View attempt history'"
+      :pending="handoff.pending.value"
+      :handoff-error="handoff.error.value"
+      @primary="handoff.complete(session.result.value.id)"
     />
     <section v-else-if="practice" class="grid min-w-0 gap-6 xl:grid-cols-[42fr_58fr]">
       <article class="min-w-0 rounded-xl border border-default p-5 sm:p-6">
@@ -225,14 +245,20 @@ onMounted(load)
             /></UFormField>
           </div>
           <UFormField label="What did you learn from this attempt?" class="mt-5"
-            ><UTextarea v-model="session.reflection.value" :rows="6" class="w-full" /></UFormField
-          ><div v-if="session.error.value" class="mt-5">
+            ><UTextarea v-model="session.reflection.value" :rows="6" class="w-full"
+          /></UFormField>
+          <div v-if="session.error.value" class="mt-5">
             <CoreErrorState :error="session.error.value" />
             <div class="mt-3 flex flex-wrap gap-2">
-              <UButton label="Copy solution" color="neutral" variant="outline" @click="copyDraft(session.solution.value, 'Solution')" />
+              <UButton
+                label="Copy solution"
+                color="neutral"
+                variant="outline"
+                @click="copyDraft(session.solution.value, 'Solution')"
+              />
               <UButton to="/app/dsa" label="Return to DSA" color="neutral" variant="ghost" />
-            </div>
-          </div></template>
+            </div></div
+        ></template>
       </article>
     </section>
     <template v-if="!loading && !loadError && session.phase.value !== 'completed'" #shortcut-help

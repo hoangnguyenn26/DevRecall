@@ -12,6 +12,7 @@ import PracticeLoadingState from '~/features/practice/components/PracticeLoading
 import PracticeErrorState from '~/features/practice/components/PracticeErrorState.vue'
 import PracticeCompletion from '~/features/practice/components/PracticeCompletion.vue'
 import PracticeShortcutHelp from '~/features/practice/components/PracticeShortcutHelp.vue'
+import { useStudySessionHandoff } from '~/features/study-sessions/useStudySessionHandoff'
 
 definePageMeta({ layout: 'focus', middleware: 'auth' })
 useSeoMeta({ title: 'Interview practice', robots: 'noindex, nofollow' })
@@ -25,6 +26,7 @@ const shortcutsOpen = ref(false)
 const toast = useToast()
 const { afterInterviewPractice } = useLearningDataInvalidation()
 const { copyDraft } = useDraftClipboard()
+const handoff = useStudySessionHandoff()
 const ratings: { value: InterviewSelfRating; label: string; description: string }[] = [
   {
     value: 'NeedsWork',
@@ -88,7 +90,13 @@ const shortcuts = computed<PracticeShortcut[]>(() => [
     keys: ['Escape'],
     label: 'Exit practice',
     enabled: () => !session.busy.value,
-    execute: () => { if (shortcutsOpen.value) { shortcutsOpen.value = false; return } return exit.exit() },
+    execute: () => {
+      if (shortcutsOpen.value) {
+        shortcutsOpen.value = false
+        return
+      }
+      return exit.exit()
+    },
   },
   {
     id: 'compare',
@@ -145,7 +153,12 @@ onMounted(load)
 <template>
   <PracticeShell :context="context" :busy="session.busy.value" @exit="exit.exit">
     <PracticeLoadingState v-if="loading" label="Preparing interview practice" />
-    <PracticeErrorState v-else-if="loadError" :error="loadError" return-to="/app/interview" @retry="load" />
+    <PracticeErrorState
+      v-else-if="loadError"
+      :error="loadError"
+      return-to="/app/interview"
+      @retry="load"
+    />
     <PracticeCompletion
       v-else-if="session.phase.value === 'completed' && session.result.value"
       :summary="{
@@ -159,8 +172,15 @@ onMounted(load)
           { label: 'Follow-ups practiced', value: String(session.result.value.followUpsAnswered) },
         ],
       }"
-      :primary-to="`/app/interview/${questionId}?attempt=${session.result.value.attemptId}`"
-      primary-label="View attempt history"
+      :primary-to="
+        handoff.hasContext.value
+          ? undefined
+          : `/app/interview/${questionId}?attempt=${session.result.value.attemptId}`
+      "
+      :primary-label="handoff.hasContext.value ? 'Continue study session' : 'View attempt history'"
+      :pending="handoff.pending.value"
+      :handoff-error="handoff.error.value"
+      @primary="handoff.complete(session.result.value.attemptId)"
     />
     <section v-else-if="session.practice.value" class="mx-auto w-full max-w-3xl">
       <p class="text-sm font-medium text-primary">

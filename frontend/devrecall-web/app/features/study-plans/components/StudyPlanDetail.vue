@@ -4,7 +4,7 @@ import { getStudyPlanStatusMeta, studyPlanResourceMeta } from '../study-plan.met
 import { formatMinutes } from '~/utils/format'
 
 defineProps<{ detail: StudyPlanDetail }>()
-const emit = defineEmits<{ edit: [] }>()
+const emit = defineEmits<{ edit: []; start: [] }>()
 </script>
 
 <template>
@@ -25,6 +25,12 @@ const emit = defineEmits<{ edit: [] }>()
         label="Edit plan"
         icon="i-lucide-pencil"
         @click="emit('edit')"
+      />
+      <UButton
+        v-else-if="detail.status === 'Ready'"
+        label="Start study"
+        icon="i-lucide-play"
+        @click="emit('start')"
       />
     </header>
     <ol class="preview">

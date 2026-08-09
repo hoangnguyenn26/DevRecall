@@ -47,6 +47,12 @@ async function accept(detailValue: StudyPlanDetail): Promise<void> {
   detail.value = detailValue
   await Promise.all([loadList(), refreshToday()])
 }
+async function startStudy(): Promise<void> {
+  if (!detail.value) return
+  const result = await api.start(detail.value.studyPlanId, detail.value.version)
+  await Promise.all([loadList(), refreshToday()])
+  await navigateTo(`/app/study-sessions/${result.studySessionId}`)
+}
 watch(() => props.selectedId, loadDetail)
 onMounted(() => Promise.all([loadList(), loadDetail()]))
 </script>
@@ -85,7 +91,12 @@ onMounted(() => Promise.all([loadList(), loadDetail()]))
           }
         "
       />
-      <StudyPlanDetailView v-else-if="detail" :detail="detail" @edit="editing = true" />
+      <StudyPlanDetailView
+        v-else-if="detail"
+        :detail="detail"
+        @edit="editing = true"
+        @start="startStudy"
+      />
       <CoreEmptyState
         v-else
         title="Select a study plan"

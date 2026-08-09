@@ -20,5 +20,7 @@ export function useStudyPlanApi() {
       }),
     markReady: (id: string, expectedVersion: number) =>
       api.post(`/study-plans/${id}/ready`, { expectedVersion }),
+    start: (id: string, expectedVersion: number) =>
+      api.post<{ studySessionId: string }>(`/study-plans/${id}/convert`, { expectedVersion }),
   }
 }
