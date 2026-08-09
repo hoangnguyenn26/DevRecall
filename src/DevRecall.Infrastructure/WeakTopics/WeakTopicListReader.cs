@@ -36,7 +36,8 @@ internal sealed class WeakTopicListReader(DevRecallDbContext dbContext)
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query.OrderByDescending(x => x.Score)
+        var items = await query.OrderByDescending(x => x.Level)
+            .ThenByDescending(x => x.Score)
             .ThenByDescending(x => x.CalculatedAtUtc).ThenBy(x => x.Id)
             .Skip(skip).Take(take)
             .Select(x => new WeakTopicListReadModel(

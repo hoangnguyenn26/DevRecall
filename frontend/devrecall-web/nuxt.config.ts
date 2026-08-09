@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    apiInternalBaseUrl: 'https://localhost:7081',
+    apiInternalBaseUrl: 'http://localhost:5012',
     public: {
       apiBaseUrl: '/api/v1',
       siteUrl: 'http://localhost:3000',

@@ -28,7 +28,7 @@ public sealed class LearningInsightsHandlerTests
     [Fact]
     public async Task StaleWeakTopicAndLowSamples_DoNotFabricateInsight()
     {
-        var source = new SourceStub { Items = [CreateSource(Now.AddDays(-15))] };
+        var source = new SourceStub { Items = [CreateSource(Now.AddDays(-14))] };
         var result = await Create(source, new AnalyticsStub()).HandleAsync("7d", 10, CancellationToken.None);
         result.Items.Should().BeEmpty();
     }

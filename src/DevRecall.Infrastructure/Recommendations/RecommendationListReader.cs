@@ -1,4 +1,5 @@
 using DevRecall.Application.Common.Pagination;
+using DevRecall.Application.Common.Time;
 using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Infrastructure.Persistence;
@@ -6,7 +7,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Infrastructure.Recommendations;
 
-internal sealed class RecommendationListReader(DevRecallDbContext dbContext)
+internal sealed class RecommendationListReader(
+    DevRecallDbContext dbContext, IUtcClock clock)
     : IRecommendationListReader
 {
     public async Task<PagedReadResult<RecommendationListReadModel>> ReadAsync(
@@ -18,6 +20,11 @@ internal sealed class RecommendationListReader(DevRecallDbContext dbContext)
     {
         var query = dbContext.StudyRecommendations.AsNoTracking()
             .Where(x => x.UserId == userId && x.Status == status);
+        if (status == RecommendationStatus.Active)
+        {
+            var now = clock.UtcNow;
+            query = query.Where(x => x.ExpiresAtUtc == null || x.ExpiresAtUtc > now);
+        }
         if (priority is not null)
         {
             query = query.Where(x => x.Priority == priority.Value);

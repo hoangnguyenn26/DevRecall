@@ -41,7 +41,7 @@ public sealed class GetLearningInsightsHandler(ILearningInsightSourceReader sour
         var summaries = await resourceReader.ReadManyAsync(userId, sources.Select(x => new RecommendationResourceReference(x.ResourceType, x.ResourceId)).Distinct().ToArray(), cancellationToken);
         var resources = summaries.ToDictionary(x => (x.ResourceType, x.ResourceId));
         var items = new List<LearningInsightItem>();
-        foreach (var source in sources.Where(x => clock.UtcNow - x.WeaknessCalculatedAtUtc <= LearningInsightPolicy.MaximumWeakTopicAge))
+        foreach (var source in sources.Where(x => clock.UtcNow - x.WeaknessCalculatedAtUtc < LearningInsightPolicy.MaximumWeakTopicAge))
         {
             resources.TryGetValue((source.ResourceType, source.ResourceId), out var resource);
             items.Add(new("WeakTopicNeedsAttention", "Attention", source.Priority.ToString(),

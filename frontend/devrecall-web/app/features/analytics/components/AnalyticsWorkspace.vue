@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { EChartsCoreOption } from 'echarts/core'
+import LearningInsights from './LearningInsights.vue'
 import { formatMinutes } from '~/utils/format'
 import { comparisonText, factualTrend, parseAnalyticsRange } from '../analytics.meta'
 import { useAnalyticsApi } from '../analytics.api'
