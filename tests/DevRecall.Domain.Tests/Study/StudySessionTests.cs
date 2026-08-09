@@ -239,6 +239,40 @@ public sealed class StudySessionTests
         session.UpdatedAtUtc.Should().Be(updatedAt);
     }
 
+    [Fact]
+    public void UpdateReflection_ShouldNormalizeAndRemainACompletedSession()
+    {
+        var session = CreateSession();
+        session.Start(Now);
+        session.Complete(session.Version, Now.AddMinutes(20));
+        var version = session.Version;
+
+        session.UpdateReflection(
+            version, "  Revisit service lifetimes.  ", Now.AddMinutes(21))
+            .Should().BeTrue();
+
+        session.Reflection.Should().Be("Revisit service lifetimes.");
+        session.Status.Should().Be(StudySessionStatus.Completed);
+        session.Version.Should().Be(version + 1);
+        session.UpdateReflection(
+            session.Version, "Revisit service lifetimes.", Now.AddMinutes(22))
+            .Should().BeFalse();
+        session.Version.Should().Be(version + 1);
+    }
+
+    [Fact]
+    public void UpdateReflection_ForActiveSession_ShouldReject()
+    {
+        var session = CreateSession();
+        session.Start(Now);
+
+        var action = () => session.UpdateReflection(
+            session.Version, "Too early", Now.AddMinutes(1));
+
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage(StudySessionErrors.SessionNotCompleted.Message);
+    }
+
     private static StudySession CreateSession(
         string title = "Study",
         int plannedDuration = 30,

@@ -22,7 +22,10 @@ internal sealed class StudySessionListReader(DevRecallDbContext dbContext)
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
-            .OrderByDescending(session => session.CreatedAtUtc)
+            .OrderBy(session => session.Status == StudySessionStatus.InProgress ? 0 : 1)
+            .ThenByDescending(session => session.Status == StudySessionStatus.Completed
+                ? session.CompletedAtUtc
+                : session.StartedAtUtc ?? session.CreatedAtUtc)
             .ThenByDescending(session => session.Id)
             .Skip(skip)
             .Take(take)

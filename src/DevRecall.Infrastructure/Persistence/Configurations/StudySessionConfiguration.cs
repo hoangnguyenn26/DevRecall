@@ -37,6 +37,9 @@ internal sealed class StudySessionConfiguration
         builder.Property(session => session.CompletedAtUtc);
         builder.Property(session => session.ActualDurationMinutes);
         builder.Property(session => session.Notes).HasColumnType("text");
+        builder.Property(session => session.Reflection)
+            .HasMaxLength(StudySessionText.ReflectionMaxLength)
+            .HasColumnType("text");
         builder.Property(session => session.CreatedAtUtc).IsRequired();
         builder.Property(session => session.UpdatedAtUtc).IsRequired();
         builder.Property(session => session.Version)

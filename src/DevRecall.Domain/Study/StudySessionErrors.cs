@@ -14,6 +14,9 @@ public static class StudySessionErrors
     public static readonly DomainError SessionCompleted = new(
         "STUDY_SESSION_COMPLETED",
         "A completed study session cannot be changed.");
+    public static readonly DomainError SessionNotCompleted = new(
+        "STUDY_SESSION_NOT_COMPLETED",
+        "Only a completed study session can have a reflection.");
     public static readonly DomainError SessionCancelled = new(
         "STUDY_SESSION_CANCELLED",
         "A cancelled study session cannot be changed.");

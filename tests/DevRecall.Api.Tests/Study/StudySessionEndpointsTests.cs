@@ -48,6 +48,41 @@ public sealed class StudySessionEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task Reflection_ShouldBeOwnerScopedNormalizedAndConcurrencyProtected()
+    {
+        var owner = await CreateAuthenticatedClientAsync();
+        using var client = owner.Client;
+        var session = await CreateSessionAsync(client);
+        using var start = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/start",
+            new StartStudySessionRequest(session.Version));
+        var started = await start.Content
+            .ReadFromJsonAsync<StartStudySessionResponse>();
+        using var complete = await client.PostAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/complete",
+            new CompleteStudySessionRequest(started!.Version));
+        var completed = await complete.Content
+            .ReadFromJsonAsync<CompleteStudySessionResponse>();
+
+        using var update = await client.PutAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/reflection",
+            new UpdateStudySessionReflectionRequest(
+                "  Revisit IQueryable behavior.  ", completed!.Version));
+        var result = await update.Content
+            .ReadFromJsonAsync<UpdateStudySessionReflectionResponse>();
+        using var stale = await client.PutAsJsonAsync(
+            $"/api/v1/study-sessions/{session.Id}/reflection",
+            new UpdateStudySessionReflectionRequest(
+                "Overwrite", completed.Version));
+
+        update.StatusCode.Should().Be(HttpStatusCode.OK);
+        result!.Reflection.Should().Be("Revisit IQueryable behavior.");
+        stale.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await GetDetailAsync(client, session.Id)).Reflection
+            .Should().Be("Revisit IQueryable behavior.");
+    }
+
+    [Fact]
     public async Task Complete_ShouldRejectPlannedStaleAndCrossUserSessions()
     {
         var owner = await CreateAuthenticatedClientAsync();

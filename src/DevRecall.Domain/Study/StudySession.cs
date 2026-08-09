@@ -36,6 +36,7 @@ public sealed class StudySession
     public DateTimeOffset? CompletedAtUtc { get; private set; }
     public int? ActualDurationMinutes { get; private set; }
     public string? Notes { get; private set; }
+    public string? Reflection { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
     public int Version { get; private set; }
@@ -420,6 +421,26 @@ public sealed class StudySession
             CountCompleted(StudyResourceType.InterviewQuestion),
             CountCompleted(StudyResourceType.DsaProblem),
             CountCompleted(StudyResourceType.ReviewItem));
+
+    public bool UpdateReflection(
+        int expectedVersion, string? reflection, DateTimeOffset updatedAtUtc)
+    {
+        EnsureUtc(updatedAtUtc, nameof(updatedAtUtc));
+        EnsureExpectedVersion(expectedVersion);
+        if (Status != StudySessionStatus.Completed)
+        {
+            throw new InvalidOperationException(
+                StudySessionErrors.SessionNotCompleted.Message);
+        }
+
+        var normalized = NormalizeNotes(
+            reflection, nameof(reflection), StudySessionText.ReflectionMaxLength);
+        if (Reflection == normalized) return false;
+        Reflection = normalized;
+        UpdatedAtUtc = updatedAtUtc;
+        IncrementVersion();
+        return true;
+    }
 
     private StudySessionItem GetItem(Guid itemId) =>
         _items.SingleOrDefault(item => item.Id == itemId)

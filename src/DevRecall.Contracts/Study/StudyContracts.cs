@@ -28,6 +28,10 @@ public sealed class RemoveStudySessionItemRequest
 }
 public sealed record CompleteStudySessionRequest(int ExpectedVersion);
 public sealed record CancelStudySessionRequest(int ExpectedVersion);
+public sealed record UpdateStudySessionReflectionRequest(
+    string? Reflection, int ExpectedVersion);
+public sealed record UpdateStudySessionReflectionResponse(
+    Guid Id, string? Reflection, int Version, DateTimeOffset UpdatedAtUtc);
 
 public sealed record StudySessionResponse(
     Guid Id, string Title, string Status, int PlannedDurationMinutes,
@@ -95,16 +99,22 @@ public sealed record StudySessionProgressSummaryResponse(
 public sealed record StudySessionDetailItemResponse(
     Guid Id, string ResourceType, Guid ResourceId,
     string ResourceTitle, string? ResourcePreview,
-    bool IsResourceAvailable, int PlannedDurationMinutes,
+    bool IsResourceAvailable, bool HasEvidence, int PlannedDurationMinutes,
     int Position, string Status,
     DateTimeOffset? StartedAtUtc, DateTimeOffset? CompletedAtUtc,
-    string? Notes, DateTimeOffset CreatedAtUtc,
+    string? Notes, StudySessionEvidenceResponse? Evidence,
+    DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
+
+public sealed record StudySessionEvidenceResponse(
+    Guid AttemptId, string Kind, string Outcome,
+    int DurationSeconds, string? TimeComplexity);
 
 public sealed record StudySessionDetailResponse(
     Guid Id, string Title, string Status, int PlannedDurationMinutes,
     int? ActualDurationMinutes, DateTimeOffset? StartedAtUtc,
-    DateTimeOffset? CompletedAtUtc, string? Notes, int Version,
+    DateTimeOffset? CompletedAtUtc, string? Notes, string? Reflection,
+    int Version,
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
     Guid? CurrentItemId, int RemainingPlannedMinutes,
     StudySessionProgressSummaryResponse Progress,

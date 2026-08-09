@@ -70,6 +70,7 @@ using DevRecall.Application.Study.Items.Remove;
 using DevRecall.Application.Study.Items.Reorder;
 using DevRecall.Application.Study.Items.Skip;
 using DevRecall.Application.Study.Items.Start;
+using DevRecall.Application.Study.Reflection;
 using DevRecall.Application.Study.Start;
 using DevRecall.Application.Study.Update;
 using DevRecall.Application.StudyPlans.Convert;
@@ -178,6 +179,7 @@ public static class DependencyInjection
         services.AddScoped<CancelStudySessionHandler>();
         services.AddScoped<GetStudySessionsHandler>();
         services.AddScoped<GetStudySessionDetailHandler>();
+        services.AddScoped<UpdateStudySessionReflectionHandler>();
         services.AddScoped<GenerateStudyPlanHandler>();
         services.AddScoped<GetStudyPlansHandler>();
         services.AddScoped<GetStudyPlanDetailHandler>();

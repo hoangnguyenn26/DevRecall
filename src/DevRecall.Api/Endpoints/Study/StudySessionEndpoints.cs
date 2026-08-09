@@ -11,6 +11,7 @@ using DevRecall.Application.Study.Items.Remove;
 using DevRecall.Application.Study.Items.Reorder;
 using DevRecall.Application.Study.Items.Skip;
 using DevRecall.Application.Study.Items.Start;
+using DevRecall.Application.Study.Reflection;
 using DevRecall.Application.Study.Start;
 using DevRecall.Application.Study.Update;
 using DevRecall.Contracts.Common;
@@ -42,6 +43,7 @@ public static class StudySessionEndpoints
             "/{id:guid}/items/{itemId:guid}/skip", SkipItemAsync);
         group.MapPost("/{id:guid}/complete", CompleteSessionAsync);
         group.MapPost("/{id:guid}/cancel", CancelSessionAsync);
+        group.MapPut("/{id:guid}/reflection", UpdateReflectionAsync);
         return endpoints;
     }
 
@@ -88,6 +90,7 @@ public static class StudySessionEndpoints
             result.Id, result.Title, result.Status,
             result.PlannedDurationMinutes, result.ActualDurationMinutes,
             result.StartedAtUtc, result.CompletedAtUtc, result.Notes,
+            result.Reflection,
             result.Version, result.CreatedAtUtc, result.UpdatedAtUtc,
             result.CurrentItemId, result.RemainingPlannedMinutes,
             new StudySessionProgressSummaryResponse(
@@ -103,9 +106,14 @@ public static class StudySessionEndpoints
             result.Items.Select(item => new StudySessionDetailItemResponse(
                 item.Id, item.ResourceType, item.ResourceId,
                 item.ResourceTitle, item.ResourcePreview,
-                item.IsResourceAvailable, item.PlannedDurationMinutes,
+                item.IsResourceAvailable, item.HasEvidence,
+                item.PlannedDurationMinutes,
                 item.Position, item.Status,
                 item.StartedAtUtc, item.CompletedAtUtc, item.Notes,
+                item.Evidence is null ? null : new StudySessionEvidenceResponse(
+                    item.Evidence.AttemptId, item.Evidence.Kind,
+                    item.Evidence.Outcome, item.Evidence.DurationSeconds,
+                    item.Evidence.TimeComplexity),
                 item.CreatedAtUtc, item.UpdatedAtUtc)).ToList()));
     }
 
@@ -254,6 +262,20 @@ public static class StudySessionEndpoints
         return Results.Ok(new CancelStudySessionResponse(
             result.Id, result.Status, result.StartedAtUtc,
             result.Version, result.UpdatedAtUtc));
+    }
+
+    private static async Task<IResult> UpdateReflectionAsync(
+        Guid id, UpdateStudySessionReflectionRequest request,
+        UpdateStudySessionReflectionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new UpdateStudySessionReflectionCommand(
+                id, request.Reflection, request.ExpectedVersion),
+            cancellationToken);
+        return Results.Ok(new UpdateStudySessionReflectionResponse(
+            result.Id, result.Reflection, result.Version,
+            result.UpdatedAtUtc));
     }
 
     private static StudySessionResponse MapSession(StudySessionResult result) =>
