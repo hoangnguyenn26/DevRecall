@@ -83,4 +83,23 @@ describe('public website foundation', () => {
     expect(landing).toContain('id="how-it-works"')
     expect(landing).toContain('id="features"')
   })
+
+  it('provides a complete feature page with stable unique anchors', () => {
+    const features = readAppFile('pages/(marketing)/features.vue')
+    const anchors = [...features.matchAll(/<FeaturePageSection\s+id="([^"]+)"/g)].map(
+      (match) => match[1],
+    )
+
+    expect(features).toContain("definePageMeta({ layout: 'public' })")
+    expect(features.match(/<h1/g) ?? []).toHaveLength(1)
+    expect(anchors).toEqual(['knowledge', 'practice', 'study', 'insights', 'today'])
+    expect(new Set(anchors).size).toBe(anchors.length)
+    expect(features).toContain('to="/register"')
+  })
+
+  it('keeps illustrative feature previews out of the keyboard flow', () => {
+    const previews = readAppFile('features/marketing/components/FeaturePreviews.vue')
+    expect(previews).toContain('aria-hidden="true"')
+    expect(previews).not.toMatch(/<(button|a|input|select|textarea)\b/)
+  })
 })
