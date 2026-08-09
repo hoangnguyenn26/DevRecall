@@ -10,13 +10,14 @@ definePageMeta({ layout: 'focus', middleware: 'auth' })
 useSeoMeta({ title: 'DSA practice', robots: 'noindex, nofollow' })
 const route = useRoute(); const problemId = computed(() => String(route.params.id)); const api = useDsaPracticeApi()
 const session = useDsaPractice(api.complete(problemId.value)); const practice = ref<DsaPractice>(); const loading = ref(true); const loadError = ref<unknown>(); const shortcutsOpen = ref(false)
+const toast = useToast(); const { afterDsaPractice } = useLearningDataInvalidation()
 const outcomes: { value: DsaAttemptOutcome; label: string; description: string }[] = [
   { value: 'Solved', label: 'Solved', description: 'I solved it independently.' },
   { value: 'Skipped', label: 'Solved with help', description: 'I finished after using hints or references.' },
   { value: 'PartiallySolved', label: 'Partial', description: 'I made meaningful progress but did not finish.' },
   { value: 'Failed', label: 'Could not solve', description: 'I could not find a working approach.' },
 ]
-const context = computed(() => ({ module: 'Dsa' as const, title: practice.value?.title || 'DSA practice', startedAtUtc: session.startedAtUtc.value }))
+const context = computed(() => ({ module: 'Dsa' as const, title: practice.value?.title || 'DSA practice', startedAtUtc: session.startedAtUtc.value, progress: { kind: 'steps' as const, currentStep: session.phase.value === 'solving' ? 1 : session.phase.value === 'reflection' ? 2 : 3, totalSteps: 3, label: session.phase.value === 'solving' ? 'Solve' : session.phase.value === 'reflection' ? 'Reflect' : 'Complete' } }))
 const exit = usePracticeExit({ exitTo: `/app/dsa/${problemId.value}`, hasUnsubmittedWork: session.dirty, busy: session.busy,
   title: 'Leave DSA practice?', description: 'Your current solution and notes have not been saved.' })
 const shortcuts = computed<PracticeShortcut[]>(() => [
@@ -25,7 +26,7 @@ const shortcuts = computed<PracticeShortcut[]>(() => [
 ])
 usePracticeShortcuts(shortcuts)
 async function load() { loading.value = true; loadError.value = undefined; try { practice.value = await api.get(problemId.value) } catch (error) { loadError.value = error } finally { loading.value = false } }
-async function save() { if (await session.submit()) await refreshNuxtData(['today-dashboard', 'dsa', `dsa-${problemId.value}`]) }
+async function save() { if (await session.submit()) { try { await afterDsaPractice(problemId.value) } catch { toast.add({ title: 'Attempt saved', description: 'History will refresh when you return.', color: 'warning' }) } } }
 onMounted(load)
 </script>
 
@@ -33,7 +34,7 @@ onMounted(load)
   <PracticeShell :context="context" :busy="session.busy.value" wide @exit="exit.exit">
     <PracticeLoadingState v-if="loading" label="Preparing DSA practice" />
     <PracticeErrorState v-else-if="loadError" :error="loadError" @retry="load" />
-    <PracticeCompletion v-else-if="session.phase.value === 'completed' && session.result.value" :summary="{ title: 'Attempt recorded', completedCount: 1, durationMinutes: session.result.value.durationMinutes, primaryMetricLabel: 'Outcome', primaryMetricValue: outcomes.find(item => item.value === session.result.value?.result)?.label, secondaryMetrics: [{ label: 'Time', value: session.result.value.timeComplexity || 'Not recorded' }, { label: 'Space', value: session.result.value.spaceComplexity || 'Not recorded' }] }" :primary-to="`/app/dsa/${problemId}`" primary-label="View attempt history" />
+    <PracticeCompletion v-else-if="session.phase.value === 'completed' && session.result.value" :summary="{ title: 'Attempt recorded', completedCount: 1, durationMinutes: session.result.value.durationMinutes, primaryMetricLabel: 'Outcome', primaryMetricValue: outcomes.find(item => item.value === session.result.value?.result)?.label, secondaryMetrics: [{ label: 'Time', value: session.result.value.timeComplexity || 'Not recorded' }, { label: 'Space', value: session.result.value.spaceComplexity || 'Not recorded' }] }" :primary-to="`/app/dsa/${problemId}?attempt=${session.result.value.id}`" primary-label="View attempt history" />
     <section v-else-if="practice" class="grid min-w-0 gap-6 xl:grid-cols-[42fr_58fr]">
       <article class="min-w-0 rounded-xl border border-default p-5 sm:p-6"><div class="flex flex-wrap items-center gap-2"><CoreStatusBadge :value="practice.difficulty" /><span v-for="topic in practice.topics" :key="topic" class="text-xs text-muted">{{ topic }}</span></div><h1 class="mt-4 text-2xl font-semibold">{{ practice.title }}</h1><p v-if="practice.description" class="mt-5 whitespace-pre-wrap break-words leading-7 text-muted">{{ practice.description }}</p><p v-else class="mt-5 text-muted">The problem statement is hosted externally.</p><a v-if="practice.externalUrl" :href="practice.externalUrl" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center gap-2 text-primary">Open problem source <UIcon name="i-lucide-external-link" /></a></article>
       <article class="min-w-0 rounded-xl border border-default p-5 sm:p-6">

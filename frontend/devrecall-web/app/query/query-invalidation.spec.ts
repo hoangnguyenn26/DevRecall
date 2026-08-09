@@ -46,4 +46,19 @@ describe('learning data invalidation', () => {
       queryKeys.reviewDue, queryKeys.today, queryKeys.navigationIndicators,
     ])
   })
+
+  it('refreshes only Interview history and marks Today stale after practice', async () => {
+    const refresh = vi.fn<(key: string) => Promise<void>>(async () => undefined)
+    const clear = vi.fn<(key: string) => void>()
+    vi.stubGlobal('refreshNuxtData', refresh); vi.stubGlobal('clearNuxtData', clear)
+    await useLearningDataInvalidation().afterInterviewPractice('question')
+    expect(refresh).toHaveBeenCalledWith(queryKeys.interviewAttempts('question'))
+    expect(clear).toHaveBeenCalledWith(queryKeys.today)
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it('uses resource-specific practice query keys', () => {
+    expect(queryKeys.interviewAttempts('a')).not.toBe(queryKeys.interviewAttempts('b'))
+    expect(queryKeys.dsaAttempt('a')).not.toBe(queryKeys.dsaAttempt('b'))
+  })
 })

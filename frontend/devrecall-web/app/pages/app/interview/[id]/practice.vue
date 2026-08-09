@@ -11,6 +11,7 @@ definePageMeta({ layout: 'focus', middleware: 'auth' })
 useSeoMeta({ title: 'Interview practice', robots: 'noindex, nofollow' })
 const route = useRoute(); const questionId = computed(() => String(route.params.id)); const api = useInterviewPracticeApi()
 const session = useInterviewPractice(api.complete(questionId.value)); const loading = ref(true); const loadError = ref<unknown>(); const shortcutsOpen = ref(false)
+const toast = useToast(); const { afterInterviewPractice } = useLearningDataInvalidation()
 const ratings: { value: InterviewSelfRating; label: string; description: string }[] = [
   { value: 'NeedsWork', label: 'Needs work', description: 'I struggled to structure or explain the answer.' },
   { value: 'Fair', label: 'Fair', description: 'I covered the basics but missed important details.' },
@@ -18,7 +19,7 @@ const ratings: { value: InterviewSelfRating; label: string; description: string 
   { value: 'Strong', label: 'Strong', description: 'My answer was concise, structured and confident.' },
 ]
 const context = computed(() => ({ module: 'Interview' as const, title: session.practice.value?.category || 'Interview practice', startedAtUtc: session.startedAtUtc.value,
-  progress: session.phase.value === 'follow-up' ? createPracticeProgress(session.currentFollowUpIndex.value, session.practice.value?.followUps.length ?? 0) : undefined }))
+  progress: session.phase.value === 'follow-up' ? createPracticeProgress(session.currentFollowUpIndex.value, session.practice.value?.followUps.length ?? 0) : { kind: 'steps' as const, currentStep: session.phase.value === 'answering' ? 1 : session.phase.value === 'comparing' ? 2 : 3, totalSteps: 3, label: session.phase.value === 'answering' ? 'Answer' : session.phase.value === 'comparing' ? 'Compare' : 'Complete' } }))
 const exit = usePracticeExit({ exitTo: `/app/interview/${questionId.value}`, hasUnsubmittedWork: session.dirty, busy: session.busy,
   title: 'Leave interview practice?', description: 'Your current practice answer has not been saved.' })
 const shortcuts = computed<PracticeShortcut[]>(() => [
@@ -28,8 +29,9 @@ const shortcuts = computed<PracticeShortcut[]>(() => [
 ])
 usePracticeShortcuts(shortcuts)
 async function load() { loading.value = true; loadError.value = undefined; try { session.start(await api.get(questionId.value)) } catch (error) { loadError.value = error } finally { loading.value = false } }
-async function finishRating() { if (await session.continueAfterRating() && session.phase.value === 'completed') await refreshNuxtData(['today-dashboard', 'interview']) }
-async function finishFollowUp(skip: boolean) { if (await session.nextFollowUp(skip) && session.phase.value === 'completed') await refreshNuxtData(['today-dashboard', 'interview']) }
+async function invalidateCompletion(): Promise<void> { try { await afterInterviewPractice(questionId.value) } catch { toast.add({ title: 'Practice saved', description: 'History will refresh when you return.', color: 'warning' }) } }
+async function finishRating() { if (await session.continueAfterRating() && session.phase.value === 'completed') await invalidateCompletion() }
+async function finishFollowUp(skip: boolean) { if (await session.nextFollowUp(skip) && session.phase.value === 'completed') await invalidateCompletion() }
 onMounted(load)
 </script>
 
@@ -37,7 +39,7 @@ onMounted(load)
   <PracticeShell :context="context" :busy="session.busy.value" @exit="exit.exit">
     <PracticeLoadingState v-if="loading" label="Preparing interview practice" />
     <PracticeErrorState v-else-if="loadError" :error="loadError" @retry="load" />
-    <PracticeCompletion v-else-if="session.phase.value === 'completed' && session.result.value" :summary="{ title: 'Practice complete', completedCount: 1, durationMinutes: Math.max(1, Math.ceil(session.result.value.durationSeconds / 60)), primaryMetricLabel: 'Self-rating', primaryMetricValue: ratings.find(item => item.value === session.result.value?.selfRating)?.label, secondaryMetrics: [{ label: 'Follow-ups practiced', value: String(session.result.value.followUpsAnswered) }] }" primary-to="/app/interview" primary-label="Back to Interview" />
+    <PracticeCompletion v-else-if="session.phase.value === 'completed' && session.result.value" :summary="{ title: 'Practice complete', completedCount: 1, durationMinutes: Math.max(1, Math.ceil(session.result.value.durationSeconds / 60)), primaryMetricLabel: 'Self-rating', primaryMetricValue: ratings.find(item => item.value === session.result.value?.selfRating)?.label, secondaryMetrics: [{ label: 'Follow-ups practiced', value: String(session.result.value.followUpsAnswered) }] }" :primary-to="`/app/interview/${questionId}?attempt=${session.result.value.attemptId}`" primary-label="View attempt history" />
     <section v-else-if="session.practice.value" class="mx-auto w-full max-w-3xl">
       <p class="text-sm font-medium text-primary">{{ session.practice.value.category }} · {{ session.practice.value.difficulty }}</p>
       <h1 class="mt-3 text-2xl font-semibold leading-snug">{{ session.phase.value === 'follow-up' ? session.currentFollowUp.value?.question : session.practice.value.question }}</h1>

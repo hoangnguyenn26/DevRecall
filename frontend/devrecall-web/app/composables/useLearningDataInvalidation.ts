@@ -7,6 +7,10 @@ export function useLearningDataInvalidation() {
     Promise.all([refreshNuxtData(queryKeys.today), refreshNuxtData(queryKeys.navigationIndicators)]).then(() => undefined)
   const afterReviewEvaluation = (): Promise<void> =>
     Promise.all([refreshNuxtData(queryKeys.reviewDue), refreshNuxtData(queryKeys.today), refreshNuxtData(queryKeys.navigationIndicators)]).then(() => undefined)
+  const afterInterviewPractice = (questionId: string): Promise<void> =>
+    Promise.all([refreshNuxtData(queryKeys.interviewAttempts(questionId)), clearNuxtData(queryKeys.today)]).then(() => undefined)
+  const afterDsaPractice = (problemId: string): Promise<void> =>
+    Promise.all([refreshNuxtData(queryKeys.dsaAttempts(problemId)), refreshNuxtData(queryKeys.dsaProblem(problemId)), clearNuxtData(queryKeys.today)]).then(() => undefined)
 
   async function refreshLearningEntryPoints(): Promise<void> {
     await refreshTodayAndNavigation()
@@ -22,5 +26,5 @@ export function useLearningDataInvalidation() {
     await Promise.all(keys.map(key => refreshNuxtData(key)))
   }
 
-  return { refreshToday, refreshTodayAndNavigation, afterReviewEvaluation, refreshLearningEntryPoints, afterCapture }
+  return { refreshToday, refreshTodayAndNavigation, afterReviewEvaluation, afterInterviewPractice, afterDsaPractice, refreshLearningEntryPoints, afterCapture }
 }

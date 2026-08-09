@@ -7,6 +7,7 @@ export type CompleteInterviewPractice = (request: {
   followUps: { followUpId: string; answer: string }[]
   startedAtUtc: string
   submissionId: string
+  referenceAnswerId?: string
 }) => Promise<InterviewPracticeResult>
 
 export function useInterviewPractice(complete: CompleteInterviewPractice, createId: () => string = () => crypto.randomUUID()) {
@@ -52,7 +53,8 @@ export function useInterviewPractice(complete: CompleteInterviewPractice, create
     try {
       result.value = await complete({ answer: answer.value.trim(), selfRating: selfRating.value,
         followUps: Object.entries(followUpAnswers.value).map(([followUpId, value]) => ({ followUpId, answer: value })),
-        startedAtUtc: startedAtUtc.value, submissionId: submissionId.value })
+        startedAtUtc: startedAtUtc.value, submissionId: submissionId.value,
+        referenceAnswerId: practice.value.referenceAnswer?.answerId })
       phase.value = 'completed'
       return true
     } catch (caught) { error.value = caught; phase.value = previous; return false }
