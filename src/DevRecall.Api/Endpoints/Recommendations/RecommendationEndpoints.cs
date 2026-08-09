@@ -76,9 +76,10 @@ public static class RecommendationEndpoints
             result.RecommendationId, result.ResourceType, result.ResourceId,
             result.ResourceTitle, result.ResourcePreview,
             result.IsResourceAvailable, result.Type, result.Priority,
-            result.PriorityScore, result.Status, new RecommendationReasonResponse(
-                result.WeaknessScore, result.WeaknessLevel, result.SignalCount,
-                result.WeaknessCalculatedAtUtc), result.GeneratedAtUtc,
+            result.PriorityScore, result.Status, result.Reasons.Select(reason =>
+                new RecommendationReasonResponse(
+                    reason.Type, reason.Count, reason.Level,
+                    reason.CalculatedAtUtc)).ToArray(), result.GeneratedAtUtc,
             result.ExpiresAtUtc, result.DismissedAtUtc, result.CompletedAtUtc,
             result.ExpiredAtUtc, result.ExpirationReason, result.CreatedAtUtc,
             result.UpdatedAtUtc, result.Version));

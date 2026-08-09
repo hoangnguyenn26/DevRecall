@@ -97,6 +97,11 @@ public sealed class RecommendationLifecycleHandlerTests
             new(context.Item.Id), CancellationToken.None);
 
         result.ResourceTitle.Should().Be("Unavailable resource");
+        result.Reasons.Should().ContainEquivalentOf(
+            new RecommendationReasonItem("WeakTopicSeverity", Level: "High",
+                CalculatedAtUtc: context.Item.Reason.WeaknessCalculatedAtUtc));
+        result.Reasons.Should().ContainEquivalentOf(
+            new RecommendationReasonItem("ContributingSignals", Count: 2));
         context.Repository.SaveCount.Should().Be(0);
         context.Item.Version.Should().Be(1);
     }

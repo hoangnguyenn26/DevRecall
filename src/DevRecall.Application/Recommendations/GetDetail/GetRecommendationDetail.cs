@@ -25,8 +25,13 @@ public sealed record GetRecommendationDetailResult(
     DateTimeOffset WeaknessCalculatedAtUtc, DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
     DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
-    string? ExpirationReason, DateTimeOffset CreatedAtUtc,
+    string? ExpirationReason,
+    IReadOnlyList<RecommendationReasonItem> Reasons,
+    DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc, int Version);
+public sealed record RecommendationReasonItem(
+    string Type, int? Count = null, string? Level = null,
+    DateTimeOffset? CalculatedAtUtc = null);
 
 public interface IRecommendationDetailReader
 {
@@ -64,6 +69,12 @@ public sealed class GetRecommendationDetailHandler(
         var summaries = await resourceSummaryReader.ReadManyAsync(
             userId, [new(item.ResourceType, item.ResourceId)], cancellationToken);
         var resource = summaries.SingleOrDefault();
+        RecommendationReasonItem[] reasons =
+        [
+            new("WeakTopicSeverity", Level: item.WeaknessLevel.ToString(),
+                CalculatedAtUtc: item.WeaknessCalculatedAtUtc),
+            new("ContributingSignals", Count: item.SignalCount)
+        ];
         return new(
             item.RecommendationId, item.ResourceType.ToString(), item.ResourceId,
             resource?.Title ?? "Unavailable resource", resource?.Preview,
@@ -72,7 +83,7 @@ public sealed class GetRecommendationDetailHandler(
             item.WeaknessScore, item.WeaknessLevel.ToString(), item.SignalCount,
             item.WeaknessCalculatedAtUtc, item.GeneratedAtUtc, item.ExpiresAtUtc,
             item.DismissedAtUtc, item.CompletedAtUtc, item.ExpiredAtUtc,
-            item.ExpirationReason?.ToString(), item.CreatedAtUtc,
+            item.ExpirationReason?.ToString(), reasons, item.CreatedAtUtc,
             item.UpdatedAtUtc, item.Version);
     }
 }

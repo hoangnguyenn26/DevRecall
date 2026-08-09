@@ -33,13 +33,14 @@ public sealed record RecommendationListItemResponse(
     string? ExpirationReason, int Version);
 
 public sealed record RecommendationReasonResponse(
-    decimal WeaknessScore, string WeaknessLevel, int SignalCount,
-    DateTimeOffset WeaknessCalculatedAtUtc);
+    string Type, int? Count, string? Level,
+    DateTimeOffset? CalculatedAtUtc);
 public sealed record RecommendationDetailResponse(
     Guid RecommendationId, string ResourceType, Guid ResourceId,
     string ResourceTitle, string? ResourcePreview, bool IsResourceAvailable,
     string Type, string Priority, decimal PriorityScore, string Status,
-    RecommendationReasonResponse Reason, DateTimeOffset GeneratedAtUtc,
+    IReadOnlyList<RecommendationReasonResponse> Reasons,
+    DateTimeOffset GeneratedAtUtc,
     DateTimeOffset? ExpiresAtUtc, DateTimeOffset? DismissedAtUtc,
     DateTimeOffset? CompletedAtUtc, DateTimeOffset? ExpiredAtUtc,
     string? ExpirationReason, DateTimeOffset CreatedAtUtc,
