@@ -33,3 +33,23 @@ export interface LearningPerformance {
   dsaCurrent: Distribution
   dsaPrevious: Distribution
 }
+export interface LearningInsight {
+  type: string
+  tone: 'Attention' | 'Progress' | 'Neutral'
+  priority: string
+  title: string
+  summary: string
+  signals: { type: string; label: string; value: string }[]
+  action?: {
+    type: string
+    label: string
+    targetType: string
+    targetId?: string
+    isAvailable: boolean
+  }
+}
+export interface LearningInsights {
+  generatedAtUtc: string
+  range: AnalyticsRange
+  items: LearningInsight[]
+}

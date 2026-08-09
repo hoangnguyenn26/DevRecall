@@ -29,3 +29,21 @@ export const analyticsQueryKeys = {
   overview: (range: AnalyticsRange) => `analytics:overview:${range}`,
   performance: (range: AnalyticsRange) => `analytics:performance:${range}`,
 }
+export function insightAction(action?: {
+  type: string
+  targetType: string
+  targetId?: string
+  isAvailable: boolean
+}) {
+  if (!action?.isAvailable) return undefined
+  if (action.targetType === 'InterviewQuestion' && action.targetId)
+    return `/app/interview/${action.targetId}/practice`
+  if (action.targetType === 'DsaProblem' && action.targetId)
+    return `/app/dsa/${action.targetId}/practice`
+  if (action.targetType === 'KnowledgeNode' && action.targetId)
+    return `/app/knowledge/${action.targetId}`
+  if (action.targetType === 'Interview') return '/app/interview'
+  if (action.targetType === 'Review') return '/app/review'
+  if (action.targetType === 'Dsa') return '/app/dsa'
+  return undefined
+}

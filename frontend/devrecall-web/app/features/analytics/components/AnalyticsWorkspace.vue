@@ -3,7 +3,11 @@ import type { EChartsCoreOption } from 'echarts/core'
 import { formatMinutes } from '~/utils/format'
 import { comparisonText, factualTrend, parseAnalyticsRange } from '../analytics.meta'
 import { useAnalyticsApi } from '../analytics.api'
-import type { AnalyticsOverview, LearningPerformance } from '../analytics.types'
+import type {
+  AnalyticsOverview,
+  LearningInsights as LearningInsightsResult,
+  LearningPerformance,
+} from '../analytics.types'
 const route = useRoute()
 const router = useRouter()
 const api = useAnalyticsApi()
@@ -11,39 +15,62 @@ const range = computed(() => parseAnalyticsRange(route.query.range))
 const view = computed(() => (typeof route.query.view === 'string' ? route.query.view : 'overview'))
 const overview = ref<AnalyticsOverview>()
 const performance = ref<LearningPerformance>()
+const insights = ref<LearningInsightsResult>()
 const overviewError = ref<unknown>()
 const performanceError = ref<unknown>()
+const insightsError = ref<unknown>()
 const loading = ref(true)
 const performanceLoading = ref(true)
+const insightsLoading = ref(true)
+let overviewSequence = 0
+let performanceSequence = 0
+let insightsSequence = 0
 async function loadOverview() {
+  const sequence = ++overviewSequence
   loading.value = true
   overviewError.value = undefined
   try {
-    overview.value = await api.overview(range.value)
+    const value = await api.overview(range.value)
+    if (sequence === overviewSequence) overview.value = value
   } catch (error) {
-    overviewError.value = error
+    if (sequence === overviewSequence) overviewError.value = error
   } finally {
-    loading.value = false
+    if (sequence === overviewSequence) loading.value = false
   }
 }
 async function loadPerformance() {
+  const sequence = ++performanceSequence
   performanceLoading.value = true
   performanceError.value = undefined
   try {
-    performance.value = await api.performance(range.value)
+    const value = await api.performance(range.value)
+    if (sequence === performanceSequence) performance.value = value
   } catch (error) {
-    performanceError.value = error
+    if (sequence === performanceSequence) performanceError.value = error
   } finally {
-    performanceLoading.value = false
+    if (sequence === performanceSequence) performanceLoading.value = false
+  }
+}
+async function loadInsights() {
+  const sequence = ++insightsSequence
+  insightsLoading.value = true
+  insightsError.value = undefined
+  try {
+    const value = await api.insights(range.value)
+    if (sequence === insightsSequence) insights.value = value
+  } catch (error) {
+    if (sequence === insightsSequence) insightsError.value = error
+  } finally {
+    if (sequence === insightsSequence) insightsLoading.value = false
   }
 }
 function setQuery(key: string, value: string) {
   router.replace({ query: { ...route.query, [key]: value } })
 }
-watch(range, () => Promise.all([loadOverview(), loadPerformance()]))
+watch(range, () => Promise.all([loadOverview(), loadPerformance(), loadInsights()]))
 onMounted(() => {
   if (route.query.range !== range.value) setQuery('range', range.value)
-  Promise.all([loadOverview(), loadPerformance()])
+  Promise.all([loadOverview(), loadPerformance(), loadInsights()])
 })
 const activityOption = computed<EChartsCoreOption>(() => ({
   aria: { enabled: true, description: 'Daily study minutes for the selected period.' },
@@ -130,7 +157,10 @@ function distribution(key: string, previous = false) {
       title="Your learning activity will appear here"
       description="Complete reviews, practice interview questions, solve DSA problems, or finish study sessions to build your progress history."
     /><template v-else-if="overview"
-      ><section class="metrics">
+      ><CoreLoadingState v-if="insightsLoading" label="Loading learning insights" />
+      <CoreErrorState v-else-if="insightsError" :error="insightsError" @retry="loadInsights" />
+      <LearningInsights v-else :items="insights?.items ?? []" />
+      <section class="metrics">
         <article>
           <span>Study time</span><strong>{{ formatMinutes(overview.studyMinutes.current) }}</strong
           ><small>{{ comparisonText(overview.studyMinutes, 'minutes') }}</small>

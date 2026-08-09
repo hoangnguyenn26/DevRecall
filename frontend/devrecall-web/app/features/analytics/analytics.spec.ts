@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { comparisonText, factualTrend, parseAnalyticsRange } from './analytics.meta'
+import { comparisonText, factualTrend, insightAction, parseAnalyticsRange } from './analytics.meta'
 describe('analytics presentation', () => {
   it('canonicalizes unsupported ranges', () => {
     expect(parseAnalyticsRange(undefined)).toBe('7d')
@@ -16,5 +16,31 @@ describe('analytics presentation', () => {
     expect(factualTrend(low, low, ['third', 'fourth'])).toBe(
       'Not enough activity for a useful comparison.',
     )
+  })
+  it('only maps known insight targets to trusted routes', () => {
+    expect(
+      insightAction({
+        type: 'PracticeInterview',
+        targetType: 'InterviewQuestion',
+        targetId: 'question-id',
+        isAvailable: true,
+      }),
+    ).toBe('/app/interview/question-id/practice')
+    expect(
+      insightAction({
+        type: 'Unknown',
+        targetType: 'ExternalUrl',
+        targetId: 'https://example.com',
+        isAvailable: true,
+      }),
+    ).toBeUndefined()
+    expect(
+      insightAction({
+        type: 'PracticeInterview',
+        targetType: 'InterviewQuestion',
+        targetId: 'question-id',
+        isAvailable: false,
+      }),
+    ).toBeUndefined()
   })
 })
