@@ -9,4 +9,6 @@ public sealed record CreateDsaAttemptRequest(
     string? SpaceComplexity,
     int DurationMinutes,
     string? Notes,
-    DateTimeOffset AttemptedAtUtc);
+    DateTimeOffset AttemptedAtUtc,
+    Guid? SubmissionId = null,
+    DateTimeOffset? StartedAtUtc = null);

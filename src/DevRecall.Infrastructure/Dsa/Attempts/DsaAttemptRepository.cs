@@ -11,6 +11,17 @@ namespace DevRecall.Infrastructure.Dsa.Attempts;
 internal sealed class DsaAttemptRepository(DevRecallDbContext dbContext)
     : IDsaAttemptRepository
 {
+    public async Task<(DsaPracticeSubmission Submission, DsaAttempt Attempt)?> GetPracticeSubmissionAsync(
+        Guid userId, Guid submissionId, CancellationToken cancellationToken)
+    {
+        var item = await dbContext.DsaPracticeSubmissions.AsNoTracking()
+            .Where(submission => submission.UserId == userId && submission.SubmissionId == submissionId)
+            .Join(dbContext.DsaAttempts.AsNoTracking(), submission => submission.DsaAttemptId,
+                attempt => attempt.Id, (submission, attempt) => new { submission, attempt })
+            .SingleOrDefaultAsync(cancellationToken);
+        return item is null ? null : (item.submission, item.attempt);
+    }
+
     public Task<DsaAttempt?> GetByIdAndProblemIdAsync(
         Guid id, Guid dsaProblemId, CancellationToken cancellationToken) =>
         dbContext.DsaAttempts
@@ -89,6 +100,9 @@ internal sealed class DsaAttemptRepository(DevRecallDbContext dbContext)
     public void Add(DsaAttempt attempt) =>
         dbContext.DsaAttempts.Add(attempt);
 
+    public void AddPracticeSubmission(DsaPracticeSubmission submission) =>
+        dbContext.DsaPracticeSubmissions.Add(submission);
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         try
@@ -105,6 +119,16 @@ internal sealed class DsaAttemptRepository(DevRecallDbContext dbContext)
             throw new ConflictException(
                 DsaAttemptErrors.VersionConflict.Code,
                 DsaAttemptErrors.VersionConflict.Message);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException
+            {
+                ConstraintName: "ux_dsa_practice_submissions_user_submission"
+            })
+        {
+            throw new ConflictException(
+                "DSA_PRACTICE_SUBMISSION_CONFLICT",
+                "This practice submission was already recorded.");
         }
     }
 }

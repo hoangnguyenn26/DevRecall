@@ -3,9 +3,11 @@ using DevRecall.Application.Dsa.Archive;
 using DevRecall.Application.Dsa.Create;
 using DevRecall.Application.Dsa.GetDetail;
 using DevRecall.Application.Dsa.GetList;
+using DevRecall.Application.Dsa.Practice;
 using DevRecall.Application.Dsa.Update;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Dsa;
+using DevRecall.Contracts.Dsa.Practice;
 
 namespace DevRecall.Api.Endpoints.Dsa;
 
@@ -22,9 +24,19 @@ public static class DsaProblemEndpoints
         group.MapPost("", CreateAsync);
         group.MapGet("", GetListAsync);
         group.MapGet("/{id:guid}", GetDetailAsync);
+        group.MapGet("/{id:guid}/practice", GetPracticeAsync);
         group.MapPut("/{id:guid}", UpdateAsync);
         group.MapPost("/{id:guid}/archive", ArchiveAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> GetPracticeAsync(
+        Guid id, GetDsaPracticeHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(id, cancellationToken);
+        return Results.Ok(new GetDsaPracticeResponse(
+            result.ProblemId, result.Title, result.Description, result.ExternalUrl,
+            result.Difficulty, result.Topics, result.ProblemVersion));
     }
 
     private static async Task<IResult> CreateAsync(

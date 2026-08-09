@@ -40,7 +40,8 @@ public static class DsaAttemptEndpoints
                 request.SolutionCode, request.Approach,
                 request.TimeComplexity, request.SpaceComplexity,
                 request.DurationMinutes, request.Notes,
-                request.AttemptedAtUtc),
+                request.AttemptedAtUtc, request.SubmissionId,
+                request.StartedAtUtc),
             cancellationToken);
         return Results.Created(
             $"/api/v1/dsa-problems/{problemId}/attempts/{result.Id}",

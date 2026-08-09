@@ -5,6 +5,9 @@ namespace DevRecall.Application.Dsa.Attempts;
 
 public interface IDsaAttemptRepository
 {
+    Task<(DsaPracticeSubmission Submission, DsaAttempt Attempt)?> GetPracticeSubmissionAsync(
+        Guid userId, Guid submissionId, CancellationToken cancellationToken);
+
     Task<DsaAttempt?> GetByIdAndProblemIdAsync(
         Guid id, Guid dsaProblemId, CancellationToken cancellationToken);
 
@@ -23,6 +26,8 @@ public interface IDsaAttemptRepository
         CancellationToken cancellationToken);
 
     void Add(DsaAttempt attempt);
+
+    void AddPracticeSubmission(DsaPracticeSubmission submission);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
