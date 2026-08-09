@@ -98,7 +98,9 @@ public static class WeakTopicEndpoints
             result.Score, result.Level, result.SignalCount, result.Version,
             result.CalculatedAtUtc, result.CreatedAtUtc, result.UpdatedAtUtc,
             result.SignalWindowFromUtc, result.SignalWindowToUtc,
-            result.LatestSignalAtUtc, result.SignalGroups.Select(x =>
+            result.LatestSignalAtUtc, result.Reasons.Select(x =>
+                new WeakTopicReasonResponse(x.Type, x.Count)).ToArray(),
+            result.SignalGroups.Select(x =>
                 new WeakTopicSignalGroupResponse(
                     x.SignalType, x.Count, x.TotalWeightedScore)).ToArray(),
             result.Contributions.Select(x =>

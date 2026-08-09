@@ -18,6 +18,7 @@ public sealed record WeakTopicSignalGroup(
 public sealed record WeakTopicSignalContributionItem(
     string SignalType, DateTimeOffset OccurredAtUtc, int BaseWeight,
     decimal RecencyMultiplier, decimal WeightedScore);
+public sealed record WeakTopicReasonItem(string Type, int Count);
 public sealed record GetWeakTopicDetailResult(
     Guid ProfileId, string ResourceType, Guid ResourceId, string ResourceTitle,
     string? ResourcePreview, bool IsResourceAvailable, decimal Score, string Level,
@@ -25,6 +26,7 @@ public sealed record GetWeakTopicDetailResult(
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
     DateTimeOffset SignalWindowFromUtc, DateTimeOffset SignalWindowToUtc,
     DateTimeOffset? LatestSignalAtUtc,
+    IReadOnlyList<WeakTopicReasonItem> Reasons,
     IReadOnlyList<WeakTopicSignalGroup> SignalGroups,
     IReadOnlyList<WeakTopicSignalContributionItem> Contributions);
 
@@ -78,7 +80,10 @@ public sealed partial class GetWeakTopicDetailHandler(
             LogScoreMismatch(logger, profile.ProfileId);
         }
 
-        var contributions = breakdown.Contributions.Select(x =>
+        var contributions = breakdown.Contributions
+            .OrderByDescending(x => x.OccurredAtUtc)
+            .ThenBy(x => x.SignalType)
+            .Take(10).Select(x =>
             new WeakTopicSignalContributionItem(
                 x.SignalType.ToString(), x.OccurredAtUtc, x.BaseWeight,
                 x.RecencyMultiplier, x.WeightedScore)).ToArray();
@@ -89,15 +94,17 @@ public sealed partial class GetWeakTopicDetailHandler(
                     MidpointRounding.AwayFromZero)))
             .OrderByDescending(x => x.TotalWeightedScore)
             .ThenBy(x => x.SignalType).ToArray();
+        var reasons = groups.Select(group =>
+            new WeakTopicReasonItem(group.SignalType, group.Count)).ToArray();
         return new(
             profile.ProfileId, profile.ResourceType.ToString(), profile.ResourceId,
             resource?.Title ?? "Unavailable resource", resource?.Preview,
             resource?.IsAvailable ?? false, profile.Score, profile.Level.ToString(),
             profile.SignalCount, profile.Version, profile.CalculatedAtUtc,
             profile.CreatedAtUtc, profile.UpdatedAtUtc, fromUtc, toUtc,
-            breakdown.Contributions.Count == 0
-                ? null : breakdown.Contributions[0].OccurredAtUtc,
-            groups, contributions);
+            contributions.Length == 0
+                ? null : contributions[0].OccurredAtUtc,
+            reasons, groups, contributions);
     }
 
     [LoggerMessage(

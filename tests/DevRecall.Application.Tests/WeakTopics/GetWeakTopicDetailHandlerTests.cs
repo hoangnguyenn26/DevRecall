@@ -34,7 +34,26 @@ public sealed class GetWeakTopicDetailHandlerTests
             .BeInDescendingOrder();
         result.SignalGroups.Single(x => x.SignalType == "ReviewAgain")
             .Count.Should().Be(2);
+        result.Reasons.Single(x => x.Type == "ReviewAgain")
+            .Count.Should().Be(2);
         result.LatestSignalAtUtc.Should().Be(CalculatedAt.AddDays(-2));
+    }
+
+    [Fact]
+    public async Task Handle_BoundsRecentSignalsToTen()
+    {
+        var context = new Context();
+        context.Signals.Items = Enumerable.Range(1, 12)
+            .Select(day => new WeakTopicSignalReadModel(
+                WeaknessSignalType.ReviewHard, CalculatedAt.AddDays(-day)))
+            .ToArray();
+
+        var result = await context.Handler.HandleAsync(
+            new(context.Profile.ProfileId), CancellationToken.None);
+
+        result.Contributions.Should().HaveCount(10);
+        result.Contributions.Select(x => x.OccurredAtUtc).Should()
+            .BeInDescendingOrder();
     }
 
     [Fact]

@@ -30,6 +30,7 @@ public sealed record WeakTopicSignalContributionResponse(
     decimal RecencyMultiplier, decimal WeightedScore);
 public sealed record WeakTopicSignalGroupResponse(
     string SignalType, int Count, decimal TotalWeightedScore);
+public sealed record WeakTopicReasonResponse(string Type, int Count);
 public sealed record WeakTopicDetailResponse(
     Guid ProfileId, string ResourceType, Guid ResourceId, string ResourceTitle,
     string? ResourcePreview, bool IsResourceAvailable, decimal Score, string Level,
@@ -37,6 +38,7 @@ public sealed record WeakTopicDetailResponse(
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc,
     DateTimeOffset SignalWindowFromUtc, DateTimeOffset SignalWindowToUtc,
     DateTimeOffset? LatestSignalAtUtc,
+    IReadOnlyList<WeakTopicReasonResponse> Reasons,
     IReadOnlyList<WeakTopicSignalGroupResponse> SignalGroups,
     IReadOnlyList<WeakTopicSignalContributionResponse> Contributions);
 
