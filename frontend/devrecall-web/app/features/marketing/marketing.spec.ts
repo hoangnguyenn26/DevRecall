@@ -53,7 +53,8 @@ describe('public website foundation', () => {
     expect(publicLayout).toContain('<PublicHeader />')
     expect(publicLayout).toContain('<PublicFooter />')
     expect(appLayout).toContain("content: 'noindex,nofollow'")
-    expect(header).toContain("label: 'Open DevRecall'")
+    expect(header).toContain('primaryPublicCta')
+    expect(header).not.toContain('useAuth()')
     expect(header).not.toMatch(/Today|Knowledge|Review|Analytics/)
   })
 
@@ -62,6 +63,22 @@ describe('public website foundation', () => {
     expect(readAppFile('pages/(authentication)/register.vue')).toContain(
       "robots: 'noindex, nofollow'",
     )
+  })
+
+  it('keeps public conversion components deterministic and free of private data calls', () => {
+    const header = readAppFile('features/marketing/components/PublicHeader.vue')
+    const cta = readAppFile('features/marketing/components/MarketingCta.vue')
+    const publicSurface = `${header}\n${cta}`
+
+    expect(publicSurface).not.toMatch(/useAuth|useApi|\/auth\/me|\/api\/v1/)
+    expect(publicSurface).toContain('primaryPublicCta')
+  })
+
+  it('reserves the hero preview dimensions to prevent layout shift', () => {
+    const preview = readAppFile('features/marketing/components/ProductPreview.vue')
+    expect(preview).toContain('width="1294"')
+    expect(preview).toContain('height="856"')
+    expect(preview).toContain('aspect-[1294/856]')
   })
 
   it('tells the complete product story without unsupported claims', () => {

@@ -2,7 +2,19 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-08-01',
   modules: ['@nuxt/ui', '@pinia/nuxt', '@nuxt/eslint'],
   ui: { fonts: false },
-  icon: { serverBundle: { collections: ['lucide'] } },
+  icon: {
+    serverBundle: { collections: ['lucide'] },
+    clientBundle: {
+      icons: [
+        'lucide:library',
+        'lucide:refresh-cw',
+        'lucide:triangle-alert',
+        'lucide:sparkles',
+        'lucide:list-checks',
+        'lucide:chart-no-axes-combined',
+      ],
+    },
+  },
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
@@ -14,6 +26,8 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
+    '/': { prerender: true },
+    '/features': { prerender: true },
     '/app/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
     '/login': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
     '/register': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
@@ -29,6 +43,12 @@ export default defineNuxtConfig({
     },
   },
   typescript: { strict: true, typeCheck: true },
+  experimental: { prefetchPreloadTags: false },
+  hooks: {
+    'build:manifest': (manifest) => {
+      for (const chunk of Object.values(manifest)) chunk.dynamicImports = []
+    },
+  },
   eslint: { config: { stylistic: false } },
   vite: {
     build: {

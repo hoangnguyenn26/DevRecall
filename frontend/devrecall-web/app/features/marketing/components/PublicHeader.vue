@@ -3,10 +3,6 @@ import MarketingContainer from './MarketingContainer.vue'
 import { primaryPublicCta, publicNavigation } from '../marketing.constants'
 
 const mobileMenuOpen = ref(false)
-const auth = useAuth()
-const primaryAction = computed(() =>
-  auth.isAuthenticated.value ? { label: 'Open DevRecall', to: '/app' } : primaryPublicCta,
-)
 </script>
 
 <template>
@@ -35,10 +31,8 @@ const primaryAction = computed(() =>
       </nav>
       <div class="ml-auto hidden items-center gap-2 md:flex">
         <CoreThemeToggle />
-        <UButton v-if="!auth.isAuthenticated.value" to="/login" color="neutral" variant="ghost"
-          >Sign in</UButton
-        >
-        <UButton :to="primaryAction.to">{{ primaryAction.label }}</UButton>
+        <UButton to="/login" color="neutral" variant="ghost">Sign in</UButton>
+        <UButton :to="primaryPublicCta.to">{{ primaryPublicCta.label }}</UButton>
       </div>
       <UButton
         class="ml-auto md:hidden"
@@ -70,7 +64,6 @@ const primaryAction = computed(() =>
           >
           <USeparator class="my-2" />
           <UButton
-            v-if="!auth.isAuthenticated.value"
             to="/login"
             color="neutral"
             variant="outline"
@@ -78,8 +71,8 @@ const primaryAction = computed(() =>
             @click="mobileMenuOpen = false"
             >Sign in</UButton
           >
-          <UButton :to="primaryAction.to" block @click="mobileMenuOpen = false">{{
-            primaryAction.label
+          <UButton :to="primaryPublicCta.to" block @click="mobileMenuOpen = false">{{
+            primaryPublicCta.label
           }}</UButton>
           <div class="mt-2 flex justify-end"><CoreThemeToggle /></div>
         </nav>

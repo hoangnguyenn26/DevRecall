@@ -13,7 +13,7 @@ Public SSR routes                     Authenticated Learning OS
        ASP.NET Core /api/v1 + Problem Details
 ```
 
-Nuxt UI supplies the common visual primitives. PrimeVue is restricted to the unstyled Knowledge Tree, and ECharts is loaded only by client-side Analytics views. Pinia holds authenticated session state; business state remains server-owned.
+Nuxt UI supplies the common visual primitives. The Knowledge Tree uses lightweight application components, while ECharts is loaded only by client-side Analytics views. Pinia holds authenticated session state; business state remains server-owned.
 
 Cookie authentication and antiforgery tokens are transported through the typed API composable. Mutating requests are never retried automatically. `409 Conflict` responses require a visible reload decision, especially for versioned Study Plans and Study Sessions.
 
