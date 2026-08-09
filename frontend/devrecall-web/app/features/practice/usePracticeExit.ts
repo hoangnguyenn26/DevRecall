@@ -1,14 +1,14 @@
 import type { Ref } from 'vue'
 
-export function usePracticeExit(options: { exitTo: string; hasUnsubmittedWork: Ref<boolean>; busy: Ref<boolean> }) {
+export function usePracticeExit(options: { exitTo: string; hasUnsubmittedWork: Ref<boolean>; busy: Ref<boolean>; title?: string; description?: string }) {
   const confirm = useConfirmDialog()
   const approvedNavigation = ref(false)
 
   async function confirmLeave(): Promise<boolean> {
     if (!options.hasUnsubmittedWork.value) return true
     return await confirm.open({
-      title: 'Leave this practice session?',
-      description: 'Completed progress is saved, but the current unfinished item will not be submitted.',
+      title: options.title ?? 'Leave this practice session?',
+      description: options.description ?? 'Completed progress is saved, but the current unfinished item will not be submitted.',
       confirmLabel: 'Leave session',
       cancelLabel: 'Keep practicing',
       tone: 'neutral',

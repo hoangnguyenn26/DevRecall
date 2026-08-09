@@ -10,6 +10,7 @@ export interface AnswerHistory { id: string; versionNumber: number; status: stri
 export interface FollowUp { id: string; prompt: string; sortOrder: number; createdAtUtc: string; updatedAtUtc: string }
 export interface InterviewQuestionListItem { id: string; title: string; topic: string; difficulty: string; updatedAtUtc: string }
 export interface InterviewQuestionDetail { id: string; title: string; question: string; topic: string; difficulty: string; notes?: string; status: string; createdAtUtc: string; updatedAtUtc: string; currentPublishedAnswer?: AnswerSummary; latestDraft?: AnswerSummary; answerHistory: AnswerHistory[]; followUps: FollowUp[] }
+export interface InterviewPracticeAttemptListItem { attemptId: string; questionSnapshot: string; selfRating: string; followUpsAnswered: number; durationSeconds: number; completedAtUtc: string }
 
 export interface DsaAttemptOverview { id: string; attemptNumber: number; result: string; language?: string; timeComplexity?: string; spaceComplexity?: string; durationMinutes: number; attemptedAtUtc: string }
 export interface DsaProblemListItem { id: string; title: string; difficulty: string; source?: string; topics: string[]; updatedAtUtc: string }
