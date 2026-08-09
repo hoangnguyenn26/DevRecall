@@ -1,15 +1,296 @@
 <script setup lang="ts">
-import type { AnswerSummary, FollowUp, InterviewPracticeAttemptListItem, InterviewQuestionDetail } from '~/types/domain'
-definePageMeta({ layout: 'app' }); const route = useRoute(); const api = useApi(); const toast = useToast(); const detail = ref<InterviewQuestionDetail>(); const loading = ref(true); const error = ref<unknown>(); const answer = ref(''); const answerId = ref<string>(); const saving = ref(false); const followUpPrompt = ref('')
-const id = computed(() => String(route.params.id)); const practiceHistory = ref<InterviewPracticeAttemptListItem[]>([]); useSeoMeta({ title: () => detail.value?.title ?? 'Interview practice' })
-async function load() { loading.value = true; try { [detail.value, practiceHistory.value] = await Promise.all([api.get<InterviewQuestionDetail>(`/interview-questions/${id.value}`), api.get<InterviewPracticeAttemptListItem[]>(`/interview-questions/${id.value}/attempts`)]); const draft = detail.value.latestDraft; answer.value = draft?.content ?? ''; answerId.value = draft?.id } catch (caught) { error.value = caught } finally { loading.value = false } }
-async function saveDraft() { saving.value = true; try { const saved = answerId.value ? await api.put<AnswerSummary>(`/interview-questions/${id.value}/answer-versions/${answerId.value}`, { content: answer.value }) : await api.post<AnswerSummary>(`/interview-questions/${id.value}/answer-versions`, { content: answer.value }); answerId.value = saved.id; toast.add({ title: 'Draft saved', color: 'success' }); await load() } finally { saving.value = false } }
-async function publish() { if (!answerId.value || !confirm('Publish this answer? Published versions are immutable.')) return; await api.post(`/interview-questions/${id.value}/answer-versions/${answerId.value}/publish`); answerId.value = undefined; answer.value = ''; await load(); toast.add({ title: 'Answer published', color: 'success' }) }
-async function addFollowUp() { if (!followUpPrompt.value.trim()) return; await api.post(`/interview-questions/${id.value}/follow-ups`, { prompt: followUpPrompt.value }); followUpPrompt.value = ''; await load() }
-async function moveFollowUp(item: FollowUp, targetIndex: number) { await api.put(`/interview-questions/${id.value}/follow-ups/${item.id}/order`, { targetIndex }); await load() }
-async function archiveFollowUp(item: FollowUp) { await api.post(`/interview-questions/${id.value}/follow-ups/${item.id}/archive`); await load() }
-function onKey(event: KeyboardEvent) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); saveDraft() } }
-onMounted(() => { load(); window.addEventListener('keydown', onKey) }); onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+import type { AnswerSummary, FollowUp, InterviewQuestionDetail } from '~/types/domain'
+definePageMeta({ layout: 'app' })
+const route = useRoute()
+const api = useApi()
+const toast = useToast()
+const detail = ref<InterviewQuestionDetail>()
+const loading = ref(true)
+const error = ref<unknown>()
+const answer = ref('')
+const answerId = ref<string>()
+const saving = ref(false)
+const followUpPrompt = ref('')
+const id = computed(() => String(route.params.id))
+useSeoMeta({ title: () => detail.value?.title ?? 'Interview practice' })
+async function load() {
+  loading.value = true
+  try {
+    detail.value = await api.get<InterviewQuestionDetail>(`/interview-questions/${id.value}`)
+    const draft = detail.value.latestDraft
+    answer.value = draft?.content ?? ''
+    answerId.value = draft?.id
+  } catch (caught) {
+    error.value = caught
+  } finally {
+    loading.value = false
+  }
+}
+async function saveDraft() {
+  saving.value = true
+  try {
+    const saved = answerId.value
+      ? await api.put<AnswerSummary>(
+          `/interview-questions/${id.value}/answer-versions/${answerId.value}`,
+          { content: answer.value },
+        )
+      : await api.post<AnswerSummary>(`/interview-questions/${id.value}/answer-versions`, {
+          content: answer.value,
+        })
+    answerId.value = saved.id
+    toast.add({ title: 'Draft saved', color: 'success' })
+    await load()
+  } finally {
+    saving.value = false
+  }
+}
+async function publish() {
+  if (!answerId.value || !confirm('Publish this answer? Published versions are immutable.')) return
+  await api.post(`/interview-questions/${id.value}/answer-versions/${answerId.value}/publish`)
+  answerId.value = undefined
+  answer.value = ''
+  await load()
+  toast.add({ title: 'Answer published', color: 'success' })
+}
+async function addFollowUp() {
+  if (!followUpPrompt.value.trim()) return
+  await api.post(`/interview-questions/${id.value}/follow-ups`, { prompt: followUpPrompt.value })
+  followUpPrompt.value = ''
+  await load()
+}
+async function moveFollowUp(item: FollowUp, targetIndex: number) {
+  await api.put(`/interview-questions/${id.value}/follow-ups/${item.id}/order`, { targetIndex })
+  await load()
+}
+async function archiveFollowUp(item: FollowUp) {
+  await api.post(`/interview-questions/${id.value}/follow-ups/${item.id}/archive`)
+  await load()
+}
+function onKey(event: KeyboardEvent) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+    event.preventDefault()
+    saveDraft()
+  }
+}
+onMounted(() => {
+  load()
+  window.addEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
-<template><div><CoreLoadingState v-if="loading" label="Loading practice workspace" /><CoreErrorState v-else-if="error" :error="error" @retry="load" /><template v-else-if="detail"><CorePageHeader :title="detail.title" :description="`${detail.topic} interview practice`"><UButton to="/app/interview" label="Question bank" color="neutral" variant="ghost" /><UButton :to="`/app/interview/${id}/practice`" label="Practice this question" icon="i-lucide-play" /></CorePageHeader><section v-if="practiceHistory.length" class="mb-4 flex flex-wrap gap-2" aria-label="Recent practice attempts"><span v-for="attempt in practiceHistory" :key="attempt.attemptId" class="rounded-lg border border-default px-3 py-2 text-sm"><strong>{{ attempt.selfRating }}</strong> · {{ Math.max(1, Math.ceil(attempt.durationSeconds / 60)) }}m · {{ attempt.followUpsAnswered }} follow-ups</span></section><section class="practice"><article class="prompt-pane"><CoreStatusBadge :value="detail.difficulty" /><h2>{{ detail.question }}</h2><p v-if="detail.notes" class="notes">{{ detail.notes }}</p><section><h3>Follow-up questions</h3><div v-for="(item, itemIndex) in detail.followUps" :key="item.id" class="follow-up"><span>{{ item.prompt }}</span><div><button :disabled="itemIndex === 0" aria-label="Move up" @click="moveFollowUp(item, itemIndex - 1)"><UIcon name="i-lucide-chevron-up" /></button><button :disabled="itemIndex === detail.followUps.length - 1" aria-label="Move down" @click="moveFollowUp(item, itemIndex + 1)"><UIcon name="i-lucide-chevron-down" /></button><button aria-label="Archive" @click="archiveFollowUp(item)"><UIcon name="i-lucide-archive" /></button></div></div><form class="add-follow-up" @submit.prevent="addFollowUp"><UInput v-model="followUpPrompt" placeholder="Add a follow-up" class="w-full" /><UButton type="submit" icon="i-lucide-plus" aria-label="Add follow-up" /></form></section></article><article class="answer-pane"><div class="answer-head"><div><h2>Your answer</h2><p>{{ answerId ? 'Draft in progress' : 'Create a new answer version' }}</p></div><div><UButton label="Save draft" color="neutral" variant="outline" :loading="saving" @click="saveDraft" /><UButton label="Publish" :disabled="!answerId" @click="publish" /></div></div><UTextarea v-model="answer" :rows="18" placeholder="Explain the concept in your own words…" data-code class="answer-editor w-full" /><small>Ctrl/⌘ + S to save</small><section v-if="detail.currentPublishedAnswer" class="published"><div><h3>Published answer</h3><CoreStatusBadge :value="`Version ${detail.currentPublishedAnswer.versionNumber}`" /></div><p>{{ detail.currentPublishedAnswer.content }}</p></section><section v-if="detail.answerHistory.length" class="history"><h3>Version history</h3><div><span v-for="version in detail.answerHistory" :key="version.id">v{{ version.versionNumber }} · {{ version.status }}</span></div></section></article></section></template></div></template>
-<style scoped>.practice { display: grid; grid-template-columns: minmax(18rem, .85fr) minmax(24rem, 1.15fr); border: 1px solid var(--ui-border); border-radius: .9rem; overflow: hidden; }.prompt-pane, .answer-pane { padding: clamp(1rem, 3vw, 2rem); }.prompt-pane { border-right: 1px solid var(--ui-border); background: var(--ui-bg-muted); }.prompt-pane > h2 { margin: 1rem 0; font-size: 1.35rem; font-weight: 700; line-height: 1.45; }.notes, .answer-head p, .answer-pane > small { color: var(--ui-text-muted); }.prompt-pane section { margin-top: 2.5rem; }.prompt-pane h3, .published h3, .history h3 { font-weight: 700; }.follow-up { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .5rem; padding: .6rem; border: 1px solid var(--ui-border); border-radius: .55rem; background: var(--ui-bg); }.follow-up > div { display: flex; }.follow-up button { padding: .2rem; color: var(--ui-text-muted); }.add-follow-up { display: flex; gap: .4rem; margin-top: .7rem; }.answer-head, .answer-head > div { display: flex; justify-content: space-between; gap: .5rem; }.answer-head { align-items: start; margin-bottom: 1rem; }.answer-head h2 { font-size: 1.25rem; font-weight: 700; }.answer-editor { font-size: .9rem; line-height: 1.65; }.published { margin-top: 2rem; padding: 1rem; border: 1px solid var(--ui-border); border-radius: .7rem; }.published > div { display: flex; justify-content: space-between; }.published p { margin-top: .8rem; white-space: pre-wrap; color: var(--ui-text-muted); }.history { margin-top: 1.5rem; }.history > div { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }.history span { padding: .25rem .5rem; border-radius: .4rem; background: var(--ui-bg-muted); font-size: .75rem; }@media (max-width: 850px) { .practice { grid-template-columns: 1fr; }.prompt-pane { border-right: 0; border-bottom: 1px solid var(--ui-border); }.answer-head { flex-direction: column; } }</style>
+<template>
+  <div>
+    <CoreLoadingState v-if="loading" label="Loading practice workspace" /><CoreErrorState
+      v-else-if="error"
+      :error="error"
+      @retry="load"
+    /><template v-else-if="detail"
+      ><CorePageHeader :title="detail.title" :description="`${detail.topic} interview practice`"
+        ><UButton
+          to="/app/interview"
+          label="Question bank"
+          color="neutral"
+          variant="ghost" /><UButton
+          :to="`/app/interview/${id}/practice`"
+          label="Practice this question"
+          icon="i-lucide-play"
+      /></CorePageHeader>
+      <InterviewPracticeHistory :question-id="id" />
+      <section class="practice">
+        <article class="prompt-pane">
+          <CoreStatusBadge :value="detail.difficulty" />
+          <h2>{{ detail.question }}</h2>
+          <p v-if="detail.notes" class="notes">{{ detail.notes }}</p>
+          <section>
+            <h3>Follow-up questions</h3>
+            <div v-for="(item, itemIndex) in detail.followUps" :key="item.id" class="follow-up">
+              <span>{{ item.prompt }}</span>
+              <div>
+                <button
+                  :disabled="itemIndex === 0"
+                  aria-label="Move up"
+                  @click="moveFollowUp(item, itemIndex - 1)"
+                >
+                  <UIcon name="i-lucide-chevron-up" /></button
+                ><button
+                  :disabled="itemIndex === detail.followUps.length - 1"
+                  aria-label="Move down"
+                  @click="moveFollowUp(item, itemIndex + 1)"
+                >
+                  <UIcon name="i-lucide-chevron-down" /></button
+                ><button aria-label="Archive" @click="archiveFollowUp(item)">
+                  <UIcon name="i-lucide-archive" />
+                </button>
+              </div>
+            </div>
+            <form class="add-follow-up" @submit.prevent="addFollowUp">
+              <UInput
+                v-model="followUpPrompt"
+                placeholder="Add a follow-up"
+                class="w-full"
+              /><UButton type="submit" icon="i-lucide-plus" aria-label="Add follow-up" />
+            </form>
+          </section>
+        </article>
+        <article class="answer-pane">
+          <div class="answer-head">
+            <div>
+              <h2>Your answer</h2>
+              <p>{{ answerId ? 'Draft in progress' : 'Create a new answer version' }}</p>
+            </div>
+            <div>
+              <UButton
+                label="Save draft"
+                color="neutral"
+                variant="outline"
+                :loading="saving"
+                @click="saveDraft"
+              /><UButton label="Publish" :disabled="!answerId" @click="publish" />
+            </div>
+          </div>
+          <UTextarea
+            v-model="answer"
+            :rows="18"
+            placeholder="Explain the concept in your own words…"
+            data-code
+            class="answer-editor w-full"
+          /><small>Ctrl/⌘ + S to save</small>
+          <section v-if="detail.currentPublishedAnswer" class="published">
+            <div>
+              <h3>Published answer</h3>
+              <CoreStatusBadge :value="`Version ${detail.currentPublishedAnswer.versionNumber}`" />
+            </div>
+            <p>{{ detail.currentPublishedAnswer.content }}</p>
+          </section>
+          <section v-if="detail.answerHistory.length" class="history">
+            <h3>Version history</h3>
+            <div>
+              <span v-for="version in detail.answerHistory" :key="version.id"
+                >v{{ version.versionNumber }} · {{ version.status }}</span
+              >
+            </div>
+          </section>
+        </article>
+      </section></template
+    >
+  </div>
+</template>
+<style scoped>
+.practice {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.85fr) minmax(24rem, 1.15fr);
+  border: 1px solid var(--ui-border);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+.prompt-pane,
+.answer-pane {
+  padding: clamp(1rem, 3vw, 2rem);
+}
+.prompt-pane {
+  border-right: 1px solid var(--ui-border);
+  background: var(--ui-bg-muted);
+}
+.prompt-pane > h2 {
+  margin: 1rem 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.notes,
+.answer-head p,
+.answer-pane > small {
+  color: var(--ui-text-muted);
+}
+.prompt-pane section {
+  margin-top: 2.5rem;
+}
+.prompt-pane h3,
+.published h3,
+.history h3 {
+  font-weight: 700;
+}
+.follow-up {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 0.55rem;
+  background: var(--ui-bg);
+}
+.follow-up > div {
+  display: flex;
+}
+.follow-up button {
+  padding: 0.2rem;
+  color: var(--ui-text-muted);
+}
+.add-follow-up {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+.answer-head,
+.answer-head > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.answer-head {
+  align-items: start;
+  margin-bottom: 1rem;
+}
+.answer-head h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.answer-editor {
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+.published {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 0.7rem;
+}
+.published > div {
+  display: flex;
+  justify-content: space-between;
+}
+.published p {
+  margin-top: 0.8rem;
+  white-space: pre-wrap;
+  color: var(--ui-text-muted);
+}
+.history {
+  margin-top: 1.5rem;
+}
+.history > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.history span {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.4rem;
+  background: var(--ui-bg-muted);
+  font-size: 0.75rem;
+}
+@media (max-width: 850px) {
+  .practice {
+    grid-template-columns: 1fr;
+  }
+  .prompt-pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--ui-border);
+  }
+  .answer-head {
+    flex-direction: column;
+  }
+}
+</style>
