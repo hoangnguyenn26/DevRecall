@@ -10,12 +10,18 @@ import type { StudySessionDetail, StudySessionItem } from '../study-session.type
 
 const props = defineProps<{ sessionId: string }>()
 const api = useStudySessionApi()
+const { afterStudySessionChanged } = useLearningDataInvalidation()
 const confirmDialog = useConfirmDialog()
 const detail = ref<StudySessionDetail>()
 const loading = ref(true)
 const error = ref<unknown>()
 const pending = ref(false)
 const conflict = ref(false)
+const reflection = ref('')
+const savedReflection = ref('')
+const reflectionSaved = ref(false)
+const reflectionDirty = computed(() => reflection.value.trim() !== savedReflection.value)
+useUnsavedChangesGuard(reflectionDirty)
 const submissionIds = new Map<string, string>()
 const current = computed(() =>
   detail.value?.items.find((item) => item.id === detail.value?.currentItemId),
@@ -45,6 +51,8 @@ async function load(): Promise<void> {
   conflict.value = false
   try {
     detail.value = await api.detail(props.sessionId)
+    reflection.value = detail.value.reflection ?? ''
+    savedReflection.value = reflection.value.trim()
   } catch (cause) {
     error.value = cause
   } finally {
@@ -70,7 +78,7 @@ async function skip(item: StudySessionItem): Promise<void> {
       detail.value.version,
       submissionId(item.id, 'skip'),
     )
-    await Promise.all([load(), clearNuxtData('today-dashboard')])
+    await Promise.all([load(), afterStudySessionChanged()])
   } catch (cause) {
     if (cause instanceof ApiError && cause.problem.status === 409) conflict.value = true
     else error.value = cause
@@ -88,7 +96,7 @@ async function completeKnowledge(item: StudySessionItem): Promise<void> {
       detail.value.version,
       submissionId(item.id, 'complete'),
     )
-    await Promise.all([load(), clearNuxtData('today-dashboard')])
+    await Promise.all([load(), afterStudySessionChanged()])
   } catch (cause) {
     if (cause instanceof ApiError && cause.problem.status === 409) conflict.value = true
     else error.value = cause
@@ -107,6 +115,40 @@ async function exit(): Promise<void> {
   )
     return
   await navigateTo('/app')
+}
+function planDifference(): string {
+  if (!detail.value || detail.value.actualDurationMinutes === undefined) return ''
+  const difference = detail.value.actualDurationMinutes - detail.value.plannedDurationMinutes
+  if (difference === 0) return 'Matched the planned session length'
+  return `${Math.abs(difference)} minutes ${difference > 0 ? 'over plan' : 'under the planned session length'}`
+}
+function resourceTarget(item: StudySessionItem): string | undefined {
+  if (!item.isResourceAvailable) return undefined
+  if (item.resourceType === 'KnowledgeNode') return `/app/knowledge/${item.resourceId}`
+  if (item.resourceType === 'InterviewQuestion') return `/app/interview/${item.resourceId}`
+  if (item.resourceType === 'DsaProblem') return `/app/dsa/${item.resourceId}`
+}
+async function saveReflection(): Promise<void> {
+  if (!detail.value || pending.value || !reflectionDirty.value) return
+  pending.value = true
+  reflectionSaved.value = false
+  try {
+    const result = await api.updateReflection(
+      detail.value.id,
+      reflection.value.trim() || undefined,
+      detail.value.version,
+    )
+    detail.value.version = result.version
+    detail.value.reflection = result.reflection
+    reflection.value = result.reflection ?? ''
+    savedReflection.value = reflection.value.trim()
+    reflectionSaved.value = true
+  } catch (cause) {
+    if (cause instanceof ApiError && cause.problem.status === 409) conflict.value = true
+    else error.value = cause
+  } finally {
+    pending.value = false
+  }
 }
 onMounted(load)
 </script>
@@ -130,7 +172,7 @@ onMounted(load)
       </div>
       <section
         v-if="detail.status === 'Completed'"
-        class="completion"
+        class="completion summary-heading"
         role="status"
         aria-live="polite"
       >
@@ -142,7 +184,71 @@ onMounted(load)
           {{ detail.progress.skippedItems }} skipped</strong
         ><UButton to="/app" label="Return to Today" />
       </section>
-      <template v-else>
+      <div v-if="detail.status === 'Completed'" class="summary-details">
+        <div
+          class="metrics"
+          :aria-label="`${detail.progress.completedItems} of ${detail.progress.totalItems} items completed, ${detail.progress.skippedItems} skipped`"
+        >
+          <span
+            ><strong>{{ detail.plannedDurationMinutes }} min</strong>Planned</span
+          >
+          <span
+            ><strong>{{ detail.actualDurationMinutes ?? '—' }} min</strong>Elapsed</span
+          >
+          <p>{{ planDifference() }}</p>
+        </div>
+        <section class="summary-items">
+          <h2>Session items</h2>
+          <article v-for="item in detail.items" :key="item.id">
+            <UIcon
+              :name="
+                item.status === 'Completed' ? 'i-lucide-circle-check' : 'i-lucide-circle-minus'
+              "
+            />
+            <div>
+              <strong>{{ item.resourceTitle }}</strong>
+              <p>
+                {{ item.resourceType }} · {{ item.plannedDurationMinutes }} min · {{ item.status }}
+              </p>
+              <p v-if="item.hasEvidence && item.evidence">
+                {{
+                  item.evidence.kind === 'InterviewAttempt' ? 'Practice attempt' : 'DSA attempt'
+                }}: {{ item.evidence.outcome }} ·
+                {{ Math.ceil(item.evidence.durationSeconds / 60) }} min<span
+                  v-if="item.evidence.timeComplexity"
+                >
+                  · {{ item.evidence.timeComplexity }}</span
+                >
+              </p>
+              <p v-else-if="item.hasEvidence">Practice evidence unavailable</p>
+              <p v-if="!item.isResourceAvailable">Resource unavailable</p>
+            </div>
+            <UButton
+              v-if="resourceTarget(item)"
+              :to="resourceTarget(item)"
+              :aria-label="`Open ${item.resourceTitle}`"
+              label="Open"
+              color="neutral"
+              variant="ghost"
+            />
+          </article>
+        </section>
+        <section class="reflection">
+          <h2>Reflection</h2>
+          <label for="session-reflection">What do you want to remember from this session?</label>
+          <UTextarea id="session-reflection" v-model="reflection" :maxlength="4000" :rows="5" />
+          <div>
+            <span aria-live="polite">{{ reflectionSaved ? 'Saved' : '' }}</span
+            ><UButton
+              label="Save reflection"
+              :loading="pending"
+              :disabled="!reflectionDirty"
+              @click="saveReflection"
+            />
+          </div>
+        </section>
+      </div>
+      <template v-if="detail.status !== 'Completed'">
         <section v-if="current" class="current-card">
           <p>Current learning item</p>
           <h1>{{ current.resourceTitle }}</h1>
@@ -299,6 +405,62 @@ aside em {
 .completion h1 {
   font-size: 2rem;
   font-weight: 750;
+}
+.summary-details {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 1.25rem;
+  max-width: 52rem;
+  width: 100%;
+  margin: 0 auto 2rem;
+}
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--ui-bg-elevated);
+  border-radius: 0.75rem;
+}
+.metrics span {
+  display: grid;
+  min-width: 8rem;
+  color: var(--ui-text-muted);
+}
+.metrics strong {
+  color: var(--ui-text);
+  font-size: 1.15rem;
+}
+.metrics p {
+  flex-basis: 100%;
+  color: var(--ui-text-muted);
+}
+.summary-items,
+.reflection {
+  display: grid;
+  gap: 0.75rem;
+}
+.summary-items h2,
+.reflection h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.summary-items article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--ui-border);
+}
+.summary-items article p,
+.reflection label {
+  color: var(--ui-text-muted);
+}
+.reflection > div {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
 }
 @media (max-width: 760px) {
   .session {

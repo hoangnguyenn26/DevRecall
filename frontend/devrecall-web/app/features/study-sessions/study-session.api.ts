@@ -4,6 +4,11 @@ export function useStudySessionApi() {
   const api = useApi()
   return {
     detail: (id: string) => api.get<StudySessionDetail>(`/study-sessions/${id}`),
+    updateReflection: (id: string, reflection: string | undefined, expectedVersion: number) =>
+      api.put<{ reflection?: string; version: number }>(`/study-sessions/${id}/reflection`, {
+        reflection,
+        expectedVersion,
+      }),
     completeItem: (
       sessionId: string,
       itemId: string,

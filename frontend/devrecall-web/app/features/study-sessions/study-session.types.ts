@@ -5,9 +5,17 @@ export interface StudySessionItem {
   resourceTitle: string
   resourcePreview?: string
   isResourceAvailable: boolean
+  hasEvidence?: boolean
   plannedDurationMinutes: number
   position: number
   status: 'Pending' | 'InProgress' | 'Completed' | 'Skipped' | string
+  evidence?: {
+    attemptId: string
+    kind: 'InterviewAttempt' | 'DsaAttempt' | string
+    outcome: string
+    durationSeconds: number
+    timeComplexity?: string
+  }
 }
 
 export interface StudySessionDetail {
@@ -18,6 +26,7 @@ export interface StudySessionDetail {
   actualDurationMinutes?: number
   startedAtUtc?: string
   completedAtUtc?: string
+  reflection?: string
   version: number
   currentItemId?: string
   remainingPlannedMinutes: number
