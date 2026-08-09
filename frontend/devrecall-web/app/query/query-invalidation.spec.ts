@@ -3,7 +3,10 @@ import { useLearningDataInvalidation } from '~/composables/useLearningDataInvali
 import { queryKeys } from './query-keys'
 
 describe('learning data invalidation', () => {
-  beforeEach(() => vi.stubGlobal('useState', () => ({ value: queryKeys.knowledgeList('active') })))
+  beforeEach(() => {
+    vi.stubGlobal('useState', () => ({ value: queryKeys.knowledgeList('active') }))
+    vi.stubGlobal('clearNuxtData', vi.fn())
+  })
   afterEach(() => vi.unstubAllGlobals())
 
   it('refreshes Today and navigation after a learning-state mutation', async () => {

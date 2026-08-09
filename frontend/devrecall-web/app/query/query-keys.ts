@@ -16,4 +16,7 @@ export const queryKeys = {
   dsaAttempts: (id: string, page = 1) => `dsa:attempts:${id}:${page}`,
   dsaAttempt: (id: string) => `dsa:attempt:${id}`,
   reviewDue: 'review:due',
+  analyticsOverview: (range: string) => `analytics:overview:${range}`,
+  analyticsPerformance: (range: string) => `analytics:performance:${range}`,
+  learningInsights: (range: string) => `insights:${range}`,
 } as const
