@@ -1,5 +1,6 @@
 using DevRecall.Application.Analytics.DailyActivity;
 using DevRecall.Application.Analytics.DsaPerformance;
+using DevRecall.Application.Analytics.Insights;
 using DevRecall.Application.Analytics.ModuleBreakdown;
 using DevRecall.Application.Analytics.Overview;
 using DevRecall.Application.Analytics.ReviewPerformance;
@@ -99,6 +100,7 @@ public static class DependencyInjection
         services.AddScoped<IDsaPerformanceReader, DsaPerformanceReader>();
         services.AddScoped<IModuleBreakdownReader, ModuleBreakdownReader>();
         services.AddScoped<IProgressOverviewReader, ProgressOverviewReader>();
+        services.AddScoped<IAnalyticsInsightsReader, AnalyticsInsightsReader>();
         services.AddScoped<IReviewPerformanceReader, ReviewPerformanceReader>();
         services.AddScoped<IDsaProblemRepository, DsaProblemRepository>();
         services.AddScoped<

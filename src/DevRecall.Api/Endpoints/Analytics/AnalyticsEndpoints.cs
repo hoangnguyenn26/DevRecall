@@ -1,6 +1,7 @@
 using DevRecall.Api.Authorization;
 using DevRecall.Application.Analytics.DailyActivity;
 using DevRecall.Application.Analytics.DsaPerformance;
+using DevRecall.Application.Analytics.Insights;
 using DevRecall.Application.Analytics.ModuleBreakdown;
 using DevRecall.Application.Analytics.Overview;
 using DevRecall.Application.Analytics.ReviewPerformance;
@@ -16,6 +17,22 @@ public static class AnalyticsEndpoints
         var group = endpoints.MapGroup("/api/v1/analytics")
             .WithTags("Analytics")
             .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser);
+        group.MapGet("/overview", async (string? range, AnalyticsInsightsHandler handler, CancellationToken ct) =>
+        {
+            var result = await handler.GetOverviewAsync(range, ct);
+            AnalyticsComparisonResponse Map(AnalyticsComparison value) => new(value.Current, value.Previous, value.Difference);
+            return Results.Ok(new AnalyticsOverviewResponse(result.Range, new(result.Period.StartUtc, result.Period.EndUtc),
+                Map(result.StudyMinutes), Map(result.ActiveDays), Map(result.Sessions), Map(result.Practice),
+                result.ReviewCount, result.InterviewCount, result.DsaAttemptCount,
+                result.Activity.Select(x => new AnalyticsActivityPointResponse(x.Date, x.StudyMinutes, x.PracticeCount)).ToArray()));
+        }).WithName("GetAnalyticsOverview").Produces<AnalyticsOverviewResponse>().ProducesProblem(StatusCodes.Status400BadRequest);
+        group.MapGet("/performance", async (string? range, AnalyticsInsightsHandler handler, CancellationToken ct) =>
+        {
+            var result = await handler.GetPerformanceAsync(range, ct);
+            RatingDistributionResponse Map(RatingDistribution value) => new(value.First, value.Second, value.Third, value.Fourth, value.Total);
+            return Results.Ok(new LearningPerformanceResponse(result.Range, new(result.Period.StartUtc, result.Period.EndUtc),
+                Map(result.ReviewCurrent), Map(result.ReviewPrevious), Map(result.InterviewCurrent), Map(result.InterviewPrevious), Map(result.DsaCurrent), Map(result.DsaPrevious)));
+        }).WithName("GetLearningPerformance").Produces<LearningPerformanceResponse>().ProducesProblem(StatusCodes.Status400BadRequest);
         group.MapGet(
             "/dsa-performance",
             async (
