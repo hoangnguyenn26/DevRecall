@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MarketingContainer from './MarketingContainer.vue'
-import { primaryPublicCta, publicNavigation } from '../marketing.constants'
+import { primaryPublicCta, publicNavigation, publicRoutes } from '../marketing.constants'
 
 const mobileMenuOpen = ref(false)
 </script>
@@ -9,7 +9,7 @@ const mobileMenuOpen = ref(false)
   <header class="sticky top-0 z-40 border-b border-default bg-default/90 backdrop-blur">
     <MarketingContainer class="flex h-16 items-center gap-4">
       <NuxtLink
-        to="/"
+        :to="publicRoutes.home"
         class="flex items-center gap-2 rounded-md font-semibold tracking-tight"
         aria-label="DevRecall home"
       >
@@ -31,7 +31,7 @@ const mobileMenuOpen = ref(false)
       </nav>
       <div class="ml-auto hidden items-center gap-2 md:flex">
         <CoreThemeToggle />
-        <UButton to="/login" color="neutral" variant="ghost">Sign in</UButton>
+        <UButton :to="publicRoutes.login" color="neutral" variant="ghost">Sign in</UButton>
         <UButton :to="primaryPublicCta.to">{{ primaryPublicCta.label }}</UButton>
       </div>
       <UButton
@@ -64,7 +64,7 @@ const mobileMenuOpen = ref(false)
           >
           <USeparator class="my-2" />
           <UButton
-            to="/login"
+            :to="publicRoutes.login"
             color="neutral"
             variant="outline"
             block

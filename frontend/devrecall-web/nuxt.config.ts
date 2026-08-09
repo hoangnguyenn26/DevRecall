@@ -12,6 +12,8 @@ export default defineNuxtConfig({
         'lucide:sparkles',
         'lucide:list-checks',
         'lucide:chart-no-axes-combined',
+        'lucide:brain-circuit',
+        'lucide:arrow-up-right',
       ],
     },
   },

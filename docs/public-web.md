@@ -2,6 +2,13 @@
 
 DevRecall keeps its public product website separate from the authenticated Learning OS.
 
+## Layouts
+
+- Public routes use the public header, marketing content, and public footer.
+- Authentication routes use a focused auth layout and remain outside search indexes.
+- `/app/**` uses the authenticated application shell.
+- Practice and Study Session execution routes may use the reduced-distraction focus shell.
+
 ## Route and indexing policy
 
 | Route | Rendering | Indexing |
@@ -13,6 +20,10 @@ DevRecall keeps its public product website separate from the authenticated Learn
 | `/robots.txt` and `/sitemap.xml` | server-generated | public discovery infrastructure |
 
 Public canonicals, Open Graph metadata and JSON-LD use `NUXT_PUBLIC_SITE_URL`. Production must set that value to the canonical HTTPS origin. `NUXT_PUBLIC_SITE_INDEXABLE=false` produces a deny-all robots policy for preview environments. The sitemap intentionally contains only `/` and `/features`.
+
+## Marketing copy policy
+
+Public copy must describe functionality that exists in DevRecall. It must not imply automated grading, code execution, external judging, cloud synchronization, team collaboration, or AI evaluation unless those capabilities are implemented. Interview results are self-ratings; DSA records attempt outcomes, history, complexity notes, and reflection; analytics describes recorded activity and outcomes rather than a universal developer skill score.
 
 ## Conversion and authentication
 
@@ -35,3 +46,7 @@ Public marketing routes must not depend on private learning APIs or eagerly impo
 Public pages remain primarily server-rendered/static. Interactive JavaScript is reserved for navigation, theme and lightweight presentation. Core headings, copy and normal links are present in HTML before hydration. The hero preview declares intrinsic dimensions and an aspect ratio to reserve layout space.
 
 The PostgreSQL API, private stores, ECharts analytics and workspace editors belong to `/app/**` route chunks. Build review should confirm that marketing entry scripts do not eagerly reference those feature chunks.
+
+## Accessibility expectations
+
+Public pages keep one H1, logical section headings, visible focus indicators, a skip link targeting the main landmark, descriptive links, and non-interactive illustrative previews. Layouts must reflow without horizontal overflow at 320 px and at 200% zoom. Motion is optional and reduced when `prefers-reduced-motion` is enabled.

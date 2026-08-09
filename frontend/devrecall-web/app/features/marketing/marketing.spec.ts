@@ -117,13 +117,16 @@ describe('public website foundation', () => {
     expect(features.match(/<h1/g) ?? []).toHaveLength(1)
     expect(anchors).toEqual(['knowledge', 'practice', 'study', 'insights', 'today'])
     expect(new Set(anchors).size).toBe(anchors.length)
-    expect(features).toContain('to="/register"')
+    expect(features).toContain('primaryPublicCta')
   })
 
   it('keeps illustrative feature previews out of the keyboard flow', () => {
     const previews = readAppFile('features/marketing/components/FeaturePreviews.vue')
+    const heroPreview = readAppFile('features/marketing/components/HeroSystemPreview.vue')
     expect(previews).toContain('aria-hidden="true"')
     expect(previews).not.toMatch(/<(button|a|input|select|textarea)\b/)
+    expect(heroPreview).toContain('aria-hidden="true"')
+    expect(heroPreview).not.toMatch(/<(button|a|input|select|textarea)\b/)
   })
 
   it('publishes only canonical public routes in the sitemap', () => {

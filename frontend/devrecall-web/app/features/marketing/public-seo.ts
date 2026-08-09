@@ -1,4 +1,6 @@
-export const indexablePublicRoutes = ['/', '/features'] as const
+import { publicRoutes } from './marketing.constants'
+
+export const indexablePublicRoutes = [publicRoutes.home, publicRoutes.features] as const
 
 export function normalizeSiteUrl(siteUrl: string): string {
   const url = new URL(siteUrl)

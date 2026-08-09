@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FeatureStory from '~/features/marketing/components/FeatureStory.vue'
+import HeroSystemPreview from '~/features/marketing/components/HeroSystemPreview.vue'
 import MarketingContainer from '~/features/marketing/components/MarketingContainer.vue'
 import MarketingCta from '~/features/marketing/components/MarketingCta.vue'
 import MarketingSection from '~/features/marketing/components/MarketingSection.vue'
@@ -20,7 +21,7 @@ usePageSeo({
 <template>
   <div class="overflow-x-clip">
     <MarketingContainer>
-      <section class="hero-grid py-20 sm:py-28 lg:py-32">
+      <section class="hero-grid grid items-center gap-14 py-20 sm:py-28 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-32">
         <div class="max-w-3xl">
           <UBadge variant="subtle">A learning workspace for developers</UBadge>
           <h1
@@ -34,15 +35,16 @@ usePageSeo({
           </p>
           <div class="mt-9"><MarketingCta /></div>
         </div>
+        <HeroSystemPreview />
       </section>
-      <ProductPreview />
+      <div class="relative z-10"><ProductPreview /></div>
 
       <MarketingSection
         eyebrow="The problem"
         title="Developer learning gets fragmented."
         description="Notes live in one place. Interview preparation in another. DSA history somewhere else. Deciding what deserves attention next becomes another task."
       >
-        <div class="rounded-2xl border border-default bg-muted p-6 sm:p-10">
+        <div class="rounded-2xl border border-default bg-elevated p-6 sm:p-10">
           <p class="max-w-3xl text-xl font-medium leading-8 sm:text-2xl">
             DevRecall connects those pieces into one learning loop—so the evidence from yesterday
             can guide the next useful action today.
@@ -139,10 +141,23 @@ usePageSeo({
 
 <style scoped>
 .hero-grid {
+  position: relative;
   background: radial-gradient(
     circle at 25% 15%,
     color-mix(in srgb, var(--ui-primary) 14%, transparent),
     transparent 42%
   );
+}
+
+.hero-grid::after {
+  position: absolute;
+  inset: 8% 0 auto 45%;
+  z-index: -1;
+  height: 60%;
+  content: '';
+  background-image: radial-gradient(color-mix(in srgb, var(--ui-primary) 22%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, black, transparent);
+  opacity: 0.5;
 }
 </style>

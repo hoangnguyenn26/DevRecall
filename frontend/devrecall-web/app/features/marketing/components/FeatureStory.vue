@@ -9,8 +9,8 @@ defineProps<{
 </script>
 
 <template>
-  <article class="group rounded-2xl border border-default bg-elevated p-6 sm:p-8">
-    <div class="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+  <article class="group rounded-2xl border border-default bg-elevated p-6 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 sm:p-8">
+    <div class="flex size-11 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-inverted">
       <UIcon :name="icon" class="size-5" />
     </div>
     <p class="mt-7 text-sm font-semibold text-primary">{{ eyebrow }}</p>

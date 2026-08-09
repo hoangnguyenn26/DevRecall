@@ -2,6 +2,7 @@
 import FeaturePageSection from '~/features/marketing/components/FeaturePageSection.vue'
 import FeaturePreviews from '~/features/marketing/components/FeaturePreviews.vue'
 import MarketingContainer from '~/features/marketing/components/MarketingContainer.vue'
+import { primaryPublicCta } from '~/features/marketing/marketing.constants'
 
 definePageMeta({ layout: 'public' })
 usePageSeo({
@@ -32,8 +33,8 @@ const sections = [
         Notes, interview preparation, DSA practice, review, planning, and learning insights work
         better when they share the same history.
       </p>
-      <UButton to="/register" size="xl" trailing-icon="i-lucide-arrow-right" class="mt-8"
-        >Start learning</UButton
+      <UButton :to="primaryPublicCta.to" size="xl" trailing-icon="i-lucide-arrow-right" class="mt-8"
+        >{{ primaryPublicCta.label }}</UButton
       >
       <nav
         class="mt-12 flex flex-wrap gap-x-5 gap-y-3 border-t border-default pt-6"
@@ -152,8 +153,8 @@ const sections = [
       <p class="mx-auto mt-5 max-w-2xl text-lg text-muted">
         Keep knowledge, practice history, learning signals, and the next focused session connected.
       </p>
-      <UButton to="/register" size="xl" trailing-icon="i-lucide-arrow-right" class="mt-8"
-        >Start learning</UButton
+      <UButton :to="primaryPublicCta.to" size="xl" trailing-icon="i-lucide-arrow-right" class="mt-8"
+        >{{ primaryPublicCta.label }}</UButton
       >
     </section>
   </MarketingContainer>

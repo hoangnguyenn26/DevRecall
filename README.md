@@ -108,7 +108,7 @@ See [AGENTS.md](./AGENTS.md) for the complete engineering rules.
 | --- | --- |
 | Backend | .NET 10, ASP.NET Core Minimal APIs, Entity Framework Core |
 | Database | PostgreSQL 17, Npgsql |
-| Frontend | Nuxt 4, Vue 3, TypeScript, Nuxt UI, Pinia, PrimeVue Tree, Apache ECharts |
+| Frontend | Nuxt 4, Vue 3, TypeScript, Nuxt UI, Pinia, Apache ECharts |
 | API | REST, OpenAPI, cookie authentication, Problem Details |
 | Testing | xUnit, FluentAssertions, Testcontainers, ASP.NET Core integration tests |
 | Tooling | Docker Compose, central NuGet package management, ESLint, Oxlint, Vitest, Playwright |
@@ -362,6 +362,19 @@ Completed:
 - Automatic final-item Session completion
 - Completed Session summaries, reflections, and bounded history
 - Today Next Best Action integration and focused query invalidation
+
+### Week 23 — Public Website & SEO
+
+Completed:
+
+- Responsive, SSR-friendly DevRecall landing and feature pages
+- Public, authentication, application, and focus layout separation
+- Registration and login conversion journeys with safe private deep-link return
+- Canonical, Open Graph, Twitter, robots, sitemap, and structured application metadata
+- Prerendered public content with no authenticated learning API dependency
+- Public performance, responsive, keyboard, dark-mode, and accessibility hardening
+
+See [Public Web](./docs/public-web.md) for the route matrix, indexing policy, conversion flow, and delivery constraints.
 
 ## Contributing
 

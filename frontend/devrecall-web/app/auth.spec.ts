@@ -12,8 +12,8 @@ const post = vi.fn<(path: string, body?: unknown) => Promise<CurrentUser | undef
 const resetSecurityContext = vi.fn<() => void>()
 
 vi.stubGlobal('useApi', () => ({ get, post, resetSecurityContext }))
-vi.stubGlobal('clearNuxtData', vi.fn())
-vi.stubGlobal('clearNuxtState', vi.fn())
+vi.stubGlobal('clearNuxtData', vi.fn<() => void>())
+vi.stubGlobal('clearNuxtState', vi.fn<() => void>())
 const { useAuthStore } = await import('~/stores/auth')
 
 describe('authentication foundation', () => {

@@ -1,6 +1,13 @@
-export const primaryPublicCta = { label: 'Start learning', to: '/register' } as const
+export const publicRoutes = {
+  home: '/',
+  features: '/features',
+  login: '/login',
+  register: '/register',
+} as const
 
-export const publicNavigation = [{ label: 'Features', to: '/features' }] as const
+export const primaryPublicCta = { label: 'Start learning', to: publicRoutes.register } as const
+
+export const publicNavigation = [{ label: 'Features', to: publicRoutes.features }] as const
 
 export const learningLoopSteps = [
   {
