@@ -57,4 +57,30 @@ describe('public website foundation', () => {
       "robots: 'noindex, nofollow'",
     )
   })
+
+  it('tells the complete product story without unsupported claims', () => {
+    const landing = readAppFile('pages/(marketing)/index.vue')
+    const constants = readAppFile('features/marketing/marketing.constants.ts')
+    const copy = `${landing}\n${constants}`
+
+    for (const capability of [
+      'Knowledge',
+      'Review',
+      'Interview',
+      'DSA',
+      'Weak Topics',
+      'Recommendations',
+      'Study Plans',
+      'Study Session',
+      'Analytics',
+      'Today',
+    ]) {
+      expect(copy).toContain(capability)
+    }
+    expect(copy).not.toMatch(
+      /AI-powered|automatic answer evaluation|code execution|cloud sync|10,000 developers|unlock your full potential/i,
+    )
+    expect(landing).toContain('id="how-it-works"')
+    expect(landing).toContain('id="features"')
+  })
 })
