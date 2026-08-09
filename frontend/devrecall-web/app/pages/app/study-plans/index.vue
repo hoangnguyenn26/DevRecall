@@ -1,9 +1,61 @@
 <script setup lang="ts">
-import type { PagedResponse } from '~/types/api'; import type { StudyPlanListItem } from '~/types/domain'; import { formatMinutes, formatDateTime } from '~/utils/format'
-definePageMeta({ layout: 'app' }); useSeoMeta({ title: 'Study plans' }); const api = useApi(); const { refreshTodayAndNavigation } = useLearningDataInvalidation(); const items = ref<StudyPlanListItem[]>([]); const loading = ref(true); const status = ref(''); const generating = ref(false); const form = reactive({ title: 'Focused study plan', totalDurationMinutes: 60 })
-async function load() { loading.value = true; try { items.value = (await api.get<PagedResponse<StudyPlanListItem>>('/study-plans', { status: status.value, page: 1, pageSize: 50 })).items } finally { loading.value = false } }
-async function generate() { const created = await api.post<{ studyPlanId: string }>('/study-plans/generate', { ...form, maximumCandidates: 100 }); await refreshTodayAndNavigation(); generating.value = false; await navigateTo(`/app/study-plans/${created.studyPlanId}`) }
-watch(status, load); onMounted(load)
+import StudyPlansWorkspace from '~/features/study-plans/components/StudyPlansWorkspace.vue'
+definePageMeta({ layout: 'app', middleware: 'auth' })
+useSeoMeta({ title: 'Study plans', robots: 'noindex, nofollow' })
+const route = useRoute()
+const api = useApi()
+const generating = ref(false)
+const generateOpen = ref(route.query.new === '1')
+const form = reactive({ title: 'Focused study plan', totalDurationMinutes: 60 })
+async function generate(): Promise<void> {
+  if (generating.value) return
+  generating.value = true
+  try {
+    const created = await api.post<{ studyPlanId: string }>('/study-plans/generate', {
+      ...form,
+      maximumCandidates: 100,
+    })
+    await navigateTo(`/app/study-plans/${created.studyPlanId}`)
+  } finally {
+    generating.value = false
+  }
+}
 </script>
-<template><div><CorePageHeader title="Study plans" description="Turn recommendation evidence into a time-boxed sequence."><UButton label="Generate plan" icon="i-lucide-sparkles" @click="generating = true" /></CorePageHeader><select v-model="status" class="filter"><option value="">All statuses</option><option>Draft</option><option>Ready</option><option>Converted</option><option>Cancelled</option></select><CoreLoadingState v-if="loading" label="Loading study plans" /><CoreEmptyState v-else-if="!items.length" title="No study plans" description="Generate a draft from active recommendations." /><div v-else class="plans"><NuxtLink v-for="plan in items" :key="plan.studyPlanId" :to="`/app/study-plans/${plan.studyPlanId}`"><div><div class="meta"><CoreStatusBadge :value="plan.status" /><span>{{ formatDateTime(plan.generatedAtUtc) }}</span></div><h2>{{ plan.title }}</h2><p>{{ plan.itemCount }} items · {{ formatMinutes(plan.totalPlannedDurationMinutes) }}</p></div><UIcon name="i-lucide-chevron-right" /></NuxtLink></div><div v-if="generating" class="backdrop" @click.self="generating = false"><UCard class="modal"><template #header><h2>Generate study plan</h2></template><form @submit.prevent="generate"><UFormField label="Title"><UInput v-model="form.title" class="w-full" /></UFormField><UFormField label="Time budget (minutes)"><UInput v-model.number="form.totalDurationMinutes" type="number" min="15" max="480" class="w-full" /></UFormField><p>DevRecall will select active recommendations in priority order without exceeding this budget.</p><div><UButton label="Cancel" color="neutral" variant="ghost" @click="generating = false" /><UButton type="submit" label="Generate" /></div></form></UCard></div></div></template>
-<style scoped>.filter { margin-bottom: 1rem; padding: .5rem; border: 1px solid var(--ui-border); border-radius: .5rem; }.plans { display: grid; gap: .6rem; }.plans > a { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--ui-border); border-radius: .7rem; }.plans > a:hover { border-color: var(--ui-primary); }.meta { display: flex; align-items: center; gap: .6rem; color: var(--ui-text-muted); font-size: .78rem; }.plans h2 { margin: .55rem 0 .2rem; font-weight: 700; }.plans p { color: var(--ui-text-muted); }.backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgb(2 6 23 / .55); }.modal { width: min(100%, 30rem); }.modal h2 { font-weight: 700; }.modal form { display: grid; gap: 1rem; }.modal form > p { color: var(--ui-text-muted); font-size: .85rem; }.modal form > div:last-child { display: flex; justify-content: end; gap: .5rem; }</style>
+
+<template>
+  <div>
+    <CorePageHeader title="Study Plans" description="Plan your next focused learning block.">
+      <UButton label="New plan" icon="i-lucide-plus" @click="generateOpen = true" />
+    </CorePageHeader>
+    <StudyPlansWorkspace />
+    <UModal
+      v-model:open="generateOpen"
+      title="Generate study plan"
+      description="Create a Draft from active recommendations within your time budget."
+    >
+      <template #body>
+        <form class="grid gap-4" @submit.prevent="generate">
+          <UFormField label="Plan name" required
+            ><UInput v-model="form.title" maxlength="200" class="w-full"
+          /></UFormField>
+          <UFormField label="Time budget in minutes" required
+            ><UInput
+              v-model.number="form.totalDurationMinutes"
+              type="number"
+              min="15"
+              max="480"
+              class="w-full"
+          /></UFormField>
+          <div class="flex justify-end gap-2">
+            <UButton
+              label="Cancel"
+              color="neutral"
+              variant="ghost"
+              @click="generateOpen = false"
+            /><UButton type="submit" label="Generate Draft" :loading="generating" />
+          </div>
+        </form>
+      </template>
+    </UModal>
+  </div>
+</template>
