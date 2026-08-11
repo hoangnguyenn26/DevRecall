@@ -22,15 +22,18 @@
    docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d api web
    ```
 
-5. Set a demo password outside source control and run the idempotent seeder:
+5. Run the API seeder explicitly in the `Development` environment. The password stays outside source control and must contain at least 12 characters:
 
    ```powershell
    $env:DEVRECALL_DEMO_PASSWORD = "choose-a-local-demo-password"
-   $env:DEVRECALL_DEMO_API_URL = "http://localhost:3000/api/v1"
-   dotnet run --project tools/DevRecall.DemoData
+   $env:ASPNETCORE_ENVIRONMENT = "Development"
+   $env:DEVRECALL_DEMO_PASSWORD = "choose-a-local-demo-password"
+   dotnet run --project src/DevRecall.Api -- --seed-demo
    ```
 
 Open `http://localhost:3000` and sign in as `demo@devrecall.local` with the password supplied above.
+
+The command is transactional and idempotent: running it again reports that the demo user already exists and makes no changes. It refuses to run outside `Development`. Dates are generated relative to the seed time so review queues and analytics remain meaningful.
 
 ## Recommended demo journey
 

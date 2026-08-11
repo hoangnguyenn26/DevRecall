@@ -47,6 +47,7 @@ using DevRecall.Application.WeakTopics.Signals;
 using DevRecall.Infrastructure.Analytics;
 using DevRecall.Infrastructure.Dsa;
 using DevRecall.Infrastructure.Dsa.Attempts;
+using DevRecall.Infrastructure.Development;
 using DevRecall.Infrastructure.Identity;
 using DevRecall.Infrastructure.Interview;
 using DevRecall.Infrastructure.Interview.Answers;
@@ -92,6 +93,8 @@ public static class DependencyInjection
                                 typeof(DevRecallDbContext).Assembly.FullName))
                     .UseSnakeCaseNamingConvention();
             });
+
+        services.AddScoped<DemoDataSeeder>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserLearningPreferenceRepository,

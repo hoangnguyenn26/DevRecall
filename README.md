@@ -217,6 +217,14 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml run --rm api 
 
 Open `http://localhost:3000`. See [the demo guide](./docs/DEMO_GUIDE.md) for repeatable demo data and the full presentation journey. The measured local release numbers are recorded in the [performance baseline](./docs/PERFORMANCE_BASELINE.md).
 
+For a local demo, apply migrations first, then run the explicit development-only seed command:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+$env:DEVRECALL_DEMO_PASSWORD = "choose-a-local-demo-password"
+dotnet run --project src/DevRecall.Api -- --seed-demo
+```
+
 ## API and operational endpoints
 
 | Resource | URL |

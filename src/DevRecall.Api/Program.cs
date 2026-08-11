@@ -22,6 +22,7 @@ using DevRecall.Api.Middleware;
 using DevRecall.Application;
 using DevRecall.Application.Identity;
 using DevRecall.Infrastructure;
+using DevRecall.Infrastructure.Development;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -157,6 +158,18 @@ if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
     await dbContext.Database.MigrateAsync();
+    return;
+}
+
+if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
+{
+    DemoDataSeeder.EnsureDevelopmentEnvironment(app.Environment.IsDevelopment());
+    var password = app.Configuration["DEVRECALL_DEMO_PASSWORD"]
+        ?? throw new InvalidOperationException("DEVRECALL_DEMO_PASSWORD was not configured.");
+    await using var scope = app.Services.CreateAsyncScope();
+    var seeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
+    var created = await seeder.SeedAsync(password);
+    Console.WriteLine(created ? "Demo data created." : "Demo data already exists; no changes were made.");
     return;
 }
 
