@@ -8,6 +8,7 @@ using DevRecall.Domain.Interview.FollowUps;
 using DevRecall.Domain.Interview.Practice;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
+using DevRecall.Domain.LearningProfiles;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.Reviews;
 using DevRecall.Domain.Study;
@@ -32,6 +33,10 @@ public sealed class DevRecallDbContext(
 
     public DbSet<UserLearningFocusArea> UserLearningFocusAreas =>
         Set<UserLearningFocusArea>();
+
+    public DbSet<LearningProfile> LearningProfiles => Set<LearningProfile>();
+    public DbSet<LearningProfileTechnology> LearningProfileTechnologies => Set<LearningProfileTechnology>();
+    public DbSet<LearningProfileGoalEntry> LearningProfileGoals => Set<LearningProfileGoalEntry>();
 
     public DbSet<DsaProblem> DsaProblems =>
         Set<DsaProblem>();

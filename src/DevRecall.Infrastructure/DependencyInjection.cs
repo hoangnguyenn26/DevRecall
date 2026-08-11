@@ -17,6 +17,7 @@ using DevRecall.Application.Interview.Practice;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Application.Knowledge.Workspace;
+using DevRecall.Application.LearningProfiles;
 using DevRecall.Application.Navigation;
 using DevRecall.Application.Recommendations;
 using DevRecall.Application.Recommendations.Generation;
@@ -55,6 +56,7 @@ using DevRecall.Infrastructure.Interview.FollowUps;
 using DevRecall.Infrastructure.Interview.Practice;
 using DevRecall.Infrastructure.Knowledge;
 using DevRecall.Infrastructure.Knowledge.Tags;
+using DevRecall.Infrastructure.LearningProfiles;
 using DevRecall.Infrastructure.Persistence;
 using DevRecall.Infrastructure.Recommendations;
 using DevRecall.Infrastructure.Reviews;
@@ -99,6 +101,8 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserLearningPreferenceRepository,
             UserLearningPreferenceRepository>();
+        services.AddScoped<ILearningProfileRepository, LearningProfileRepository>();
+        services.AddScoped<ILearningProfileReader, LearningProfileReader>();
         services.AddScoped<IDailyActivityReader, DailyActivityReader>();
         services.AddScoped<IDsaPerformanceReader, DsaPerformanceReader>();
         services.AddScoped<IModuleBreakdownReader, ModuleBreakdownReader>();
