@@ -296,6 +296,12 @@ dotnet test tests/DevRecall.IntegrationTests/DevRecall.IntegrationTests.csproj
 
 Integration tests use Testcontainers to start a clean PostgreSQL instance, apply every migration, execute the suite, and dispose the container. They do not use the local development database.
 
+## Known limitations
+
+- DSA attempt outcomes are self-reported; DevRecall does not execute or judge code.
+- Interview ratings are self-ratings rather than automated evaluation.
+- Mock Interview Sessions, AI evaluation, i18n, cloud sync, and collaboration are outside the v1 scope.
+
 ## Engineering principles
 
 - Implement from Domain inward to API.

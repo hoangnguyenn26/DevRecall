@@ -1,4 +1,5 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Knowledge.Archive;
 using DevRecall.Application.Knowledge.ChangePosition;
 using DevRecall.Application.Knowledge.Create;
@@ -13,7 +14,6 @@ using DevRecall.Application.Knowledge.Update;
 using DevRecall.Application.Knowledge.UpdateContent;
 using DevRecall.Application.Knowledge.UpdateMetadata;
 using DevRecall.Application.Knowledge.Workspace;
-using DevRecall.Application.Common.Exceptions;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Knowledge;
 

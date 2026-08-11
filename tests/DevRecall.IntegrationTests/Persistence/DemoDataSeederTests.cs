@@ -21,6 +21,7 @@ public sealed class DemoDataSeederTests(PostgreSqlFixture fixture)
         firstRun.Should().BeTrue();
         secondRun.Should().BeFalse();
         (await context.Users.CountAsync(user => user.Email == DemoDataSeeder.Email)).Should().Be(1);
+        (await context.UserLearningPreferences.CountAsync(preference => preference.UserId == Guid.Parse("00000000-0000-0000-0000-000000000001"))).Should().Be(1);
         (await context.KnowledgeNodes.CountAsync(node => node.UserId == Guid.Parse("00000000-0000-0000-0000-000000000001"))).Should().Be(12);
         (await context.StudySessions.CountAsync(session => session.UserId == Guid.Parse("00000000-0000-0000-0000-000000000001"))).Should().Be(2);
     }

@@ -1,4 +1,4 @@
-# DevRecall MVP Release Notes
+# DevRecall v1.0-devrecall
 
 ## Calm Learning Intelligence
 
@@ -13,4 +13,16 @@ This release turns the backend learning loop into an end-to-end application:
 - Owner-scoped PostgreSQL full-text search across Knowledge, Interview, and DSA.
 - Antiforgery protection, same-origin deployment proxy, explicit migrations, and idempotent demo-data tooling.
 
-Known limitations remain Mock Interview Sessions, AI features, i18n, code execution, cloud sync, and collaboration.
+## Reliability
+
+- Owner-scoped data isolation and consistent cross-user 404 behavior.
+- Optimistic concurrency for editable Knowledge, Study Plans, and Study Sessions.
+- Idempotent Review, practice, conversion, and session-completion workflows.
+- PostgreSQL migrations verified from an empty database.
+- Keyboard, responsive, reduced-motion, empty-state, and error-state hardening.
+
+## Known limitations
+
+- DSA records self-reported attempt outcomes; it does not execute or judge code.
+- Interview ratings are self-ratings, not automated evaluation.
+- Mock Interview Sessions, AI evaluation, i18n, cloud sync, and collaboration are not included.

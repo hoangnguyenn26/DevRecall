@@ -98,3 +98,20 @@ This checklist is the reusable Week 24 release gate. Automated tests remain the 
 - [ ] Git contains no secrets, debug output, local reports, temporary assets, or unrelated changes.
 - [ ] README, API catalog, architecture, security, performance baseline, demo guide, and release notes are current.
 - [ ] Known limitations are documented and the release tag is created only after all gates pass.
+
+## v1.0 Release Gate
+
+- [ ] Backend clean build
+- [ ] Backend tests
+- [ ] PostgreSQL integration tests
+- [ ] Fresh migration
+- [ ] Frontend `npm ci`
+- [ ] Frontend tests
+- [ ] Production build
+- [ ] Production preview
+- [ ] E2E smoke
+- [ ] Security smoke
+- [ ] Accessibility smoke
+- [ ] Demo seed
+- [ ] Documentation
+- [ ] Git clean

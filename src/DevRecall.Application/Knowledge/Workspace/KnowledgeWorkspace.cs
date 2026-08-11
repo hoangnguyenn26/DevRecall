@@ -128,7 +128,7 @@ public sealed class DeleteKnowledgeHandler(
     public async Task HandleAsync(Guid knowledgeId, int expectedVersion, CancellationToken cancellationToken)
     {
         if (expectedVersion < 1) throw new ValidationException(new Dictionary<string, string[]>
-            { ["expectedVersion"] = ["Expected version must be greater than zero."] });
+        { ["expectedVersion"] = ["Expected version must be greater than zero."] });
         var userId = currentUser.IsAuthenticated && currentUser.UserId.HasValue
             ? currentUser.UserId.Value
             : throw new UnauthorizedException("IDENTITY_UNAUTHENTICATED", "Authentication is required.");
@@ -170,7 +170,7 @@ public sealed class GetKnowledgeListHandler(
 
         var tagIds = query.TagIds?.Distinct().Order().ToArray() ?? [];
         if (tagIds.Length > 10) throw new ValidationException(new Dictionary<string, string[]>
-            { ["tagIds"] = ["At most 10 tag filters are allowed."] });
+        { ["tagIds"] = ["At most 10 tag filters are allowed."] });
         return await reader.GetListAsync(userId, new KnowledgeListFilter(
             query.TopicId, scope is not null, search, sort, query.Page, query.PageSize, tagIds), cancellationToken);
     }

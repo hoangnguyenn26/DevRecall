@@ -19,8 +19,11 @@ internal sealed class InterviewPracticeHistoryReader(DevRecallDbContext dbContex
             .ThenByDescending(item => item.Id).Skip(skip).Take(take)
             .Select(item => new
             {
-                item.Id, item.SelfRating, item.DurationSeconds,
-                FollowUpsAnswered = item.FollowUps.Count, item.CompletedAtUtc
+                item.Id,
+                item.SelfRating,
+                item.DurationSeconds,
+                FollowUpsAnswered = item.FollowUps.Count,
+                item.CompletedAtUtc
             })
             .ToListAsync(cancellationToken);
         var items = rows.Select(item => new InterviewPracticeHistorySummary(
@@ -37,10 +40,15 @@ internal sealed class InterviewPracticeHistoryReader(DevRecallDbContext dbContex
             .Where(item => item.Id == attemptId && item.QuestionId == questionId && item.UserId == userId)
             .Select(item => new
             {
-                item.Id, item.QuestionId, item.QuestionSnapshot,
-                item.AnswerSnapshot, item.ReferenceAnswerSnapshot,
-                item.SelfRating, item.StartedAtUtc,
-                item.CompletedAtUtc, item.DurationSeconds
+                item.Id,
+                item.QuestionId,
+                item.QuestionSnapshot,
+                item.AnswerSnapshot,
+                item.ReferenceAnswerSnapshot,
+                item.SelfRating,
+                item.StartedAtUtc,
+                item.CompletedAtUtc,
+                item.DurationSeconds
             }).SingleOrDefaultAsync(cancellationToken);
         if (attempt is null) return null;
         var followUps = await dbContext.InterviewPracticeFollowUpAttempts.AsNoTracking()

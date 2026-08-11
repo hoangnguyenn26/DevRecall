@@ -22,7 +22,7 @@ public sealed class GetKnowledgeTagsHandler(
     {
         var userId = GetUserId();
         if (take is < 1 or > 20) throw new ValidationException(new Dictionary<string, string[]>
-            { ["take"] = ["Take must be between 1 and 20."] });
+        { ["take"] = ["Take must be between 1 and 20."] });
         var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
         return reader.SearchAsync(userId, normalizedQuery, take, cancellationToken);
     }

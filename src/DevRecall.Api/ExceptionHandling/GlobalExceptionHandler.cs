@@ -1,7 +1,7 @@
 using DevRecall.Api.Middleware;
 using DevRecall.Application.Common.Exceptions;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DevRecall.Api.ExceptionHandling;

@@ -25,7 +25,6 @@
 5. Run the API seeder explicitly in the `Development` environment. The password stays outside source control and must contain at least 12 characters:
 
    ```powershell
-   $env:DEVRECALL_DEMO_PASSWORD = "choose-a-local-demo-password"
    $env:ASPNETCORE_ENVIRONMENT = "Development"
    $env:DEVRECALL_DEMO_PASSWORD = "choose-a-local-demo-password"
    dotnet run --project src/DevRecall.Api -- --seed-demo

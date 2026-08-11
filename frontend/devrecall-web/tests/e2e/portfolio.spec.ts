@@ -9,8 +9,8 @@ test('capture the seeded Today workspace', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('textbox', { name: 'Email*' }).fill(email!)
   await page.getByRole('textbox', { name: 'Password*' }).fill(password!)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Continue study session' })).toBeVisible()
+  await page.getByRole('button', { name: 'Log in' }).click()
+  await expect(page.getByRole('heading', { name: 'Continue your study session' })).toBeVisible({ timeout: 15_000 })
   await page.screenshot({
     path: path.resolve('../../docs/images/devrecall-today-dashboard.png'),
     fullPage: true,

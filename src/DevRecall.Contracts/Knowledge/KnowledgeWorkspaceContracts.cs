@@ -1,5 +1,3 @@
-using DevRecall.Contracts.Common;
-
 namespace DevRecall.Contracts.Knowledge;
 
 public sealed record GetKnowledgeRequest(

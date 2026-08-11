@@ -41,6 +41,10 @@ public sealed class DemoDataSeeder(DevRecallDbContext dbContext, IPasswordHasher
         var now = DateTimeOffset.UtcNow;
         var userId = Id(1);
         dbContext.Users.Add(User.Create(userId, Email, "Alex Morgan", passwordHasher.Hash(password), now.AddDays(-90)));
+        dbContext.UserLearningPreferences.Add(UserLearningPreference.Complete(userId,
+            LearningGoal.PrepareForInterviews, 60, 5,
+            [LearningFocusArea.DotNet, LearningFocusArea.AlgorithmsAndDataStructures, LearningFocusArea.InterviewCommunication],
+            now.AddDays(-89)));
 
         var tags = new[]
         {
