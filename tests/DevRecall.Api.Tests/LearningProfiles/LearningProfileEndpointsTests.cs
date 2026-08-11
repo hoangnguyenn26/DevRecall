@@ -20,6 +20,7 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
     public async Task Get_ShouldReturnValidUnconfiguredProfile()
     {
         using var client = await CreateAuthenticatedClientAsync("missing");
+        var user = await client.GetFromJsonAsync<CurrentUserResponse>("/api/v1/auth/me");
         var profile = await client.GetFromJsonAsync<LearningProfileResponse>("/api/v1/learning-profile");
 
         profile!.IsConfigured.Should().BeFalse();
@@ -28,6 +29,27 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         profile.Version.Should().BeNull();
         (await client.GetFromJsonAsync<GetTodayDashboardResponse>("/api/v1/today"))
             .Should().NotBeNull();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await dbContext.LearningProfiles.CountAsync(item => item.UserId == user!.Id)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Endpoints_ShouldRequireAuthenticationIncludingOptions()
+    {
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+            AllowAutoRedirect = false
+        });
+
+        using var get = await client.GetAsync("/api/v1/learning-profile");
+        using var options = await client.GetAsync("/api/v1/learning-profile/options");
+        using var put = await client.PutAsJsonAsync("/api/v1/learning-profile", Request(null, 45));
+
+        get.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        options.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        put.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -51,7 +73,8 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         await AddCsrfTokenAsync(client);
         var create = Request(null, 45);
         var created = await PutAsync(client, create);
-        var noOp = await PutAsync(client, Request(created.Version, 45));
+        var persisted = await client.GetFromJsonAsync<LearningProfileResponse>("/api/v1/learning-profile");
+        var noOp = await PutAsync(client, Request(persisted!.Version, 45));
         var updated = await PutAsync(client, Request(noOp.Version, 60));
 
         created.Version.Should().Be(1);
@@ -59,6 +82,7 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         created.Technologies.Should().Contain(item => item.Value == "CSharp" && item.Label == "C#");
         created.UpdatedAtUtc.Should().NotBeNull();
         noOp.Version.Should().Be(1);
+        noOp.UpdatedAtUtc.Should().Be(persisted.UpdatedAtUtc);
         updated.Version.Should().Be(2);
         updated.AvailableMinutesPerDay.Should().Be(60);
     }

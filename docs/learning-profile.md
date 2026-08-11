@@ -6,6 +6,8 @@ Learning Profile stores the current user's declared learning direction. It provi
 
 Learning Profile contains user-provided preference and experience signals. It is not an objective assessment of developer skill.
 
+Learning Profile is optional for existing DevRecall functionality. Users without a configured profile can continue using Knowledge, Practice, Review, Study, and Analytics.
+
 ## Domain model
 
 Each user can own at most one profile. The aggregate contains:
@@ -38,6 +40,8 @@ Daily availability uses the canonical options `15`, `30`, `45`, `60`, `90`, and 
 | `PUT` | `/api/v1/learning-profile` | Create or replace the authenticated user's profile. |
 
 The server derives ownership from the authenticated session. Requests never accept a user ID. Public enum values are case-sensitive strings; numeric enum representations are rejected.
+
+All three endpoints, including the static options endpoint, require an authenticated user. Options are generated from application metadata and do not query PostgreSQL.
 
 Example update request:
 
@@ -122,6 +126,8 @@ Estimated duration is also a soft signal. Content longer than the user's daily a
 
 External catalog acquisition is global. DevRecall must not send a user's profile, identity, career intent, or goals to an external content provider merely to fetch catalog data. Personalization occurs inside DevRecall.
 
+Learning Profile data is used internally by DevRecall for personalization and is not sent to external content providers by default.
+
 A future recommendation may persist the specific reason signals needed to explain why it was generated; it should not snapshot the whole profile by default.
 
 Changing a Learning Profile may make future Discover recommendations stale. It does not:
@@ -131,6 +137,10 @@ Changing a Learning Profile may make future Discover recommendations stale. It d
 - rewrite Knowledge or Review history;
 - mutate an existing Study Plan;
 - rewrite historical recommendations.
+
+Updating Learning Profile is a settings operation, not a learning activity. It does not change Study Minutes, Active Days, learning streaks, Weak Topics, practice history, Study Plans, or existing Recommendations.
+
+Declared data records what the user says; observed data records what learning evidence shows. Future personalization may use both, but neither source silently overwrites the other.
 
 Users without a Learning Profile retain full access to existing v1 workflows. Future Discover behavior should fall back to curated or popular content instead of treating a missing profile as an error.
 

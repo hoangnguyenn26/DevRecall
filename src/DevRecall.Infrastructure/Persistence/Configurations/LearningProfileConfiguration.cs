@@ -13,7 +13,8 @@ internal sealed class LearningProfileConfiguration : IEntityTypeConfiguration<Le
         {
             table.HasCheckConstraint("ck_learning_profiles_role", "target_role BETWEEN 1 AND 7");
             table.HasCheckConstraint("ck_learning_profiles_level", "experience_level BETWEEN 1 AND 4");
-            table.HasCheckConstraint("ck_learning_profiles_minutes", "available_minutes_per_day BETWEEN 5 AND 480");
+            table.HasCheckConstraint("ck_learning_profiles_minutes",
+                "available_minutes_per_day IN (15, 30, 45, 60, 90, 120)");
             table.HasCheckConstraint("ck_learning_profiles_version", "version > 0");
         });
         builder.HasKey(item => item.Id);
