@@ -12,8 +12,8 @@ public sealed class LearningProfileHandler(ILearningProfileRepository repository
         reader.GetAsync(GetUserId(), cancellationToken);
 
     public static LearningProfileOptionsResult GetOptions() => new(
-        Options<TargetRole>(RoleLabel), Options<ExperienceLevel>(LevelLabel),
-        Options<Technology>(TechnologyLabel), Options<LearningProfileGoal>(GoalLabel),
+        LearningProfileMetadata.RoleOptions(), LearningProfileMetadata.LevelOptions(),
+        LearningProfileMetadata.TechnologyGroups(), LearningProfileMetadata.GoalOptions(),
         [15, 30, 45, 60, 90, 120]);
 
     public async Task<LearningProfileResult> PutAsync(PutLearningProfileCommand command,
@@ -83,6 +83,8 @@ public sealed class LearningProfileHandler(ILearningProfileRepository repository
             errors["technologies"] = ["Choose between one and twenty technologies."];
         else if (technologies.Select(item => item.Technology).Distinct().Count() != technologies.Length)
             errors["technologies"] = ["Technologies must be unique."];
+        else if (technologies.Count(item => item.IsPrimary) > LearningProfile.MaximumPrimaryTechnologies)
+            errors["technologies"] = ["Choose no more than five primary technologies."];
         if (goals.Length is < 1 or > LearningProfile.MaximumGoals)
             errors["goals"] = ["Choose between one and ten goals."];
         else if (goals.Distinct().Count() != goals.Length)
@@ -95,47 +97,12 @@ public sealed class LearningProfileHandler(ILearningProfileRepository repository
     private static ConcurrencyException Conflict() => new("LEARNING_PROFILE_CONFLICT",
         "The learning profile changed. Reload the latest version before saving again.");
 
-    private static LearningProfileResult Map(LearningProfile profile) => new(true,
-        profile.TargetRole.ToString(), profile.ExperienceLevel.ToString(),
+    internal static LearningProfileResult Map(LearningProfile profile) => new(profile.IsConfigured,
+        LearningProfileMetadata.RoleValue(profile.TargetRole),
+        LearningProfileMetadata.LevelValue(profile.ExperienceLevel),
         profile.AvailableMinutesPerDay,
         profile.Technologies.OrderBy(item => item.Technology)
-            .Select(item => new LearningProfileTechnologyResult(item.Technology.ToString(), item.IsPrimary)).ToArray(),
-        profile.Goals.Select(item => item.Goal.ToString()).Order().ToArray(), profile.Version);
-
-    private static LearningProfileOption[] Options<T>(Func<T, (string Label, string? Description)> label) where T : struct, Enum =>
-        Enum.GetValues<T>().Select(value =>
-        {
-            var metadata = label(value);
-            return new LearningProfileOption(value.ToString(), metadata.Label, metadata.Description);
-        }).ToArray();
-
-    private static (string, string?) RoleLabel(TargetRole value) => (value switch
-    {
-        TargetRole.BackendDeveloper => "Backend Developer", TargetRole.FrontendDeveloper => "Frontend Developer",
-        TargetRole.FullStackDeveloper => "Full Stack Developer", TargetRole.MobileDeveloper => "Mobile Developer",
-        TargetRole.DataEngineer => "Data Engineer", TargetRole.DevOpsEngineer => "DevOps Engineer", _ => "Other"
-    }, null);
-    private static (string, string?) LevelLabel(ExperienceLevel value) => value switch
-    {
-        ExperienceLevel.Beginner => ("Beginner", "Learning the fundamentals"),
-        ExperienceLevel.Junior => ("Junior", "Can build with guidance"),
-        ExperienceLevel.MidLevel => ("Mid-level", "Can independently deliver features"),
-        _ => ("Senior", "Experienced in designing and leading solutions")
-    };
-    private static (string, string?) TechnologyLabel(Technology value) => (value switch
-    {
-        Technology.CSharp => "C#", Technology.DotNet => ".NET", Technology.AspNetCore => "ASP.NET Core",
-        Technology.EfCore => "EF Core", Technology.PostgreSql => "PostgreSQL",
-        Technology.SqlServer => "SQL Server", Technology.DataStructuresAlgorithms => "Data Structures & Algorithms",
-        Technology.SystemDesign => "System Design", _ => value.ToString()
-    }, null);
-    private static (string, string?) GoalLabel(LearningProfileGoal value) => (value switch
-    {
-        LearningProfileGoal.PrepareForInterviews => "Prepare for technical interviews",
-        LearningProfileGoal.ImproveBackendFundamentals => "Strengthen backend fundamentals",
-        LearningProfileGoal.ImproveDsa => "Improve DSA",
-        LearningProfileGoal.LearnNewTechnology => "Learn a new technology",
-        LearningProfileGoal.BuildProjects => "Build practical projects",
-        _ => "Improve system design"
-    }, null);
+            .Select(item => LearningProfileMetadata.TechnologyValue(item.Technology, item.IsPrimary)).ToArray(),
+        profile.Goals.Select(item => LearningProfileMetadata.GoalValue(item.Goal))
+            .OrderBy(item => item.Value).ToArray(), profile.Version, profile.UpdatedAtUtc);
 }

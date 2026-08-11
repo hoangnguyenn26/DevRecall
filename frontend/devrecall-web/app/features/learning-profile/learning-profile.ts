@@ -2,11 +2,11 @@ import type { LearningProfile, LearningProfileDraft } from './learning-profile.t
 
 export function draftFromProfile(profile: LearningProfile): LearningProfileDraft {
   return {
-    targetRole: profile.targetRole ?? '',
-    experienceLevel: profile.experienceLevel ?? '',
+    targetRole: profile.targetRole?.value ?? '',
+    experienceLevel: profile.experienceLevel?.value ?? '',
     availableMinutesPerDay: profile.availableMinutesPerDay ?? 45,
-    technologies: profile.technologies.map(item => ({ ...item })),
-    goals: [...profile.goals],
+    technologies: profile.technologies.map(item => ({ name: item.value, isPrimary: item.isPrimary })),
+    goals: profile.goals.map(item => item.value),
   }
 }
 
@@ -23,5 +23,7 @@ export function learningProfileSignature(value: LearningProfileDraft): string {
 export function isLearningProfileDraftValid(value: LearningProfileDraft): boolean {
   return Boolean(value.targetRole && value.experienceLevel
     && value.availableMinutesPerDay >= 5 && value.availableMinutesPerDay <= 480
-    && value.technologies.length >= 1 && value.goals.length >= 1)
+    && value.technologies.length >= 1 && value.technologies.length <= 20
+    && value.technologies.filter(item => item.isPrimary).length <= 5
+    && value.goals.length >= 1 && value.goals.length <= 10)
 }

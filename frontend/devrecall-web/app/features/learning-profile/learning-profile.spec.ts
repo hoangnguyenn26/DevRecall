@@ -4,7 +4,7 @@ import { draftFromProfile, isLearningProfileDraftValid, learningProfileSignature
 describe('learning profile form', () => {
   it('creates an editable empty draft for a missing profile', () => {
     expect(draftFromProfile({ isConfigured: false, targetRole: null, experienceLevel: null,
-      availableMinutesPerDay: null, technologies: [], goals: [], version: null })).toEqual({
+      availableMinutesPerDay: null, technologies: [], goals: [], version: null, updatedAtUtc: null })).toEqual({
       targetRole: '', experienceLevel: '', availableMinutesPerDay: 45, technologies: [], goals: [],
     })
   })
@@ -15,6 +15,9 @@ describe('learning profile form', () => {
       goals: ['PrepareForInterviews', 'ImproveBackendFundamentals'] }
     const reordered = { ...first, technologies: [...first.technologies].reverse(), goals: [...first.goals].reverse() }
     expect(learningProfileSignature(first)).toBe(learningProfileSignature(reordered))
+    expect(learningProfileSignature(first)).not.toBe(learningProfileSignature({
+      ...first, technologies: [{ name: 'CSharp', isPrimary: false }, { name: 'DotNet', isPrimary: false }],
+    }))
   })
 
   it('requires every recommendation signal', () => {

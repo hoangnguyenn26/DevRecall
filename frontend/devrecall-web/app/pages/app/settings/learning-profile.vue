@@ -51,9 +51,12 @@ async function reloadLatest() {
 <template>
   <div class="profile-page">
     <CorePageHeader title="Learning Profile" description="Tell DevRecall what you're learning toward. This helps personalize future learning suggestions." />
-    <CoreLoadingState v-if="profileQuery.isPending.value || optionsQuery.isPending.value" label="Loading learning profile" />
-    <CoreErrorState v-else-if="profileQuery.error.value || optionsQuery.error.value" :error="profileQuery.error.value || optionsQuery.error.value" @retry="profileQuery.refresh(); optionsQuery.refresh()" />
+    <CoreLoadingState v-if="profileQuery.isPending.value" label="Loading your learning profile" />
+    <CoreErrorState v-else-if="profileQuery.error.value" :error="profileQuery.error.value" @retry="profileQuery.refresh" />
+    <CoreLoadingState v-else-if="optionsQuery.isPending.value" label="Loading learning profile options" />
+    <CoreErrorState v-else-if="optionsQuery.error.value" :error="optionsQuery.error.value" @retry="optionsQuery.refresh" />
     <form v-else-if="draft && optionsQuery.data.value" class="profile-form" @submit.prevent="save">
+      <LearningProfileLearningProfileSummary v-if="profileQuery.data.value?.isConfigured" :profile="profileQuery.data.value" />
       <section>
         <h2>Direction</h2><p>These are self-provided signals, not an assessment of your skill.</p>
         <div class="field-grid">
@@ -62,8 +65,8 @@ async function reloadLatest() {
         </div>
       </section>
       <section>
-        <h2>Technologies you're focusing on</h2><p>Select at least one. Mark the technologies central to your current goal as primary.</p>
-        <LearningProfileLearningTechnologySelector v-model="draft.technologies" :options="optionsQuery.data.value.technologies" />
+        <h2>Technology focus</h2><p>Choose up to 5 technologies you're focusing on most. Other selected technologies remain secondary interests.</p>
+        <LearningProfileLearningTechnologySelector v-model="draft.technologies" :groups="optionsQuery.data.value.technologyGroups" />
       </section>
       <section>
         <h2>Your learning goals</h2>

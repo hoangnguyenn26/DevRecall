@@ -17,6 +17,7 @@ public sealed class LearningProfileTests
         profile.Version.Should().Be(1);
         profile.Technologies.Should().HaveCount(2);
         profile.Goals.Should().ContainSingle();
+        profile.IsConfigured.Should().BeTrue();
     }
 
     [Fact]
@@ -57,6 +58,23 @@ public sealed class LearningProfileTests
         changed.Should().BeFalse();
         profile.Version.Should().Be(1);
         profile.UpdatedAtUtc.Should().Be(Now);
+    }
+
+    [Fact]
+    public void Update_ShouldTreatPrimaryFlagAsMeaningfulAndLimitPrimaryTechnologies()
+    {
+        var profile = Create(Guid.NewGuid());
+        profile.Update(TargetRole.BackendDeveloper, ExperienceLevel.Junior, 45,
+            [(Technology.CSharp, false), (Technology.DotNet, false)],
+            [LearningProfileGoal.PrepareForInterviews], Now.AddDays(1)).Should().BeTrue();
+        profile.Version.Should().Be(2);
+
+        var tooManyPrimary = () => LearningProfile.Create(Guid.NewGuid(), Guid.NewGuid(),
+            TargetRole.BackendDeveloper, ExperienceLevel.Junior, 45,
+            [(Technology.CSharp, true), (Technology.DotNet, true), (Technology.AspNetCore, true),
+                (Technology.EfCore, true), (Technology.PostgreSql, true), (Technology.Docker, true)],
+            [LearningProfileGoal.PrepareForInterviews], Now);
+        tooManyPrimary.Should().Throw<ArgumentException>();
     }
 
     private static LearningProfile Create(Guid userId) => LearningProfile.Create(Guid.NewGuid(), userId,

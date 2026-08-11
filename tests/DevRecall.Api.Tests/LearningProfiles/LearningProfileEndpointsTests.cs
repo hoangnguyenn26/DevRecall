@@ -3,9 +3,13 @@ using System.Net.Http.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.LearningProfiles;
+using DevRecall.Contracts.Today;
+using DevRecall.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DevRecall.Api.Tests.LearningProfiles;
 
@@ -22,6 +26,8 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         profile.TargetRole.Should().BeNull();
         profile.Technologies.Should().BeEmpty();
         profile.Version.Should().BeNull();
+        (await client.GetFromJsonAsync<GetTodayDashboardResponse>("/api/v1/today"))
+            .Should().NotBeNull();
     }
 
     [Fact]
@@ -32,7 +38,8 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
 
         options!.TargetRoles.Should().Contain(item => item.Value == "BackendDeveloper" && item.Label == "Backend Developer");
         options.ExperienceLevels.Should().Contain(item => item.Value == "Junior");
-        options.Technologies.Should().Contain(item => item.Value == "PostgreSql");
+        options.TechnologyGroups.SelectMany(group => group.Items)
+            .Should().Contain(item => item.Value == "PostgreSql" && item.Label == "PostgreSQL");
         options.Goals.Should().Contain(item => item.Value == "ImproveBackendFundamentals");
         options.StudyTimeOptions.Should().Equal(15, 30, 45, 60, 90, 120);
     }
@@ -48,6 +55,9 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         var updated = await PutAsync(client, Request(noOp.Version, 60));
 
         created.Version.Should().Be(1);
+        created.TargetRole!.Label.Should().Be("Backend Developer");
+        created.Technologies.Should().Contain(item => item.Value == "CSharp" && item.Label == "C#");
+        created.UpdatedAtUtc.Should().NotBeNull();
         noOp.Version.Should().Be(1);
         updated.Version.Should().Be(2);
         updated.AvailableMinutesPerDay.Should().Be(60);
@@ -73,6 +83,8 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
     [InlineData("1", "CSharp", "PrepareForInterviews")]
     [InlineData("BackendDeveloper", "1", "PrepareForInterviews")]
     [InlineData("BackendDeveloper", "CSharp", "1")]
+    [InlineData("BackendDeveloper", "COBOL.NET.AI", "PrepareForInterviews")]
+    [InlineData("BackendDeveloper", "CSharp", "BecomeWizard")]
     public async Task Put_ShouldRejectNumericEnumStrings(string role, string technology, string goal)
     {
         using var client = await CreateAuthenticatedClientAsync("numeric");
@@ -101,6 +113,37 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         problem!.Extensions.Should().ContainKey("errors");
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectMoreThanFivePrimaryTechnologies()
+    {
+        using var client = await CreateAuthenticatedClientAsync("primary-limit");
+        await AddCsrfTokenAsync(client);
+        var request = Request(null, 45) with
+        {
+            Technologies = [new("CSharp", true), new("DotNet", true), new("AspNetCore", true),
+                new("EfCore", true), new("PostgreSql", true), new("Docker", true)]
+        };
+        using var response = await client.PutAsJsonAsync("/api/v1/learning-profile", request);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Put_ShouldNotCreateObservedEvidenceOrMutatePlans()
+    {
+        using var client = await CreateAuthenticatedClientAsync("boundaries");
+        await AddCsrfTokenAsync(client);
+        var user = await client.GetFromJsonAsync<CurrentUserResponse>("/api/v1/auth/me");
+
+        var created = await PutAsync(client, Request(null, 45));
+        await PutAsync(client, Request(created.Version, 60));
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await dbContext.WeakTopicProfiles.CountAsync(item => item.UserId == user!.Id)).Should().Be(0);
+        (await dbContext.StudyPlans.CountAsync(item => item.UserId == user!.Id)).Should().Be(0);
+        (await dbContext.ReviewHistories.CountAsync(item => item.UserId == user!.Id)).Should().Be(0);
     }
 
     private static PutLearningProfileRequest Request(int? version, int minutes) => new(

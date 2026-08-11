@@ -36,14 +36,20 @@ public static class LearningProfileEndpoints
                 request.Goals, request.ExpectedVersion), cancellationToken)));
 
     private static LearningProfileResponse Map(LearningProfileResult result) => new(
-        result.IsConfigured, result.TargetRole, result.ExperienceLevel,
+        result.IsConfigured, result.TargetRole is null ? null : Map(result.TargetRole),
+        result.ExperienceLevel is null ? null : Map(result.ExperienceLevel),
         result.AvailableMinutesPerDay,
-        result.Technologies.Select(item => new LearningProfileTechnologyResponse(item.Name, item.IsPrimary)).ToArray(),
-        result.Goals, result.Version);
+        result.Technologies.Select(item => new LearningProfileTechnologyResponse(
+            item.Value, item.Label, item.IsPrimary)).ToArray(),
+        result.Goals.Select(Map).ToArray(), result.Version, result.UpdatedAtUtc);
 
     private static LearningProfileOptionsResponse Map(LearningProfileOptionsResult result) => new(
         result.TargetRoles.Select(Map).ToArray(), result.ExperienceLevels.Select(Map).ToArray(),
-        result.Technologies.Select(Map).ToArray(), result.Goals.Select(Map).ToArray(), result.StudyTimeOptions);
+        result.TechnologyGroups.Select(group => new LearningProfileTechnologyGroupResponse(
+            group.Name, group.Items.Select(Map).ToArray())).ToArray(),
+        result.Goals.Select(Map).ToArray(), result.StudyTimeOptions);
     private static LearningProfileOptionResponse Map(LearningProfileOption option) =>
         new(option.Value, option.Label, option.Description);
+    private static LearningProfileValueResponse Map(LearningProfileValueResult value) =>
+        new(value.Value, value.Label);
 }

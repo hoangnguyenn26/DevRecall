@@ -5,6 +5,7 @@ public sealed class LearningProfile
     public const int MinimumAvailableMinutes = 5;
     public const int MaximumAvailableMinutes = 480;
     public const int MaximumTechnologies = 20;
+    public const int MaximumPrimaryTechnologies = 5;
     public const int MaximumGoals = 10;
 
     private readonly List<LearningProfileTechnology> _technologies = [];
@@ -21,6 +22,9 @@ public sealed class LearningProfile
     public DateTimeOffset UpdatedAtUtc { get; private set; }
     public IReadOnlyCollection<LearningProfileTechnology> Technologies => _technologies.AsReadOnly();
     public IReadOnlyCollection<LearningProfileGoalEntry> Goals => _goals.AsReadOnly();
+    public bool IsConfigured => Enum.IsDefined(TargetRole) && Enum.IsDefined(ExperienceLevel)
+        && AvailableMinutesPerDay is >= MinimumAvailableMinutes and <= MaximumAvailableMinutes
+        && _technologies.Count >= 1 && _goals.Count >= 1;
 
     public static LearningProfile Create(Guid id, Guid userId, TargetRole targetRole,
         ExperienceLevel experienceLevel, int availableMinutesPerDay,
@@ -91,6 +95,8 @@ public sealed class LearningProfile
             throw new ArgumentException("Choose between one and ten goals.", nameof(goals));
         if (technologies.Select(item => item.Technology).Distinct().Count() != technologies.Count)
             throw new ArgumentException("Technologies must be unique.", nameof(technologies));
+        if (technologies.Count(item => item.IsPrimary) > MaximumPrimaryTechnologies)
+            throw new ArgumentException("At most five primary technologies are allowed.", nameof(technologies));
         if (goals.Distinct().Count() != goals.Count)
             throw new ArgumentException("Goals must be unique.", nameof(goals));
         if (technologies.Any(item => !Enum.IsDefined(item.Technology)))
