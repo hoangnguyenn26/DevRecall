@@ -13,11 +13,14 @@ internal sealed class LearningProfileReader(DevRecallDbContext dbContext) : ILea
             .Where(item => item.UserId == userId)
             .Select(item => new
             {
-                item.TargetRole, item.ExperienceLevel, item.AvailableMinutesPerDay,
+                item.TargetRole,
+                item.ExperienceLevel,
+                item.AvailableMinutesPerDay,
                 Technologies = item.Technologies.OrderBy(technology => technology.Technology)
                     .Select(technology => new { technology.Technology, technology.IsPrimary }).ToArray(),
                 Goals = item.Goals.OrderBy(goal => goal.Goal).Select(goal => goal.Goal).ToArray(),
-                item.Version, item.UpdatedAtUtc
+                item.Version,
+                item.UpdatedAtUtc
             })
             .SingleOrDefaultAsync(cancellationToken);
         if (profile is null) return new(false, null, null, null, [], [], null, null);

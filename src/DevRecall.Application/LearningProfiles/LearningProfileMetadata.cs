@@ -36,9 +36,13 @@ public static class LearningProfileMetadata
 
     private static (string Label, string? Description) Role(TargetRole value) => (value switch
     {
-        TargetRole.BackendDeveloper => "Backend Developer", TargetRole.FrontendDeveloper => "Frontend Developer",
-        TargetRole.FullStackDeveloper => "Full Stack Developer", TargetRole.MobileDeveloper => "Mobile Developer",
-        TargetRole.DataEngineer => "Data Engineer", TargetRole.DevOpsEngineer => "DevOps Engineer", _ => "Other"
+        TargetRole.BackendDeveloper => "Backend Developer",
+        TargetRole.FrontendDeveloper => "Frontend Developer",
+        TargetRole.FullStackDeveloper => "Full Stack Developer",
+        TargetRole.MobileDeveloper => "Mobile Developer",
+        TargetRole.DataEngineer => "Data Engineer",
+        TargetRole.DevOpsEngineer => "DevOps Engineer",
+        _ => "Other"
     }, null);
     private static (string Label, string? Description) Level(ExperienceLevel value) => value switch
     {
@@ -49,10 +53,15 @@ public static class LearningProfileMetadata
     };
     private static (string Label, string? Description) TechnologyMetadata(Technology value) => (value switch
     {
-        Technology.CSharp => "C#", Technology.DotNet => ".NET", Technology.AspNetCore => "ASP.NET Core",
-        Technology.EfCore => "EF Core", Technology.PostgreSql => "PostgreSQL",
-        Technology.SqlServer => "SQL Server", Technology.DataStructuresAlgorithms => "Data Structures & Algorithms",
-        Technology.SystemDesign => "System Design", _ => value.ToString()
+        Technology.CSharp => "C#",
+        Technology.DotNet => ".NET",
+        Technology.AspNetCore => "ASP.NET Core",
+        Technology.EfCore => "EF Core",
+        Technology.PostgreSql => "PostgreSQL",
+        Technology.SqlServer => "SQL Server",
+        Technology.DataStructuresAlgorithms => "Data Structures & Algorithms",
+        Technology.SystemDesign => "System Design",
+        _ => value.ToString()
     }, null);
     private static (string Label, string? Description) Goal(LearningProfileGoal value) => value switch
     {

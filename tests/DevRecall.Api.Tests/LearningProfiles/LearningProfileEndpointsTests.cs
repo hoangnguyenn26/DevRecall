@@ -162,7 +162,9 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
-            BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = true
+            BaseAddress = new Uri("https://localhost"),
+            AllowAutoRedirect = false,
+            HandleCookies = true
         });
         var email = $"profile-{prefix}-{Guid.NewGuid():N}@example.com";
         using var register = await client.PostAsJsonAsync("/api/v1/auth/register",

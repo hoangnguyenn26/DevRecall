@@ -35,9 +35,14 @@ public sealed class LearningProfile
         Validate(targetRole, experienceLevel, availableMinutesPerDay, technologies, goals, currentUtc);
         var profile = new LearningProfile
         {
-            Id = id, UserId = userId, TargetRole = targetRole,
-            ExperienceLevel = experienceLevel, AvailableMinutesPerDay = availableMinutesPerDay,
-            Version = 1, CreatedAtUtc = currentUtc, UpdatedAtUtc = currentUtc
+            Id = id,
+            UserId = userId,
+            TargetRole = targetRole,
+            ExperienceLevel = experienceLevel,
+            AvailableMinutesPerDay = availableMinutesPerDay,
+            Version = 1,
+            CreatedAtUtc = currentUtc,
+            UpdatedAtUtc = currentUtc
         };
         profile.ReplaceChildren(technologies, goals);
         return profile;

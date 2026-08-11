@@ -117,6 +117,7 @@ public static class DependencyInjection
         services.AddScoped<LoginUserHandler>();
         services.AddScoped<OnboardingHandler>();
         services.AddScoped<LearningProfileHandler>();
+        services.AddScoped<GetCurrentLearningProfileSignalsHandler>();
         services.AddScoped<GetCurrentUserHandler>();
         services.AddScoped<CreateInterviewQuestionHandler>();
         services.AddScoped<CreateInterviewAnswerDraftHandler>();
