@@ -25,7 +25,8 @@ public sealed class LearningProfileConstraintsTests(PostgreSqlFixture fixture)
 
         var duplicateProfile = () => context.Database.ExecuteSqlInterpolatedAsync(
             $"INSERT INTO learning_profiles (id, user_id, target_role, experience_level, available_minutes_per_day, version, created_at_utc, updated_at_utc) VALUES ({Guid.NewGuid()}, {userId}, {(int)TargetRole.BackendDeveloper}, {(int)ExperienceLevel.Junior}, 45, 1, {Now}, {Now})");
-        await duplicateProfile.Should().ThrowAsync<PostgresException>();
+        var exception = await duplicateProfile.Should().ThrowAsync<PostgresException>();
+        exception.Which.ConstraintName.Should().Be("uq_learning_profiles_user_id");
     }
 
     [Fact]
@@ -41,7 +42,9 @@ public sealed class LearningProfileConstraintsTests(PostgreSqlFixture fixture)
 
         var duplicateTechnology = () => context.Database.ExecuteSqlInterpolatedAsync(
             $"INSERT INTO learning_profile_technologies (id, learning_profile_id, technology, is_primary) VALUES ({Guid.NewGuid()}, {profile.Id}, {(int)Technology.CSharp}, false)");
-        await duplicateTechnology.Should().ThrowAsync<PostgresException>();
+        var exception = await duplicateTechnology.Should().ThrowAsync<PostgresException>();
+        exception.Which.ConstraintName.Should().Be(
+            "uq_learning_profile_technologies_profile_technology");
     }
 
     [Fact]
@@ -57,7 +60,55 @@ public sealed class LearningProfileConstraintsTests(PostgreSqlFixture fixture)
 
         var duplicateGoal = () => context.Database.ExecuteSqlInterpolatedAsync(
             $"INSERT INTO learning_profile_goals (id, learning_profile_id, goal) VALUES ({Guid.NewGuid()}, {profile.Id}, {(int)LearningProfileGoal.PrepareForInterviews})");
-        await duplicateGoal.Should().ThrowAsync<PostgresException>();
+        var exception = await duplicateGoal.Should().ThrowAsync<PostgresException>();
+        exception.Which.ConstraintName.Should().Be("uq_learning_profile_goals_profile_goal");
+    }
+
+    [Fact]
+    public async Task PostgreSql_ShouldEnforceProfileOptimisticConcurrency()
+    {
+        var userId = Guid.NewGuid();
+        await using (var setup = fixture.CreateDbContext())
+        {
+            setup.Users.Add(User.Create(userId, $"profile-{userId:N}@example.com", "Learner", "hash", Now));
+            setup.LearningProfiles.Add(Create(userId));
+            await setup.SaveChangesAsync();
+        }
+
+        await using var firstContext = fixture.CreateDbContext();
+        await using var secondContext = fixture.CreateDbContext();
+        var first = await firstContext.LearningProfiles.Include(item => item.Technologies)
+            .Include(item => item.Goals).SingleAsync(item => item.UserId == userId);
+        var second = await secondContext.LearningProfiles.Include(item => item.Technologies)
+            .Include(item => item.Goals).SingleAsync(item => item.UserId == userId);
+        first.Update(TargetRole.BackendDeveloper, ExperienceLevel.Junior, 60,
+            [(Technology.CSharp, true)], [LearningProfileGoal.PrepareForInterviews], Now.AddMinutes(1));
+        second.Update(TargetRole.BackendDeveloper, ExperienceLevel.Junior, 90,
+            [(Technology.CSharp, true)], [LearningProfileGoal.PrepareForInterviews], Now.AddMinutes(2));
+        await firstContext.SaveChangesAsync();
+
+        var staleSave = () => secondContext.SaveChangesAsync();
+        await staleSave.Should().ThrowAsync<DbUpdateConcurrencyException>();
+    }
+
+    [Fact]
+    public async Task PostgreSql_ShouldAllowOnlyOneWinnerInCreateRace()
+    {
+        var userId = Guid.NewGuid();
+        await using (var setup = fixture.CreateDbContext())
+        {
+            setup.Users.Add(User.Create(userId, $"profile-{userId:N}@example.com", "Learner", "hash", Now));
+            await setup.SaveChangesAsync();
+        }
+
+        await using var firstContext = fixture.CreateDbContext();
+        await using var secondContext = fixture.CreateDbContext();
+        firstContext.LearningProfiles.Add(Create(userId));
+        secondContext.LearningProfiles.Add(Create(userId));
+        await firstContext.SaveChangesAsync();
+
+        var secondCreate = () => secondContext.SaveChangesAsync();
+        await secondCreate.Should().ThrowAsync<DbUpdateException>();
     }
 
     private static LearningProfile Create(Guid userId) => LearningProfile.Create(Guid.NewGuid(), userId,

@@ -38,6 +38,7 @@ public sealed class LearningProfileTests
 
     [Theory]
     [InlineData(4)]
+    [InlineData(47)]
     [InlineData(481)]
     public void Create_ShouldRejectInvalidAvailableMinutes(int minutes)
     {
@@ -64,10 +65,12 @@ public sealed class LearningProfileTests
     public void Update_ShouldTreatPrimaryFlagAsMeaningfulAndLimitPrimaryTechnologies()
     {
         var profile = Create(Guid.NewGuid());
+        var originalIds = profile.Technologies.ToDictionary(item => item.Technology, item => item.Id);
         profile.Update(TargetRole.BackendDeveloper, ExperienceLevel.Junior, 45,
             [(Technology.CSharp, false), (Technology.DotNet, false)],
             [LearningProfileGoal.PrepareForInterviews], Now.AddDays(1)).Should().BeTrue();
         profile.Version.Should().Be(2);
+        profile.Technologies.Should().OnlyContain(item => item.Id == originalIds[item.Technology]);
 
         var tooManyPrimary = () => LearningProfile.Create(Guid.NewGuid(), Guid.NewGuid(),
             TargetRole.BackendDeveloper, ExperienceLevel.Junior, 45,

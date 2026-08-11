@@ -16,4 +16,6 @@ public sealed class LearningProfileTechnology
     public Guid LearningProfileId { get; private set; }
     public Technology Technology { get; private set; }
     public bool IsPrimary { get; private set; }
+
+    internal void SetPrimary(bool isPrimary) => IsPrimary = isPrimary;
 }

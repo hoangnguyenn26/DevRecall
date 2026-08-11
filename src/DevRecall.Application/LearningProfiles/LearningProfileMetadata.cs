@@ -16,6 +16,7 @@ public static class LearningProfileMetadata
         Group("Engineering", Technology.Docker, Technology.Git, Technology.SystemDesign,
             Technology.DataStructuresAlgorithms)
     ];
+    public static IReadOnlyList<int> StudyTimeOptions => LearningProfile.StudyTimeOptions;
 
     public static LearningProfileValueResult RoleValue(TargetRole value) => new(value.ToString(), Role(value).Label);
     public static LearningProfileValueResult LevelValue(ExperienceLevel value) => new(value.ToString(), Level(value).Label);

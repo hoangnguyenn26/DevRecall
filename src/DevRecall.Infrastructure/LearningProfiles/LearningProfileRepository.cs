@@ -23,10 +23,19 @@ internal sealed class LearningProfileRepository(DevRecallDbContext dbContext) : 
             throw new ConcurrencyException("LEARNING_PROFILE_CONFLICT",
                 "The learning profile changed. Reload the latest version before saving again.", exception);
         }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        catch (DbUpdateException exception) when (IsLearningProfileUniqueConflict(exception))
         {
             throw new ConcurrencyException("LEARNING_PROFILE_CONFLICT",
                 "The learning profile changed. Reload the latest version before saving again.", exception);
         }
     }
+
+    private static bool IsLearningProfileUniqueConflict(DbUpdateException exception) =>
+        exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: "uq_learning_profiles_user_id"
+                or "uq_learning_profile_technologies_profile_technology"
+                or "uq_learning_profile_goals_profile_goal"
+        };
 }

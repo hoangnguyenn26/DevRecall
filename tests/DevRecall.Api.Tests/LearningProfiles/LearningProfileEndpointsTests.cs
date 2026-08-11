@@ -79,6 +79,24 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         secondProfile!.IsConfigured.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Put_ShouldRejectCreateSemanticsForExistingProfileAndUpdateSemanticsForMissingProfile()
+    {
+        using var existingClient = await CreateAuthenticatedClientAsync("existing-semantics");
+        using var missingClient = await CreateAuthenticatedClientAsync("missing-semantics");
+        await AddCsrfTokenAsync(existingClient);
+        await AddCsrfTokenAsync(missingClient);
+        await PutAsync(existingClient, Request(null, 45));
+
+        using var createAgain = await existingClient.PutAsJsonAsync(
+            "/api/v1/learning-profile", Request(null, 60));
+        using var updateMissing = await missingClient.PutAsJsonAsync(
+            "/api/v1/learning-profile", Request(1, 60));
+
+        createAgain.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        updateMissing.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
     [Theory]
     [InlineData("1", "CSharp", "PrepareForInterviews")]
     [InlineData("BackendDeveloper", "1", "PrepareForInterviews")]
@@ -127,6 +145,34 @@ public sealed class LearningProfileEndpointsTests(AuthApiFactory factory)
         };
         using var response = await client.PutAsJsonAsync("/api/v1/learning-profile", request);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectStudyTimeOutsideCanonicalOptions()
+    {
+        using var client = await CreateAuthenticatedClientAsync("study-time");
+        await AddCsrfTokenAsync(client);
+        using var response = await client.PutAsJsonAsync(
+            "/api/v1/learning-profile", Request(null, 47));
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Put_ShouldOnlyUpdateCurrentUserWhenBothUsersHaveProfiles()
+    {
+        using var first = await CreateAuthenticatedClientAsync("isolation-a");
+        using var second = await CreateAuthenticatedClientAsync("isolation-b");
+        await AddCsrfTokenAsync(first);
+        await AddCsrfTokenAsync(second);
+        var firstProfile = await PutAsync(first, Request(null, 45));
+        var secondProfile = await PutAsync(second, Request(null, 30));
+
+        await PutAsync(first, Request(firstProfile.Version, 60));
+        var unchangedSecond = await second.GetFromJsonAsync<LearningProfileResponse>(
+            "/api/v1/learning-profile");
+
+        unchangedSecond!.Version.Should().Be(secondProfile.Version);
+        unchangedSecond.AvailableMinutesPerDay.Should().Be(30);
     }
 
     [Fact]

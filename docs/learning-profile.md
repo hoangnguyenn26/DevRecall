@@ -27,6 +27,8 @@ An absent profile is a normal state. `GET /api/v1/learning-profile` returns HTTP
 
 A persisted profile is complete and therefore configured. Initial creation requires all five signal groups. Partial database aggregates are not stored.
 
+Daily availability uses the canonical options `15`, `30`, `45`, `60`, `90`, and `120` minutes. These are personalization buckets rather than precise time tracking. A profile can contain 1-20 technologies, at most five marked primary, and 1-10 goals.
+
 ## API
 
 | Method | Route | Purpose |
@@ -37,6 +39,22 @@ A persisted profile is complete and therefore configured. Initial creation requi
 
 The server derives ownership from the authenticated session. Requests never accept a user ID. Public enum values are case-sensitive strings; numeric enum representations are rejected.
 
+Example update request:
+
+```json
+{
+  "targetRole": "BackendDeveloper",
+  "experienceLevel": "Junior",
+  "availableMinutesPerDay": 45,
+  "technologies": [
+    { "name": "CSharp", "isPrimary": true },
+    { "name": "DotNet", "isPrimary": true }
+  ],
+  "goals": ["PrepareForInterviews"],
+  "expectedVersion": 1
+}
+```
+
 ## Concurrency and no-op behavior
 
 Creation requires `expectedVersion: null`. Updating an existing profile requires the current version. A stale or invalid expectation returns HTTP 409 with `LEARNING_PROFILE_CONFLICT`.
@@ -44,6 +62,22 @@ Creation requires `expectedVersion: null`. Updating an existing profile requires
 Technology and goal ordering is not semantically significant. Submitting an unchanged profile does not call `SaveChanges`, increment `version`, or change `updatedAtUtc`.
 
 The PUT response is the canonical saved profile. Clients update their cache from it and do not need a follow-up GET.
+
+The database enforces the singleton and collection invariants with named unique indexes:
+
+- `uq_learning_profiles_user_id`;
+- `uq_learning_profile_technologies_profile_technology`;
+- `uq_learning_profile_goals_profile_goal`.
+
+The profile version is an EF Core concurrency token. Role, technologies, goals, and availability are updated with one `SaveChanges` boundary. A create race is resolved by the user-ID unique index and mapped to `LEARNING_PROFILE_CONFLICT`.
+
+## Product integration
+
+Learning Profile remains a Settings concern and does not add a top-level navigation item. Settings always exposes its configured or setup state. Today may show a secondary, non-blocking setup invitation after the primary learning experience has loaded.
+
+Saving updates the shared private profile cache directly. The user can return to Today explicitly; there is no forced redirect. Once configured, the Today invitation disappears. Logout uses the existing private-cache cleanup, preventing one user's configured state from leaking into the next session.
+
+Learning Profile is never required to enter or use Today, Knowledge, Review, Interview, DSA, Study Plans, Study Sessions, Weak Topics, Recommendations, or Analytics.
 
 ## Deliberate exclusions
 
@@ -99,3 +133,5 @@ Changing a Learning Profile may make future Discover recommendations stale. It d
 - rewrite historical recommendations.
 
 Users without a Learning Profile retain full access to existing v1 workflows. Future Discover behavior should fall back to curated or popular content instead of treating a missing profile as an error.
+
+Taxonomy values are application constants rather than database-managed catalog rows. Existing values must not be removed casually because persisted profiles may reference them. A future option can be hidden or deprecated while retaining its stable stored value.

@@ -18,7 +18,8 @@ internal sealed class LearningProfileConfiguration : IEntityTypeConfiguration<Le
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.HasIndex(item => item.UserId).IsUnique();
+        builder.HasIndex(item => item.UserId).IsUnique()
+            .HasDatabaseName("uq_learning_profiles_user_id");
         builder.Property(item => item.TargetRole).HasConversion<int>().IsRequired();
         builder.Property(item => item.ExperienceLevel).HasConversion<int>().IsRequired();
         builder.Property(item => item.Version).IsConcurrencyToken();
@@ -42,7 +43,8 @@ internal sealed class LearningProfileTechnologyConfiguration : IEntityTypeConfig
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.Technology).HasConversion<int>();
-        builder.HasIndex(item => new { item.LearningProfileId, item.Technology }).IsUnique();
+        builder.HasIndex(item => new { item.LearningProfileId, item.Technology }).IsUnique()
+            .HasDatabaseName("uq_learning_profile_technologies_profile_technology");
     }
 }
 
@@ -55,6 +57,7 @@ internal sealed class LearningProfileGoalEntryConfiguration : IEntityTypeConfigu
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.Goal).HasConversion<int>();
-        builder.HasIndex(item => new { item.LearningProfileId, item.Goal }).IsUnique();
+        builder.HasIndex(item => new { item.LearningProfileId, item.Goal }).IsUnique()
+            .HasDatabaseName("uq_learning_profile_goals_profile_goal");
     }
 }

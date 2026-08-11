@@ -14,7 +14,7 @@ public sealed class LearningProfileHandler(ILearningProfileRepository repository
     public static LearningProfileOptionsResult GetOptions() => new(
         LearningProfileMetadata.RoleOptions(), LearningProfileMetadata.LevelOptions(),
         LearningProfileMetadata.TechnologyGroups(), LearningProfileMetadata.GoalOptions(),
-        [15, 30, 45, 60, 90, 120]);
+        LearningProfileMetadata.StudyTimeOptions);
 
     public async Task<LearningProfileResult> PutAsync(PutLearningProfileCommand command,
         CancellationToken cancellationToken)
@@ -77,8 +77,8 @@ public sealed class LearningProfileHandler(ILearningProfileRepository repository
         LearningProfileGoal[] goals)
     {
         var errors = new Dictionary<string, string[]>();
-        if (command.AvailableMinutesPerDay is < LearningProfile.MinimumAvailableMinutes or > LearningProfile.MaximumAvailableMinutes)
-            errors["availableMinutesPerDay"] = ["Available study time must be between 5 and 480 minutes."];
+        if (!LearningProfile.StudyTimeOptions.Contains(command.AvailableMinutesPerDay))
+            errors["availableMinutesPerDay"] = ["Choose an available study-time option."];
         if (technologies.Length is < 1 or > LearningProfile.MaximumTechnologies)
             errors["technologies"] = ["Choose between one and twenty technologies."];
         else if (technologies.Select(item => item.Technology).Distinct().Count() != technologies.Length)

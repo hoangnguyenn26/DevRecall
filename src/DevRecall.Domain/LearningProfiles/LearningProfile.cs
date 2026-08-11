@@ -7,6 +7,7 @@ public sealed class LearningProfile
     public const int MaximumTechnologies = 20;
     public const int MaximumPrimaryTechnologies = 5;
     public const int MaximumGoals = 10;
+    public static readonly IReadOnlyList<int> StudyTimeOptions = [15, 30, 45, 60, 90, 120];
 
     private readonly List<LearningProfileTechnology> _technologies = [];
     private readonly List<LearningProfileGoalEntry> _goals = [];
@@ -23,7 +24,7 @@ public sealed class LearningProfile
     public IReadOnlyCollection<LearningProfileTechnology> Technologies => _technologies.AsReadOnly();
     public IReadOnlyCollection<LearningProfileGoalEntry> Goals => _goals.AsReadOnly();
     public bool IsConfigured => Enum.IsDefined(TargetRole) && Enum.IsDefined(ExperienceLevel)
-        && AvailableMinutesPerDay is >= MinimumAvailableMinutes and <= MaximumAvailableMinutes
+        && StudyTimeOptions.Contains(AvailableMinutesPerDay)
         && _technologies.Count >= 1 && _goals.Count >= 1;
 
     public static LearningProfile Create(Guid id, Guid userId, TargetRole targetRole,
@@ -58,9 +59,7 @@ public sealed class LearningProfile
         var normalizedGoals = goals.Order().ToArray();
         var unchanged = TargetRole == targetRole && ExperienceLevel == experienceLevel
             && AvailableMinutesPerDay == availableMinutesPerDay
-            && _technologies.OrderBy(item => item.Technology)
-                .Select(item => (item.Technology, item.IsPrimary)).SequenceEqual(normalizedTechnologies)
-            && _goals.Select(item => item.Goal).Order().SequenceEqual(normalizedGoals);
+            && HasSameTechnologies(normalizedTechnologies) && HasSameGoals(normalizedGoals);
         if (unchanged) return false;
 
         TargetRole = targetRole;
@@ -68,7 +67,7 @@ public sealed class LearningProfile
         AvailableMinutesPerDay = availableMinutesPerDay;
         UpdatedAtUtc = currentUtc;
         Version = checked(Version + 1);
-        ReplaceChildren(normalizedTechnologies, normalizedGoals);
+        SynchronizeChildren(normalizedTechnologies, normalizedGoals);
         return true;
     }
 
@@ -83,6 +82,34 @@ public sealed class LearningProfile
         _goals.AddRange(goals.Order().Select(goal => new LearningProfileGoalEntry(Guid.NewGuid(), Id, goal)));
     }
 
+    private void SynchronizeChildren(
+        IReadOnlyCollection<(Technology Technology, bool IsPrimary)> technologies,
+        IReadOnlyCollection<LearningProfileGoal> goals)
+    {
+        _technologies.RemoveAll(item => technologies.All(value => value.Technology != item.Technology));
+        foreach (var value in technologies)
+        {
+            var existing = _technologies.SingleOrDefault(item => item.Technology == value.Technology);
+            if (existing is null)
+                _technologies.Add(new LearningProfileTechnology(Guid.NewGuid(), Id,
+                    value.Technology, value.IsPrimary));
+            else
+                existing.SetPrimary(value.IsPrimary);
+        }
+
+        _goals.RemoveAll(item => !goals.Contains(item.Goal));
+        foreach (var goal in goals.Where(goal => _goals.All(item => item.Goal != goal)))
+            _goals.Add(new LearningProfileGoalEntry(Guid.NewGuid(), Id, goal));
+    }
+
+    private bool HasSameTechnologies(
+        IReadOnlyCollection<(Technology Technology, bool IsPrimary)> technologies) =>
+        _technologies.OrderBy(item => item.Technology)
+            .Select(item => (item.Technology, item.IsPrimary)).SequenceEqual(technologies);
+
+    private bool HasSameGoals(IReadOnlyCollection<LearningProfileGoal> goals) =>
+        _goals.Select(item => item.Goal).Order().SequenceEqual(goals);
+
     private static void Validate(TargetRole targetRole, ExperienceLevel experienceLevel,
         int availableMinutesPerDay,
         IReadOnlyCollection<(Technology Technology, bool IsPrimary)> technologies,
@@ -92,7 +119,7 @@ public sealed class LearningProfile
         ArgumentNullException.ThrowIfNull(goals);
         if (!Enum.IsDefined(targetRole)) throw new ArgumentOutOfRangeException(nameof(targetRole));
         if (!Enum.IsDefined(experienceLevel)) throw new ArgumentOutOfRangeException(nameof(experienceLevel));
-        if (availableMinutesPerDay is < MinimumAvailableMinutes or > MaximumAvailableMinutes)
+        if (!StudyTimeOptions.Contains(availableMinutesPerDay))
             throw new ArgumentOutOfRangeException(nameof(availableMinutesPerDay));
         if (technologies.Count is < 1 or > MaximumTechnologies)
             throw new ArgumentException("Choose between one and twenty technologies.", nameof(technologies));

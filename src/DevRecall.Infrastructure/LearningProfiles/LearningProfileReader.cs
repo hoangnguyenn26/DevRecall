@@ -25,8 +25,7 @@ internal sealed class LearningProfileReader(DevRecallDbContext dbContext) : ILea
             .SingleOrDefaultAsync(cancellationToken);
         if (profile is null) return new(false, null, null, null, [], [], null, null);
         var configured = Enum.IsDefined(profile.TargetRole) && Enum.IsDefined(profile.ExperienceLevel)
-            && profile.AvailableMinutesPerDay is >= LearningProfile.MinimumAvailableMinutes
-                and <= LearningProfile.MaximumAvailableMinutes
+            && LearningProfile.StudyTimeOptions.Contains(profile.AvailableMinutesPerDay)
             && profile.Technologies.Length > 0 && profile.Goals.Length > 0;
         return new(configured, LearningProfileMetadata.RoleValue(profile.TargetRole),
             LearningProfileMetadata.LevelValue(profile.ExperienceLevel), profile.AvailableMinutesPerDay,
