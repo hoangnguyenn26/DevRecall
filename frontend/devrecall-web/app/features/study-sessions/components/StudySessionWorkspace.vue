@@ -192,7 +192,7 @@ onMounted(load)
       <div v-if="detail.status === 'Completed'" class="summary-details">
         <div
           class="metrics"
-          :aria-label="`${detail.progress.completedItems} of ${detail.progress.totalItems} items completed, ${detail.progress.skippedItems} skipped`"
+          :aria-label="`${detail.progress.completedItems} completed, ${detail.progress.skippedItems} skipped, ${detail.progress.pendingItems + detail.progress.inProgressItems} remaining out of ${detail.progress.totalItems} items`"
         >
           <span
             ><strong>{{ detail.plannedDurationMinutes }} min</strong>Planned</span
