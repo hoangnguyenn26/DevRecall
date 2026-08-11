@@ -1,5 +1,7 @@
 import type { LearningProfile, LearningProfileDraft } from './learning-profile.types'
 
+const studyTimeOptions = new Set([15, 30, 45, 60, 90, 120])
+
 export function draftFromProfile(profile: LearningProfile): LearningProfileDraft {
   return {
     targetRole: profile.targetRole?.value ?? '',
@@ -22,8 +24,12 @@ export function learningProfileSignature(value: LearningProfileDraft): string {
 
 export function isLearningProfileDraftValid(value: LearningProfileDraft): boolean {
   return Boolean(value.targetRole && value.experienceLevel
-    && value.availableMinutesPerDay >= 5 && value.availableMinutesPerDay <= 480
+    && studyTimeOptions.has(value.availableMinutesPerDay)
     && value.technologies.length >= 1 && value.technologies.length <= 20
     && value.technologies.filter(item => item.isPrimary).length <= 5
     && value.goals.length >= 1 && value.goals.length <= 10)
+}
+
+export function shouldShowLearningProfileSetup(profile: LearningProfile | null | undefined): boolean {
+  return profile?.isConfigured === false
 }

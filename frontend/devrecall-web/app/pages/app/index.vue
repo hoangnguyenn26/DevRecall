@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { useTodayApi } from '~/features/today/today.api'
+import { useLearningProfileApi } from '~/features/learning-profile/learning-profile.api'
+import { learningProfileKeys } from '~/features/learning-profile/learning-profile.query-keys'
+import type { LearningProfile } from '~/features/learning-profile/learning-profile.types'
+import { shouldShowLearningProfileSetup } from '~/features/learning-profile/learning-profile'
 import { queryKeys } from '~/query/query-keys'
 
 definePageMeta({ layout: 'app', middleware: 'auth' })
 useSeoMeta({ title: 'Today', robots: 'noindex, nofollow' })
 
 const todayApi = useTodayApi()
+const profileApi = useLearningProfileApi()
+const profileQuery = useApiQuery<LearningProfile>(learningProfileKeys.current, profileApi.get)
 const { data: dashboard, error, refreshError, isPending, refreshing, refresh } =
   useApiQuery(queryKeys.today, () => todayApi.getDashboard())
 </script>
@@ -22,5 +28,9 @@ const { data: dashboard, error, refreshError, isPending, refreshing, refresh } =
     >
       <TodayDashboard v-if="dashboard" :dashboard="dashboard" />
     </FeedbackPageState>
+    <TodayLearningProfileSetupCard
+      v-if="dashboard && shouldShowLearningProfileSetup(profileQuery.data.value)"
+      class="mt-6"
+    />
   </CoreAppContainer>
 </template>

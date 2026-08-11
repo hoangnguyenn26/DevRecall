@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { draftFromProfile, isLearningProfileDraftValid, learningProfileSignature } from './learning-profile'
+import { draftFromProfile, isLearningProfileDraftValid, learningProfileSignature, shouldShowLearningProfileSetup } from './learning-profile'
+import { learningProfileKeys } from './learning-profile.query-keys'
 
 describe('learning profile form', () => {
   it('creates an editable empty draft for a missing profile', () => {
@@ -26,5 +27,20 @@ describe('learning profile form', () => {
       goals: ['PrepareForInterviews'] })).toBe(true)
     expect(isLearningProfileDraftValid({ targetRole: '', experienceLevel: 'Junior',
       availableMinutesPerDay: 45, technologies: [], goals: [] })).toBe(false)
+    expect(isLearningProfileDraftValid({ targetRole: 'BackendDeveloper', experienceLevel: 'Junior',
+      availableMinutesPerDay: 47, technologies: [{ name: 'CSharp', isPrimary: true }],
+      goals: ['PrepareForInterviews'] })).toBe(false)
+  })
+
+  it('shows setup only for a loaded missing profile', () => {
+    const missing = { isConfigured: false, targetRole: null, experienceLevel: null,
+      availableMinutesPerDay: null, technologies: [], goals: [], version: null, updatedAtUtc: null }
+    expect(shouldShowLearningProfileSetup(undefined)).toBe(false)
+    expect(shouldShowLearningProfileSetup(missing)).toBe(true)
+    expect(shouldShowLearningProfileSetup({ ...missing, isConfigured: true })).toBe(false)
+  })
+
+  it('uses canonical shared query keys', () => {
+    expect(learningProfileKeys).toEqual({ current: 'learning-profile', options: 'learning-profile-options' })
   })
 })
