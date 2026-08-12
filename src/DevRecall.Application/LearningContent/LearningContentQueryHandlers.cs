@@ -19,6 +19,7 @@ public sealed class GetPublishedLearningContentHandler(
         GetPublishedLearningContentQuery query, CancellationToken cancellationToken)
     {
         EnsureAuthenticated(currentUser);
+        var userId = currentUser.UserId!.Value;
         var errors = new Dictionary<string, string[]>();
         if (query.Page < 1) errors["page"] = ["Page must be greater than or equal to 1."];
         if (query.PageSize is < 1 or > 50) errors["pageSize"] = ["Page size must be between 1 and 50."];
@@ -30,7 +31,7 @@ public sealed class GetPublishedLearningContentHandler(
             errors["topic"] = ["Topic must be a valid lowercase slug."];
         if (errors.Count > 0) throw new ValidationException(errors);
 
-        var page = await reader.GetPublishedAsync(technology?.ToString(), topic,
+        var page = await reader.GetPublishedAsync(userId, technology?.ToString(), topic,
             difficulty?.ToString(), (query.Page - 1) * query.PageSize, query.PageSize,
             cancellationToken);
         var totalPages = page.TotalCount == 0 ? 0
@@ -64,7 +65,7 @@ public sealed class GetPublishedLearningContentDetailHandler(
         GetPublishedLearningContentHandler.EnsureAuthenticated(currentUser);
         if (string.IsNullOrWhiteSpace(slug)) throw new NotFoundException(
             "LEARNING_CONTENT_NOT_FOUND", "Learning content was not found.");
-        return await reader.GetPublishedBySlugAsync(slug.Trim().ToLowerInvariant(), cancellationToken)
+        return await reader.GetPublishedBySlugAsync(currentUser.UserId!.Value, slug.Trim().ToLowerInvariant(), cancellationToken)
             ?? throw new NotFoundException("LEARNING_CONTENT_NOT_FOUND", "Learning content was not found.");
     }
 }

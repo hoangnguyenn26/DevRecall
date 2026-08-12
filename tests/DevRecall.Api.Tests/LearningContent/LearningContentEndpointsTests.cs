@@ -111,6 +111,65 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         detail.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Start_ShouldCreateProgressAndRemainIdempotent()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("start");
+
+        var before = await client.GetFromJsonAsync<LearningContentDetailResponse>(
+            "/api/v1/learning-content/aspnet-core-service-lifetimes");
+        using var first = await client.PostAsJsonAsync(
+            "/api/v1/learning-content/aspnet-core-service-lifetimes/progress/start", new { });
+        using var second = await client.PostAsJsonAsync(
+            "/api/v1/learning-content/aspnet-core-service-lifetimes/progress/start", new { });
+        var firstProgress = await first.Content.ReadFromJsonAsync<LearningContentProgressResponse>();
+        var secondProgress = await second.Content.ReadFromJsonAsync<LearningContentProgressResponse>();
+
+        before!.Progress.Status.Should().Be("NotStarted");
+        secondProgress!.Status.Should().Be(firstProgress!.Status);
+        secondProgress.Version.Should().Be(firstProgress.Version);
+        secondProgress.StartedAtUtc.Should().BeCloseTo(firstProgress.StartedAtUtc!.Value, TimeSpan.FromMilliseconds(1));
+        firstProgress.Status.Should().Be("InProgress");
+        firstProgress.Version.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Complete_ShouldSupportDirectCompletionAndCreateEvidenceOnce()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("complete");
+        var route = "/api/v1/learning-content/dependency-injection-fundamentals/progress/complete";
+
+        using var first = await client.PostAsJsonAsync(route, new CompleteLearningContentRequest(null));
+        using var retry = await client.PostAsJsonAsync(route, new CompleteLearningContentRequest(null));
+        first.EnsureSuccessStatusCode();
+        retry.EnsureSuccessStatusCode();
+        var progress = await retry.Content.ReadFromJsonAsync<LearningContentProgressResponse>();
+        progress!.Status.Should().Be("Completed");
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await db.LearningContentCompletionEvidence.CountAsync()).Should().Be(1);
+        (await db.ReviewItems.CountAsync()).Should().Be(0);
+        (await db.WeakTopicProfiles.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Progress_ShouldBeIsolatedPerUserAndProjectedInCatalog()
+    {
+        await SeedAsync();
+        using var firstUser = await CreateAuthenticatedClientAsync("owner-a");
+        using var secondUser = await CreateAuthenticatedClientAsync("owner-b");
+        await firstUser.PostAsJsonAsync(
+            "/api/v1/learning-content/ef-core-tracking-vs-no-tracking/progress/start", new { });
+
+        var firstPage = await GetPageAsync(firstUser, "technology=EfCore");
+        var secondPage = await GetPageAsync(secondUser, "technology=EfCore");
+        firstPage.Items.Single().ProgressStatus.Should().Be("InProgress");
+        secondPage.Items.Single().ProgressStatus.Should().Be("NotStarted");
+    }
+
     private async Task SeedAsync()
     {
         await using var scope = factory.Services.CreateAsyncScope();

@@ -9,7 +9,7 @@ public sealed record LearningContentSourceItem(string Type, string Name, string?
 public sealed record PublishedLearningContentListItem(
     string Slug, string Title, string Summary, string ContentType, string Difficulty,
     int EstimatedMinutes, IReadOnlyList<LearningContentTechnologyItem> Technologies,
-    IReadOnlyList<LearningContentTopicItem> Topics);
+    IReadOnlyList<LearningContentTopicItem> Topics, string ProgressStatus);
 
 public sealed record PublishedLearningContentDetail(
     string Slug, string Title, string Summary, string ContentType, string Difficulty,
@@ -17,16 +17,17 @@ public sealed record PublishedLearningContentDetail(
     IReadOnlyList<LearningContentTopicItem> Topics,
     IReadOnlyList<LearningContentObjectiveItem> Objectives,
     IReadOnlyList<LearningContentSectionItem> Sections,
-    LearningContentSourceItem Source, DateTimeOffset PublishedAtUtc);
+    LearningContentSourceItem Source, DateTimeOffset PublishedAtUtc,
+    LearningContentProgressItem Progress);
 
 public sealed record PublishedLearningContentPage(
     IReadOnlyList<PublishedLearningContentListItem> Items, int TotalCount);
 
 public interface ILearningContentReader
 {
-    Task<PublishedLearningContentPage> GetPublishedAsync(string? technology,
+    Task<PublishedLearningContentPage> GetPublishedAsync(Guid userId, string? technology,
         string? topicSlug, string? difficulty, int skip, int take,
         CancellationToken cancellationToken);
-    Task<PublishedLearningContentDetail?> GetPublishedBySlugAsync(string slug,
+    Task<PublishedLearningContentDetail?> GetPublishedBySlugAsync(Guid userId, string slug,
         CancellationToken cancellationToken);
 }

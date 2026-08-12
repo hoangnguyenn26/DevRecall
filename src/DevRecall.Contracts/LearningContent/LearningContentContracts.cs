@@ -17,11 +17,15 @@ public sealed record LearningContentSourceResponse(string Type, string Name, str
 public sealed record LearningContentListItemResponse(string Slug, string Title, string Summary,
     string ContentType, string Difficulty, int EstimatedMinutes,
     IReadOnlyList<LearningContentTechnologyResponse> Technologies,
-    IReadOnlyList<LearningContentTopicResponse> Topics);
+    IReadOnlyList<LearningContentTopicResponse> Topics, string ProgressStatus);
+public sealed record LearningContentProgressResponse(string Status, DateTimeOffset? StartedAtUtc,
+    DateTimeOffset? CompletedAtUtc, int? Version);
+public sealed record CompleteLearningContentRequest(int? ExpectedVersion);
 public sealed record LearningContentDetailResponse(string Slug, string Title, string Summary,
     string ContentType, string Difficulty, int EstimatedMinutes,
     IReadOnlyList<LearningContentTechnologyResponse> Technologies,
     IReadOnlyList<LearningContentTopicResponse> Topics,
     IReadOnlyList<LearningContentObjectiveResponse> Objectives,
     IReadOnlyList<LearningContentSectionResponse> Sections,
-    LearningContentSourceResponse Source, DateTimeOffset PublishedAtUtc);
+    LearningContentSourceResponse Source, DateTimeOffset PublishedAtUtc,
+    LearningContentProgressResponse Progress);

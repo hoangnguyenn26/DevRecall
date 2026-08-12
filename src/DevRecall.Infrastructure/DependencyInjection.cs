@@ -107,6 +107,7 @@ public static class DependencyInjection
         services.AddScoped<ILearningProfileRepository, LearningProfileRepository>();
         services.AddScoped<ILearningProfileReader, LearningProfileReader>();
         services.AddScoped<ILearningContentReader, LearningContentReader>();
+        services.AddScoped<ILearningContentProgressRepository, LearningContentProgressRepository>();
         services.AddScoped<IDailyActivityReader, DailyActivityReader>();
         services.AddScoped<IDsaPerformanceReader, DsaPerformanceReader>();
         services.AddScoped<IModuleBreakdownReader, ModuleBreakdownReader>();

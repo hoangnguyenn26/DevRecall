@@ -45,6 +45,8 @@ public sealed class DevRecallDbContext(
     public DbSet<LearningContentTopic> LearningContentTopics => Set<LearningContentTopic>();
     public DbSet<LearningObjective> LearningObjectives => Set<LearningObjective>();
     public DbSet<LearningContentSection> LearningContentSections => Set<LearningContentSection>();
+    public DbSet<LearningContentProgress> LearningContentProgresses => Set<LearningContentProgress>();
+    public DbSet<LearningContentCompletionEvidence> LearningContentCompletionEvidence => Set<LearningContentCompletionEvidence>();
 
     public DbSet<DsaProblem> DsaProblems =>
         Set<DsaProblem>();
