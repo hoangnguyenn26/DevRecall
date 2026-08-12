@@ -9,6 +9,7 @@ export const appNavigation: AppNavigationSection[] = [
   {
     label: 'Learn',
     items: [
+      { label: 'Learn', to: '/app/learn', icon: 'i-lucide-book-open', shortcuts: ['G', 'L'] },
       { label: 'Knowledge', to: '/app/knowledge', icon: 'i-lucide-library', shortcuts: ['G', 'K'] },
     ],
   },
