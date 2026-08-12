@@ -12,6 +12,7 @@ const card = {
   difficulty: 'Intermediate' as const, estimatedMinutes: 15,
   technologies: [{ value: 'AspNetCore', label: 'ASP.NET Core' }],
   topics: [{ slug: 'dependency-injection', name: 'Dependency Injection' }],
+  progressStatus: 'NotStarted' as const,
 }
 
 describe('Learn catalog and reader', () => {
@@ -21,6 +22,19 @@ describe('Learn catalog and reader', () => {
     expect(filtersFromQuery({ technology: 'Ninja', difficulty: 'Expert', page: '-1' }))
       .toEqual({ technology: undefined, difficulty: undefined, page: 1 })
     expect(queryFromFilters({ page: 1 })).toEqual({})
+  })
+
+  it.each([
+    ['NotStarted', 'Start lesson'], ['InProgress', 'Continue'], ['Completed', 'Read again'],
+  ] as const)('renders %s catalog state as %s', (progressStatus, label) => {
+    const wrapper = mount(LearningContentCard, {
+      props: { item: { ...card, progressStatus }, returnTo: '/app/learn' },
+      global: { stubs: {
+        UBadge: { template: '<span><slot /></span>' },
+        UButton: { template: '<a><slot /></a>' },
+      } },
+    })
+    expect(wrapper.text()).toContain(label)
   })
 
   it('resets pagination when a filter changes and preserves it otherwise', () => {

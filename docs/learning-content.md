@@ -85,11 +85,24 @@ Content is never seeded automatically during normal API startup.
 
 Authenticated users browse published lessons at `/app/learn` and read an individual lesson at `/app/learn/{slug}`. Technology and difficulty filters are URL-driven, use AND semantics, and reset pagination to page one when changed. Browser history therefore retains filter and page context.
 
-The catalog is learning-oriented rather than an administration table. Cards expose title, summary, difficulty, estimated time, and a small number of meaningful technology/topic tags. The reader keeps the normal application shell but bounds the reading column, distinguishes explanation, large code example, and key-takeaway sections, and provides no editing controls or fake progress.
+The catalog is learning-oriented rather than an administration table. Cards expose title, summary, difficulty, estimated time, progress state, and a small number of meaningful technology/topic tags. The reader keeps the normal application shell but bounds the reading column, distinguishes explanation, large code example, and key-takeaway sections, and provides no editing controls or fake percentage progress.
 
-Opening or reading a lesson creates no learning activity, Study Minutes, Active Day, streak, Weak Topic, Review item, Knowledge note, or Recommendation. Completion semantics are intentionally deferred.
+Opening or reading a lesson creates no progress. Starting records intent only. Completion creates one immutable learning-completion evidence record without fabricating study duration or practice performance.
 
 The reusable Learn Markdown renderer creates Vue text nodes and safe elements rather than injecting generated HTML. Raw HTML remains visible as text, executable URL schemes are not linked, external HTTP/HTTPS links receive `noopener noreferrer`, code fences scroll horizontally, and copy failures remain isolated to the button.
+
+## Progress and completion semantics
+
+- Opening a lesson is read-only; `NotStarted` is represented by the absence of a progress row.
+- Starting is explicit and idempotent. It records learning intent, not completion evidence.
+- Completing is explicit and may directly complete an unstarted lesson.
+- Completed progress is immutable in the MVP; reading again never resets it.
+- Completion and one immutable, title-snapshotted evidence record are saved atomically.
+- A retry after completion returns the canonical state without duplicate evidence.
+- Progress is always scoped to the authenticated user; requests never accept a user id.
+
+Estimated duration is metadata, not actual study time. Progress does not create Review items, Weak Topics,
+Knowledge notes, Recommendations, or Interview/DSA practice activity.
 
 ## Writing a good lesson
 
@@ -105,4 +118,4 @@ The reusable Learn Markdown renderer creates Vue text nodes and safe elements ra
 
 Future matching may compare Learning Profile signals with content Technology, Topic, Difficulty, and Estimated Minutes. No matching or ranking algorithm exists yet.
 
-The following remain out of scope for Day 1–2: Learn UI, progress, completion, Discover, recommendation, Review creation, authoring APIs, content providers, crawlers, AI, attachments, and public lesson SEO.
+The following remain out of scope: Discover, recommendations, Review creation, section progress, timers, saved scroll position, relearning sessions, authoring APIs, content providers, crawlers, AI, attachments, and public lesson SEO.

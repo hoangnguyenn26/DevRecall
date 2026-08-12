@@ -3,6 +3,7 @@ import { useLearningContentApi } from '~/features/learning-content/learning-cont
 import { learningContentKeys } from '~/features/learning-content/learning-content.query-keys'
 import type { LearningContentDetail } from '~/features/learning-content/learning-content.types'
 import { difficultyColor, visibleTags } from '~/features/learning-content/learning-content.meta'
+import { normalizeApiError, type NormalizedApiError } from '~/utils/normalize-api-error'
 
 definePageMeta({ layout: 'app' })
 const route = useRoute()
@@ -17,6 +18,24 @@ const returnTo = computed(() => {
 })
 const technologies = computed(() => visibleTags(lesson.value?.technologies ?? []))
 const topics = computed(() => visibleTags(lesson.value?.topics ?? []))
+const mutationPending = ref(false)
+const mutationError = ref<NormalizedApiError | null>(null)
+const completedJustNow = ref(false)
+
+async function mutate(action: 'start' | 'complete') {
+  if (!lesson.value || mutationPending.value) return
+  mutationPending.value = true
+  mutationError.value = null
+  try {
+    const progress = action === 'start' ? await api.start(slug.value)
+      : await api.complete(slug.value, lesson.value.progress.version)
+    lesson.value.progress = progress
+    lesson.value.progressStatus = progress.status
+    completedJustNow.value = action === 'complete'
+  } catch (error) {
+    mutationError.value = normalizeApiError(error)
+  } finally { mutationPending.value = false }
+}
 useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
 </script>
 
@@ -40,6 +59,14 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
           <span v-for="item in topics.visible" :key="item.slug">{{ item.name }}</span>
           <span v-if="technologies.hiddenCount + topics.hiddenCount">+{{ technologies.hiddenCount + topics.hiddenCount }}</span>
         </div>
+        <div class="progress-action">
+          <UBadge v-if="lesson.progress.status !== 'NotStarted'" color="primary" variant="subtle">{{ lesson.progress.status === 'InProgress' ? 'In progress' : 'Completed' }}</UBadge>
+          <UButton v-if="lesson.progress.status === 'NotStarted'" :loading="mutationPending" :disabled="mutationPending" @click="mutate('start')">Start lesson</UButton>
+          <span v-else-if="lesson.progress.status === 'InProgress'" class="calm-status">Continue learning at your own pace.</span>
+          <span v-else class="calm-status">Read again anytime. Your completion remains recorded.</span>
+        </div>
+        <UAlert v-if="mutationError" color="error" variant="subtle" title="Progress wasn't updated" :description="mutationError.detail" />
+        <UButton v-if="mutationError?.status === 409" color="neutral" variant="outline" @click="() => lessonQuery.refresh()">Reload latest progress</UButton>
       </header>
 
       <section class="objectives" aria-labelledby="lesson-objectives">
@@ -58,6 +85,16 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
         <div><strong>External resource</strong><p>{{ lesson.source.name }}</p></div>
         <UButton v-if="lesson.source.url" :to="lesson.source.url" target="_blank" rel="noopener noreferrer" trailing-icon="i-lucide-external-link">Open original resource</UButton>
       </aside>
+      <section class="completion-panel" aria-labelledby="lesson-completion">
+        <template v-if="lesson.progress.status !== 'Completed'">
+          <div><h2 id="lesson-completion">You've reached the end of this lesson.</h2><p>Completion is explicit and records one learning event.</p></div>
+          <UButton :loading="mutationPending" :disabled="mutationPending" @click="mutate('complete')">Complete lesson</UButton>
+        </template>
+        <template v-else>
+          <div><h2 id="lesson-completion">Lesson completed</h2><p>{{ completedJustNow ? 'Your learning evidence has been recorded.' : `Completed ${new Date(lesson.progress.completedAtUtc!).toLocaleDateString()}.` }}</p></div>
+          <UBadge color="success" variant="subtle">Completed</UBadge>
+        </template>
+      </section>
       <footer><UButton :to="returnTo" icon="i-lucide-arrow-left" color="neutral" variant="outline">Back to Learn</UButton></footer>
     </article>
   </main>
@@ -65,4 +102,5 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
 
 <style scoped>
 .lesson-page{width:min(100%,54rem);margin-inline:auto}.lesson-page>:first-child{margin-bottom:1rem}.lesson{display:grid;gap:2rem}.lesson-header{display:grid;gap:1rem;border-bottom:1px solid var(--ui-border);padding:1rem 0 2rem}.primary-meta{display:flex;align-items:center;gap:.75rem;color:var(--ui-text-muted);font-size:.86rem}.primary-meta span{display:flex;align-items:center;gap:.3rem}.lesson h1{max-width:48rem;font-size:clamp(2rem,5vw,3.25rem);font-weight:800;letter-spacing:-.035em;line-height:1.08}.summary{max-width:46rem;color:var(--ui-text-muted);font-size:1.08rem;line-height:1.7}.tags{display:flex;flex-wrap:wrap;gap:.45rem}.tags span{border:1px solid var(--ui-border);border-radius:999px;padding:.3rem .65rem;color:var(--ui-text-muted);font-size:.78rem}.objectives{border:1px solid color-mix(in srgb,var(--ui-primary) 24%,var(--ui-border));border-radius:1rem;background:color-mix(in srgb,var(--ui-primary) 5%,var(--ui-bg-elevated));padding:1.3rem}.objectives h2,.lesson-section h2{font-size:1.35rem;font-weight:750;line-height:1.3}.objectives ul{display:grid;gap:.7rem;margin-top:1rem}.objectives li{display:flex;align-items:flex-start;gap:.65rem;line-height:1.55}.objectives li :deep(svg){margin-top:.2rem;color:var(--ui-primary)}.lesson-section{display:grid;gap:1rem;min-width:0}.section-codeexample{border:1px solid var(--ui-border);border-radius:1rem;background:var(--ui-bg-elevated);padding:1.2rem}.section-keytakeaway{border-left:4px solid var(--ui-primary);border-radius:.25rem 1rem 1rem .25rem;background:color-mix(in srgb,var(--ui-primary) 7%,var(--ui-bg-elevated));padding:1.25rem}.section-kicker{color:var(--ui-primary);font-size:.75rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.external-source{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid var(--ui-border);padding-top:1.4rem}.external-source p{color:var(--ui-text-muted)}footer{border-top:1px solid var(--ui-border);padding:1.5rem 0 3rem}.lesson-state{padding-block:3rem}@media(max-width:480px){.lesson-page{padding-inline:.15rem}.lesson h1{font-size:2rem}.summary{font-size:1rem}.objectives,.section-codeexample,.section-keytakeaway{padding:1rem}.external-source{align-items:flex-start;flex-direction:column}}
+.progress-action{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}.calm-status{color:var(--ui-text-muted);font-size:.9rem}.completion-panel{display:flex;align-items:center;justify-content:space-between;gap:1rem;border:1px solid color-mix(in srgb,var(--ui-primary) 24%,var(--ui-border));border-radius:1rem;background:color-mix(in srgb,var(--ui-primary) 5%,var(--ui-bg-elevated));padding:1.25rem}.completion-panel h2{font-size:1.1rem;font-weight:750}.completion-panel p{margin-top:.3rem;color:var(--ui-text-muted);font-size:.9rem}@media(max-width:480px){.completion-panel{align-items:flex-start;flex-direction:column}}
 </style>

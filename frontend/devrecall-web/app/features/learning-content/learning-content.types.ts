@@ -3,14 +3,16 @@ export interface LearningContentTopic { slug: string; name: string }
 export interface LearningContentObjective { position: number; text: string }
 export interface LearningContentSection { position: number; type: 'Explanation' | 'CodeExample' | 'KeyTakeaway'; heading: string | null; bodyMarkdown: string }
 export interface LearningContentSource { type: 'Internal' | 'External'; name: string; url: string | null }
+export type LearningProgressStatus = 'NotStarted' | 'InProgress' | 'Completed'
+export interface LearningContentProgress { status: LearningProgressStatus; startedAtUtc: string | null; completedAtUtc: string | null; version: number | null }
 export interface LearningContentListItem {
   slug: string; title: string; summary: string; contentType: 'Lesson' | 'ExternalResource'
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced'; estimatedMinutes: number
-  technologies: LearningContentTechnology[]; topics: LearningContentTopic[]
+  technologies: LearningContentTechnology[]; topics: LearningContentTopic[]; progressStatus: LearningProgressStatus
 }
 export interface LearningContentDetail extends LearningContentListItem {
   objectives: LearningContentObjective[]; sections: LearningContentSection[]
-  source: LearningContentSource; publishedAtUtc: string
+  source: LearningContentSource; publishedAtUtc: string; progress: LearningContentProgress
 }
 export interface LearningContentPage {
   items: LearningContentListItem[]; page: number; pageSize: number; totalCount: number; totalPages: number

@@ -9,11 +9,14 @@ const topics = computed(() => visibleTags(props.item.topics))
 const target = computed(() => props.item.contentType === 'Lesson'
   ? { path: `/app/learn/${props.item.slug}`, query: { returnTo: props.returnTo } }
   : `/app/learn/${props.item.slug}`)
+const actionLabel = computed(() => props.item.contentType !== 'Lesson' ? 'Open resource'
+  : props.item.progressStatus === 'Completed' ? 'Read again'
+    : props.item.progressStatus === 'InProgress' ? 'Continue' : 'Start lesson')
 </script>
 
 <template>
   <article class="content-card">
-    <div class="card-meta"><UBadge :color="difficultyColor(item.difficulty)" variant="subtle">{{ item.difficulty }}</UBadge><span>{{ item.estimatedMinutes }} min</span></div>
+    <div class="card-meta"><div><UBadge :color="difficultyColor(item.difficulty)" variant="subtle">{{ item.difficulty }}</UBadge><UBadge v-if="item.progressStatus !== 'NotStarted'" color="primary" variant="subtle">{{ item.progressStatus === 'InProgress' ? 'In progress' : 'Completed' }}</UBadge></div><span>{{ item.estimatedMinutes }} min</span></div>
     <div><h2>{{ item.title }}</h2><p>{{ item.summary }}</p></div>
     <div class="tags" aria-label="Lesson metadata">
       <span v-for="technology in technologies.visible" :key="technology.value">{{ technology.label }}</span>
@@ -21,7 +24,7 @@ const target = computed(() => props.item.contentType === 'Lesson'
       <span v-if="technologies.hiddenCount + topics.hiddenCount">+{{ technologies.hiddenCount + topics.hiddenCount }}</span>
     </div>
     <UButton :to="target" trailing-icon="i-lucide-arrow-right" variant="soft">
-      {{ item.contentType === 'Lesson' ? 'Start lesson' : 'Open resource' }}
+      {{ actionLabel }}
     </UButton>
   </article>
 </template>
