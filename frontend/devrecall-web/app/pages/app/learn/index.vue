@@ -77,7 +77,7 @@ onBeforeUnmount(() => requestController?.abort())
       <UButton to="/app/learn" variant="soft">Clear filters</UButton>
     </CoreEmptyState>
     <div v-else class="catalog-grid">
-      <LearningContentLearningContentCard v-for="item in page.items" :key="item.slug" :item="item" :return-to="returnTo" />
+      <LearningContentCard v-for="item in page.items" :key="item.slug" :item="item" :return-to="returnTo" />
     </div>
 
     <nav v-if="page && page.totalPages > 1" class="pagination" aria-label="Learning content pages">

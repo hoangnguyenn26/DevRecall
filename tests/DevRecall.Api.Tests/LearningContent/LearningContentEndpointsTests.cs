@@ -140,6 +140,10 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         await SeedAsync();
         using var client = await CreateAuthenticatedClientAsync("complete");
         var route = "/api/v1/learning-content/dependency-injection-fundamentals/progress/complete";
+        await using var beforeScope = factory.Services.CreateAsyncScope();
+        var beforeDb = beforeScope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var reviewCount = await beforeDb.ReviewItems.CountAsync();
+        var weakTopicCount = await beforeDb.WeakTopicProfiles.CountAsync();
 
         using var first = await client.PostAsJsonAsync(route, new CompleteLearningContentRequest(null));
         using var retry = await client.PostAsJsonAsync(route, new CompleteLearningContentRequest(null));
@@ -151,8 +155,8 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
         (await db.LearningContentCompletionEvidence.CountAsync()).Should().Be(1);
-        (await db.ReviewItems.CountAsync()).Should().Be(0);
-        (await db.WeakTopicProfiles.CountAsync()).Should().Be(0);
+        (await db.ReviewItems.CountAsync()).Should().Be(reviewCount);
+        (await db.WeakTopicProfiles.CountAsync()).Should().Be(weakTopicCount);
     }
 
     [Fact]
@@ -170,6 +174,49 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         secondPage.Items.Single().ProgressStatus.Should().Be("NotStarted");
     }
 
+    [Fact]
+    public async Task Completion_ShouldBeRetrySafeAcrossTabsAndRemainImmutable()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("multi-tab");
+        var baseRoute = "/api/v1/learning-content/aspnet-core-service-lifetimes/progress";
+        var started = await (await client.PostAsJsonAsync($"{baseRoute}/start", new { }))
+            .Content.ReadFromJsonAsync<LearningContentProgressResponse>();
+
+        var completed = await (await client.PostAsJsonAsync($"{baseRoute}/complete",
+            new CompleteLearningContentRequest(started!.Version))).Content
+            .ReadFromJsonAsync<LearningContentProgressResponse>();
+        var staleTab = await (await client.PostAsJsonAsync($"{baseRoute}/complete",
+            new CompleteLearningContentRequest(started.Version))).Content
+            .ReadFromJsonAsync<LearningContentProgressResponse>();
+        var startAgain = await (await client.PostAsJsonAsync($"{baseRoute}/start", new { }))
+            .Content.ReadFromJsonAsync<LearningContentProgressResponse>();
+
+        staleTab!.Status.Should().Be("Completed");
+        staleTab.Version.Should().Be(completed!.Version);
+        staleTab.CompletedAtUtc.Should().BeCloseTo(completed.CompletedAtUtc!.Value, TimeSpan.FromMilliseconds(1));
+        startAgain!.Status.Should().Be("Completed");
+        startAgain.Version.Should().Be(completed.Version);
+        completed.Version.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Mutations_ShouldHideDraftAndArchivedLessons()
+    {
+        await SeedAsync();
+        await AddUnpublishedContentAsync();
+        using var client = await CreateAuthenticatedClientAsync("hidden-mutations");
+
+        foreach (var slug in new[] { "hidden-draft-lesson", "hidden-archived-lesson" })
+        {
+            using var start = await client.PostAsJsonAsync($"/api/v1/learning-content/{slug}/progress/start", new { });
+            using var complete = await client.PostAsJsonAsync($"/api/v1/learning-content/{slug}/progress/complete",
+                new CompleteLearningContentRequest(null));
+            start.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            complete.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+    }
+
     private async Task SeedAsync()
     {
         await using var scope = factory.Services.CreateAsyncScope();
@@ -180,6 +227,7 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        if (await dbContext.LearningContents.AnyAsync(item => item.Slug == "hidden-draft-lesson")) return;
         var topicId = await dbContext.ContentTopics.Select(item => item.Id).FirstAsync();
         var draft = Create("hidden-draft-lesson", topicId);
         var archived = Create("hidden-archived-lesson", topicId);

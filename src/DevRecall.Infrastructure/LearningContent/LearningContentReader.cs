@@ -80,8 +80,13 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                 PublishedAtUtc = item.PublishedAtUtc!.Value,
                 Progress = dbContext.LearningContentProgresses.Where(progress =>
                     progress.UserId == userId && progress.LearningContentId == item.Id)
-                    .Select(progress => new { progress.Status, progress.StartedAtUtc,
-                        progress.CompletedAtUtc, progress.Version }).SingleOrDefault(),
+                    .Select(progress => new
+                    {
+                        progress.Status,
+                        progress.StartedAtUtc,
+                        progress.CompletedAtUtc,
+                        progress.Version
+                    }).SingleOrDefault(),
                 Technologies = item.Technologies.OrderBy(value => value.Technology)
                     .Select(value => value.Technology).ToArray(),
                 TopicIds = item.Topics.Select(value => value.TopicId).ToArray(),

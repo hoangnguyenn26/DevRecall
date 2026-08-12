@@ -38,8 +38,18 @@ public sealed class LearningContentProgress
     {
         if (id == Guid.Empty || userId == Guid.Empty || contentId == Guid.Empty) throw new ArgumentException("Ids cannot be empty.");
         EnsureUtc(now);
-        return new() { Id = id, UserId = userId, LearningContentId = contentId, Status = status,
-            StartedAtUtc = started, CompletedAtUtc = completed, Version = 1, CreatedAtUtc = now, UpdatedAtUtc = now };
+        return new()
+        {
+            Id = id,
+            UserId = userId,
+            LearningContentId = contentId,
+            Status = status,
+            StartedAtUtc = started,
+            CompletedAtUtc = completed,
+            Version = 1,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
     }
 
     private static void EnsureUtc(DateTimeOffset value)
@@ -63,7 +73,13 @@ public sealed class LearningContentCompletionEvidence
         if (id == Guid.Empty || userId == Guid.Empty || contentId == Guid.Empty) throw new ArgumentException("Ids cannot be empty.");
         if (string.IsNullOrWhiteSpace(titleSnapshot)) throw new ArgumentException("Title is required.", nameof(titleSnapshot));
         if (completedAtUtc.Offset != TimeSpan.Zero) throw new ArgumentException("Timestamp must be UTC.");
-        return new() { Id = id, UserId = userId, LearningContentId = contentId,
-            TitleSnapshot = titleSnapshot.Trim(), CompletedAtUtc = completedAtUtc };
+        return new()
+        {
+            Id = id,
+            UserId = userId,
+            LearningContentId = contentId,
+            TitleSnapshot = titleSnapshot.Trim(),
+            CompletedAtUtc = completedAtUtc
+        };
     }
 }

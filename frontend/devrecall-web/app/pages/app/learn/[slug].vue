@@ -60,7 +60,8 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
           <span v-if="technologies.hiddenCount + topics.hiddenCount">+{{ technologies.hiddenCount + topics.hiddenCount }}</span>
         </div>
         <div class="progress-action">
-          <UBadge v-if="lesson.progress.status !== 'NotStarted'" color="primary" variant="subtle">{{ lesson.progress.status === 'InProgress' ? 'In progress' : 'Completed' }}</UBadge>
+          <UBadge v-if="lesson.progress.status === 'InProgress'" key="in-progress" color="primary" variant="subtle">In progress</UBadge>
+          <UBadge v-else-if="lesson.progress.status === 'Completed'" key="completed" color="success" variant="subtle">Completed</UBadge>
           <UButton v-if="lesson.progress.status === 'NotStarted'" :loading="mutationPending" :disabled="mutationPending" @click="mutate('start')">Start lesson</UButton>
           <span v-else-if="lesson.progress.status === 'InProgress'" class="calm-status">Continue learning at your own pace.</span>
           <span v-else class="calm-status">Read again anytime. Your completion remains recorded.</span>
