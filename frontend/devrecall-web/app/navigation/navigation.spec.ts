@@ -34,7 +34,7 @@ describe('application navigation', () => {
     const wrapper = mount(AppSidebar, { props: { collapsed: true }, global: { stubs: globalStubs } })
     expect(wrapper.get('nav').attributes('aria-label')).toBe('Application navigation')
     expect(wrapper.get('a[aria-label="Knowledge"]').attributes('aria-current')).toBe('page')
-    expect(wrapper.text()).not.toContain('Learn')
+    expect(wrapper.get('a[aria-label="Learn"]').attributes('href')).toBe('/app/learn')
   })
 
   it('renders section labels in the expanded sidebar', () => {

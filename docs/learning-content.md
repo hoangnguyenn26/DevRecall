@@ -81,6 +81,26 @@ The command is guarded to the Development environment and is idempotent by stabl
 
 Content is never seeded automatically during normal API startup.
 
+## Learn experience
+
+Authenticated users browse published lessons at `/app/learn` and read an individual lesson at `/app/learn/{slug}`. Technology and difficulty filters are URL-driven, use AND semantics, and reset pagination to page one when changed. Browser history therefore retains filter and page context.
+
+The catalog is learning-oriented rather than an administration table. Cards expose title, summary, difficulty, estimated time, and a small number of meaningful technology/topic tags. The reader keeps the normal application shell but bounds the reading column, distinguishes explanation, large code example, and key-takeaway sections, and provides no editing controls or fake progress.
+
+Opening or reading a lesson creates no learning activity, Study Minutes, Active Day, streak, Weak Topic, Review item, Knowledge note, or Recommendation. Completion semantics are intentionally deferred.
+
+The reusable Learn Markdown renderer creates Vue text nodes and safe elements rather than injecting generated HTML. Raw HTML remains visible as text, executable URL schemes are not linked, external HTTP/HTTPS links receive `noopener noreferrer`, code fences scroll horizontally, and copy failures remain isolated to the button.
+
+## Writing a good lesson
+
+- Teach one primary concept; split broad subjects into separate lessons.
+- Target roughly 10–20 minutes, with 2–4 specific and observable objectives.
+- Use 3–6 natural sections: explanation, a focused concrete example, a common mistake or nuance, and a clear takeaway.
+- Explanation sections may include small code fences. Use `CodeExample` when the whole section is a substantial example.
+- Prefer conceptually compilable examples over full-application snippets.
+- Use one to three meaningful technologies and topics; do not tag every adjacent concept.
+- Write a summary that answers “What will this teach me?” rather than generic promotional text.
+
 ## Future boundaries
 
 Future matching may compare Learning Profile signals with content Technology, Topic, Difficulty, and Estimated Minutes. No matching or ranking algorithm exists yet.
