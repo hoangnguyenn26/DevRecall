@@ -6,6 +6,7 @@ using DevRecall.Api.Endpoints.Auth;
 using DevRecall.Api.Endpoints.Dsa;
 using DevRecall.Api.Endpoints.Interview;
 using DevRecall.Api.Endpoints.Knowledge;
+using DevRecall.Api.Endpoints.LearningContent;
 using DevRecall.Api.Endpoints.LearningProfiles;
 using DevRecall.Api.Endpoints.Navigation;
 using DevRecall.Api.Endpoints.Onboarding;
@@ -174,6 +175,16 @@ if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
+if (args.Contains("--seed-learning-content", StringComparer.OrdinalIgnoreCase))
+{
+    LearningContentSeeder.EnsureDevelopmentEnvironment(app.Environment.IsDevelopment());
+    await using var scope = app.Services.CreateAsyncScope();
+    var seeder = scope.ServiceProvider.GetRequiredService<LearningContentSeeder>();
+    var created = await seeder.SeedAsync();
+    Console.WriteLine($"Learning Content seed complete. Created {created} lesson(s).");
+    return;
+}
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
@@ -219,6 +230,7 @@ app.MapDsaProblemEndpoints();
 app.MapInterviewQuestionEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapLearningProfileEndpoints();
+app.MapLearningContentEndpoints();
 app.MapNavigationIndicatorEndpoints();
 app.MapOnboardingEndpoints();
 app.MapReviewItemEndpoints();
