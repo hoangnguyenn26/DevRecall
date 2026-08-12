@@ -8,6 +8,7 @@ using DevRecall.Domain.Interview.FollowUps;
 using DevRecall.Domain.Interview.Practice;
 using DevRecall.Domain.Knowledge;
 using DevRecall.Domain.Knowledge.Tags;
+using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.LearningProfiles;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.Reviews;
@@ -15,6 +16,7 @@ using DevRecall.Domain.Study;
 using DevRecall.Domain.StudyPlans;
 using DevRecall.Domain.WeakTopics;
 using Microsoft.EntityFrameworkCore;
+using LearningContentAggregate = DevRecall.Domain.LearningContent.LearningContent;
 
 namespace DevRecall.Infrastructure.Persistence;
 
@@ -37,6 +39,12 @@ public sealed class DevRecallDbContext(
     public DbSet<LearningProfile> LearningProfiles => Set<LearningProfile>();
     public DbSet<LearningProfileTechnology> LearningProfileTechnologies => Set<LearningProfileTechnology>();
     public DbSet<LearningProfileGoalEntry> LearningProfileGoals => Set<LearningProfileGoalEntry>();
+    public DbSet<LearningContentAggregate> LearningContents => Set<LearningContentAggregate>();
+    public DbSet<ContentTopic> ContentTopics => Set<ContentTopic>();
+    public DbSet<LearningContentTechnology> LearningContentTechnologies => Set<LearningContentTechnology>();
+    public DbSet<LearningContentTopic> LearningContentTopics => Set<LearningContentTopic>();
+    public DbSet<LearningObjective> LearningObjectives => Set<LearningObjective>();
+    public DbSet<LearningContentSection> LearningContentSections => Set<LearningContentSection>();
 
     public DbSet<DsaProblem> DsaProblems =>
         Set<DsaProblem>();
