@@ -6,6 +6,7 @@ import { filtersFromQuery, queryFromFilters, withFilter } from './learning-conte
 import { learningContentKeys } from './learning-content.query-keys'
 import { isSafeMarkdownUrl, parseInlineMarkdown, parseMarkdown } from './learning-markdown'
 import { buildLessonKnowledgeDraft } from './lesson-knowledge'
+import { availableReviewCandidates, markReviewCandidatesAdded } from './lesson-review'
 import type { LearningContentDetail } from './learning-content.types'
 
 const card = {
@@ -92,7 +93,7 @@ describe('Learn catalog and reader', () => {
 
   it('builds a deterministic Knowledge draft from key takeaways only', () => {
     const lesson = { ...card, objectives: [], source: { type: 'Internal' as const, name: 'DevRecall', url: null },
-      publishedAtUtc: '2026-08-13T00:00:00Z', progress: { status: 'Completed' as const,
+      reviewCandidates: [], publishedAtUtc: '2026-08-13T00:00:00Z', progress: { status: 'Completed' as const,
         startedAtUtc: null, completedAtUtc: '2026-08-13T00:00:00Z', version: 1 },
       sections: [
         { position: 0, type: 'Explanation' as const, heading: null, bodyMarkdown: 'Long lesson body' },
@@ -109,8 +110,20 @@ describe('Learn catalog and reader', () => {
   it('starts with an empty note body when a lesson has no key takeaways', () => {
     const lesson = { ...card, objectives: [], sections: [],
       source: { type: 'Internal' as const, name: 'DevRecall', url: null },
-      publishedAtUtc: '2026-08-13T00:00:00Z', progress: { status: 'Completed' as const,
+      reviewCandidates: [], publishedAtUtc: '2026-08-13T00:00:00Z', progress: { status: 'Completed' as const,
         startedAtUtc: null, completedAtUtc: '2026-08-13T00:00:00Z', version: 1 } } satisfies LearningContentDetail
     expect(buildLessonKnowledgeDraft(lesson, 'submission-2').content).toBe('')
+  })
+
+  it('keeps review candidates unselected by default and marks only canonical response keys', () => {
+    const candidates = [
+      { key: 'first', prompt: 'First?', answer: 'One', isInReview: false },
+      { key: 'existing', prompt: 'Existing?', answer: 'Two', isInReview: true },
+      { key: 'third', prompt: 'Third?', answer: 'Three', isInReview: false },
+    ]
+    expect(availableReviewCandidates(candidates).map(item => item.key)).toEqual(['first', 'third'])
+    expect(markReviewCandidatesAdded(candidates, ['third'])).toEqual([
+      candidates[0], candidates[1], { ...candidates[2], isInReview: true },
+    ])
   })
 })

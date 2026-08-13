@@ -26,6 +26,12 @@ export function useLearningDataInvalidation() {
     ]).then(() => {
       clearAnalyticsAndInsights()
     })
+  const afterReviewItemsAdded = (): Promise<void> =>
+    Promise.all([
+      refreshNuxtData(queryKeys.reviewDue),
+      refreshNuxtData(queryKeys.today),
+      refreshNuxtData(queryKeys.navigationIndicators),
+    ]).then(() => undefined)
   const afterInterviewPractice = (questionId: string): Promise<void> =>
     Promise.all([
       refreshNuxtData(queryKeys.interviewAttempts(questionId)),
@@ -75,6 +81,7 @@ export function useLearningDataInvalidation() {
     refreshToday,
     refreshTodayAndNavigation,
     afterReviewEvaluation,
+    afterReviewItemsAdded,
     afterInterviewPractice,
     afterDsaPractice,
     afterStudySessionChanged,

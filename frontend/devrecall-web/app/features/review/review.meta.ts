@@ -9,3 +9,8 @@ export const reviewRatingMeta: Record<ReviewRating, ReviewRatingMeta> = {
   Good: { label: 'Good', description: 'I recalled it correctly', shortcut: '3', color: 'primary' },
   Easy: { label: 'Easy', description: 'I recalled it immediately', shortcut: '4', color: 'success' },
 }
+
+export const reviewResourceLabels: Record<string, string> = {
+  KnowledgeNode: 'Knowledge', InterviewQuestion: 'Interview', DsaProblem: 'DSA',
+  LearningContent: 'Lesson concept',
+}

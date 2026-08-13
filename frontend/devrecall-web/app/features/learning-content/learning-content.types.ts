@@ -2,6 +2,7 @@ export interface LearningContentTechnology { value: string; label: string }
 export interface LearningContentTopic { slug: string; name: string }
 export interface LearningContentObjective { position: number; text: string }
 export interface LearningContentSection { position: number; type: 'Explanation' | 'CodeExample' | 'KeyTakeaway'; heading: string | null; bodyMarkdown: string }
+export interface LearningContentReviewCandidate { key: string; prompt: string; answer: string; isInReview: boolean }
 export interface LearningContentSource { type: 'Internal' | 'External'; name: string; url: string | null }
 export type LearningProgressStatus = 'NotStarted' | 'InProgress' | 'Completed'
 export interface LearningContentProgress { status: LearningProgressStatus; startedAtUtc: string | null; completedAtUtc: string | null; version: number | null }
@@ -12,6 +13,7 @@ export interface LearningContentListItem {
 }
 export interface LearningContentDetail extends LearningContentListItem {
   objectives: LearningContentObjective[]; sections: LearningContentSection[]
+  reviewCandidates: LearningContentReviewCandidate[]
   source: LearningContentSource; publishedAtUtc: string; progress: LearningContentProgress
 }
 export interface LearningContentPage {
@@ -22,3 +24,5 @@ export interface SaveLessonToKnowledgeInput {
   title: string; content: string; topicId: string | null; tagIds: string[]; submissionId: string
 }
 export interface SavedLessonKnowledge { id: string; title: string; alreadyExisted: boolean }
+export interface LearningContentReviewBatchItem { candidateKey: string; reviewItemId: string; wasCreated: boolean }
+export interface LearningContentReviewBatch { createdCount: number; existingCount: number; items: LearningContentReviewBatchItem[] }
