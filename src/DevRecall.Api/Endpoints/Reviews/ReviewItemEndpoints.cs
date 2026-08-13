@@ -4,6 +4,7 @@ using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
 using DevRecall.Application.Reviews.GetDue;
 using DevRecall.Application.Reviews.GetHistory;
+using DevRecall.Application.Reviews.LearningContent;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Reviews;
 
@@ -24,7 +25,23 @@ public static class ReviewItemEndpoints
         group.MapGet("/{id:guid}/history", GetHistoryAsync);
         group.MapPost("/{id:guid}/evaluate", EvaluateAsync);
         group.MapPost("/", CreateAsync);
+
+        endpoints.MapGroup("/api/v1/review/from-learning-content")
+            .WithTags("Review Items")
+            .RequireAuthorization(AuthorizationPolicies.AuthenticatedUser)
+            .MapPost("/{slug}", CreateFromLearningContentAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> CreateFromLearningContentAsync(string slug,
+        CreateLearningContentReviewsRequest request, CreateLearningContentReviewsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(new(slug, request.CandidateKeys ?? [], request.SubmissionId),
+            cancellationToken);
+        return Results.Ok(new LearningContentReviewBatchResponse(result.CreatedCount, result.ExistingCount,
+            result.Items.Select(item => new LearningContentReviewBatchItemResponse(
+                item.CandidateKey, item.ReviewItemId, item.WasCreated)).ToArray()));
     }
 
     private static async Task<IResult> CreateAsync(

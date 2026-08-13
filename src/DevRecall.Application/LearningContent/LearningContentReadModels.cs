@@ -5,6 +5,8 @@ public sealed record LearningContentTopicItem(string Slug, string Name);
 public sealed record LearningContentObjectiveItem(int Position, string Text);
 public sealed record LearningContentSectionItem(int Position, string Type, string? Heading, string BodyMarkdown);
 public sealed record LearningContentSourceItem(string Type, string Name, string? Url);
+public sealed record LearningContentReviewCandidateItem(
+    string Key, string Prompt, string Answer, bool IsInReview);
 
 public sealed record PublishedLearningContentListItem(
     string Slug, string Title, string Summary, string ContentType, string Difficulty,
@@ -17,6 +19,7 @@ public sealed record PublishedLearningContentDetail(
     IReadOnlyList<LearningContentTopicItem> Topics,
     IReadOnlyList<LearningContentObjectiveItem> Objectives,
     IReadOnlyList<LearningContentSectionItem> Sections,
+    IReadOnlyList<LearningContentReviewCandidateItem> ReviewCandidates,
     LearningContentSourceItem Source, DateTimeOffset PublishedAtUtc,
     LearningContentProgressItem Progress);
 

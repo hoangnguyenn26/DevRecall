@@ -33,6 +33,29 @@ public sealed class LearningContentTests
         duplicateTopics.Should().Throw<ArgumentException>();
     }
 
+    [Fact]
+    public void CreateDraft_ShouldPreserveStableOrderedReviewCandidates()
+    {
+        var content = CreateDraft(reviewCandidates:
+        [
+            new("service-lifetimes", "What are the service lifetimes?", "Transient, Scoped, Singleton."),
+            new("captive-dependency", "What is a captive dependency?", "A longer-lived service captures a shorter-lived one.")
+        ]);
+
+        content.ReviewCandidates.Select(item => (item.Position, item.Key)).Should().Equal(
+            (0, "service-lifetimes"), (1, "captive-dependency"));
+    }
+
+    [Theory]
+    [InlineData("CaptiveDependency")]
+    [InlineData("captive_dependency")]
+    [InlineData("-captive-dependency")]
+    public void CreateDraft_ShouldRejectInvalidReviewCandidateKey(string key)
+    {
+        var action = () => CreateDraft(reviewCandidates: [new(key, "Prompt", "Answer")]);
+        action.Should().Throw<ArgumentException>();
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(481)]
@@ -98,7 +121,8 @@ public sealed class LearningContentTests
         ContentSourceType sourceType = ContentSourceType.Internal, string? sourceUrl = null,
         IReadOnlyCollection<Technology>? technologies = null, IReadOnlyCollection<Guid>? topicIds = null,
         IReadOnlyCollection<LearningObjectiveInput>? objectives = null,
-        IReadOnlyCollection<LearningContentSectionInput>? sections = null) =>
+        IReadOnlyCollection<LearningContentSectionInput>? sections = null,
+        IReadOnlyCollection<LearningReviewCandidateInput>? reviewCandidates = null) =>
         LearningContentAggregate.CreateDraft(Guid.NewGuid(), "aspnet-core-di-lifetimes",
             "ASP.NET Core DI Lifetimes", "Understand service lifetime trade-offs.",
             contentType, ContentDifficulty.Intermediate, estimatedMinutes, sourceType,
@@ -106,5 +130,6 @@ public sealed class LearningContentTests
             technologies ?? [Technology.AspNetCore], topicIds ?? [TopicId], objectives ??
             [new("Explain service lifetimes."), new("Choose an appropriate lifetime.")], sections ??
             [new(LearningContentSectionType.Explanation, "Why lifetime matters", "A lifetime controls reuse."),
-             new(LearningContentSectionType.CodeExample, "Registration", "```csharp\nservices.AddScoped<IService, Service>();\n```")], Now);
+             new(LearningContentSectionType.CodeExample, "Registration", "```csharp\nservices.AddScoped<IService, Service>();\n```")],
+            Now, reviewCandidates);
 }

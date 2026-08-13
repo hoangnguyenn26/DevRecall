@@ -68,6 +68,7 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
             .Where(item => item.Status == ContentStatus.Published && item.Slug == slug)
             .Select(item => new
             {
+                item.Id,
                 item.Slug,
                 item.Title,
                 item.Summary,
@@ -93,17 +94,29 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                 Objectives = item.Objectives.OrderBy(value => value.Position)
                     .Select(value => new { value.Position, value.Text }).ToArray(),
                 Sections = item.Sections.OrderBy(value => value.Position)
-                    .Select(value => new { value.Position, value.SectionType, value.Heading, value.BodyMarkdown }).ToArray()
+                    .Select(value => new { value.Position, value.SectionType, value.Heading, value.BodyMarkdown }).ToArray(),
+                ReviewCandidates = item.ReviewCandidates.OrderBy(value => value.Position)
+                    .Select(value => new { value.Id, value.Key, value.Prompt, value.Answer }).ToArray()
             }).SingleOrDefaultAsync(cancellationToken);
         if (raw is null) return null;
         var topics = await dbContext.ContentTopics.AsNoTracking().Where(item => raw.TopicIds.Contains(item.Id))
             .OrderBy(item => item.Name).Select(item => new LearningContentTopicItem(item.Slug, item.Name))
             .ToArrayAsync(cancellationToken);
+        var candidateIds = raw.ReviewCandidates.Select(candidate => candidate.Id).ToArray();
+        var activeCandidateIds = await dbContext.ReviewItems.AsNoTracking()
+            .Where(item => item.UserId == userId
+                && item.ResourceType == DevRecall.Domain.Reviews.ReviewResourceType.LearningContent
+                && item.Status == DevRecall.Domain.Reviews.ReviewItemStatus.Active
+                && candidateIds.Contains(item.ResourceId))
+            .Select(item => item.ResourceId).ToArrayAsync(cancellationToken);
+        var activeCandidateIdSet = activeCandidateIds.ToHashSet();
         return new(raw.Slug, raw.Title, raw.Summary, raw.ContentType.ToString(), raw.Difficulty.ToString(),
             raw.EstimatedMinutes, raw.Technologies.Select(MapTechnology).ToArray(), topics,
             raw.Objectives.Select(item => new LearningContentObjectiveItem(item.Position, item.Text)).ToArray(),
             raw.Sections.Select(item => new LearningContentSectionItem(item.Position,
                 item.SectionType.ToString(), item.Heading, item.BodyMarkdown)).ToArray(),
+            raw.ReviewCandidates.Select(item => new LearningContentReviewCandidateItem(
+                item.Key, item.Prompt, item.Answer, activeCandidateIdSet.Contains(item.Id))).ToArray(),
             new(raw.SourceType.ToString(), raw.SourceName, raw.SourceUrl), raw.PublishedAtUtc,
             raw.Progress is null ? new("NotStarted", null, null, null) : new(raw.Progress.Status.ToString(),
                 raw.Progress.StartedAtUtc, raw.Progress.CompletedAtUtc, raw.Progress.Version));

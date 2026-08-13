@@ -28,6 +28,7 @@ using DevRecall.Application.Recommendations.GetList;
 using DevRecall.Application.Recommendations.Synchronize;
 using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.Resources;
+using DevRecall.Application.Reviews.LearningContent;
 using DevRecall.Application.Search;
 using DevRecall.Application.Study;
 using DevRecall.Application.Study.GetDetail;
@@ -141,6 +142,7 @@ public static class DependencyInjection
         services.AddScoped<ILearningContentKnowledgeRepository, LearningContentKnowledgeRepository>();
         services.AddScoped<IKnowledgeTagReader, KnowledgeTagReader>();
         services.AddScoped<IReviewItemRepository, ReviewItemRepository>();
+        services.AddScoped<ILearningContentReviewRepository, LearningContentReviewRepository>();
         services.AddScoped<
             IStudyRecommendationRepository,
             StudyRecommendationRepository>();
@@ -161,6 +163,7 @@ public static class DependencyInjection
             IReviewInterviewResourceReader,
             ReviewInterviewResourceReader>();
         services.AddScoped<IReviewDsaResourceReader, ReviewDsaResourceReader>();
+        services.AddScoped<IReviewLearningContentResourceReader, ReviewLearningContentResourceReader>();
         services.AddScoped<IReviewResourceResolver, ReviewResourceResolver>();
         services.AddScoped<
             IReviewResourceSummaryReader,

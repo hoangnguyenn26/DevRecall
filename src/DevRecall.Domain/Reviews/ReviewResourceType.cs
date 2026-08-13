@@ -4,5 +4,6 @@ public enum ReviewResourceType
 {
     KnowledgeNode = 1,
     InterviewQuestion = 2,
-    DsaProblem = 3
+    DsaProblem = 3,
+    LearningContent = 4
 }

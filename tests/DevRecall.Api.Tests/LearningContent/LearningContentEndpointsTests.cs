@@ -5,8 +5,10 @@ using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.LearningContent;
 using DevRecall.Contracts.Knowledge;
+using DevRecall.Contracts.Reviews;
 using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.LearningProfiles;
+using DevRecall.Domain.Reviews;
 using DevRecall.Infrastructure.Development;
 using DevRecall.Infrastructure.Persistence;
 using FluentAssertions;
@@ -301,6 +303,138 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
 
         foreign.StatusCode.Should().Be(HttpStatusCode.NotFound);
         draft.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AddToReview_ShouldCreateSelectedCandidateSnapshotsWithSchedulerDefaults()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("lesson-review-create");
+        var submissionId = Guid.NewGuid();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/review/from-learning-content/aspnet-core-service-lifetimes",
+            new CreateLearningContentReviewsRequest(
+                ["three-service-lifetimes", "captive-dependency"], submissionId));
+
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+        result!.CreatedCount.Should().Be(2);
+        result.ExistingCount.Should().Be(0);
+        result.Items.Should().HaveCount(2).And.OnlyContain(item => item.WasCreated);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var createdIds = result.Items.Select(item => item.ReviewItemId).ToArray();
+        var reviewItems = await db.ReviewItems.Where(item => createdIds.Contains(item.Id)).ToListAsync();
+        reviewItems.Should().OnlyContain(item => item.ResourceType == ReviewResourceType.LearningContent
+            && item.IntervalDays == 0 && item.ReviewCount == 0 && item.LastReviewedAtUtc == null);
+        var sources = await db.ReviewLearningContentSources.Where(item => createdIds.Contains(item.ReviewItemId))
+            .ToListAsync();
+        sources.Should().Contain(item => item.CandidateKey == "three-service-lifetimes"
+            && item.PromptSnapshot.Contains("three built-in", StringComparison.Ordinal)
+            && item.AnswerSnapshot == "Transient, Scoped, and Singleton.");
+        (await db.ReviewHistories.CountAsync(item => createdIds.Contains(item.ReviewItemId))).Should().Be(0);
+        var due = await client.GetFromJsonAsync<PagedResponse<DueReviewItemResponse>>(
+            "/api/v1/review-items/due?resourceType=LearningContent&page=1&pageSize=10");
+        due!.Items.Should().Contain(item => item.ResourceTitle.Contains("three built-in", StringComparison.Ordinal)
+            && item.ResourcePreview == "Transient, Scoped, and Singleton.");
+    }
+
+    [Fact]
+    public async Task AddToReview_ShouldBeBatchIdempotentAndPreventCandidateDuplicates()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("lesson-review-idempotent");
+        var route = "/api/v1/review/from-learning-content/aspnet-core-service-lifetimes";
+        var submissionId = Guid.NewGuid();
+        var firstRequest = new CreateLearningContentReviewsRequest(["captive-dependency"], submissionId);
+
+        var first = await (await client.PostAsJsonAsync(route, firstRequest)).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+        var retry = await (await client.PostAsJsonAsync(route, firstRequest)).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+        var anotherSubmission = await (await client.PostAsJsonAsync(route,
+            firstRequest with { SubmissionId = Guid.NewGuid() })).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+
+        retry.Should().BeEquivalentTo(first);
+        anotherSubmission!.CreatedCount.Should().Be(0);
+        anotherSubmission.ExistingCount.Should().Be(1);
+        anotherSubmission.Items.Single().ReviewItemId.Should().Be(first!.Items.Single().ReviewItemId);
+    }
+
+    [Fact]
+    public async Task AddToReview_ConcurrentTabs_ShouldConvergeOnOneActiveCandidate()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("lesson-review-race");
+        var route = "/api/v1/review/from-learning-content/aspnet-core-service-lifetimes";
+        var requests = new[]
+        {
+            new CreateLearningContentReviewsRequest(["singleton-lifetime"], Guid.NewGuid()),
+            new CreateLearningContentReviewsRequest(["singleton-lifetime"], Guid.NewGuid())
+        };
+
+        var responses = await Task.WhenAll(requests.Select(request => client.PostAsJsonAsync(route, request)));
+        responses.Should().OnlyContain(response => response.IsSuccessStatusCode);
+        var results = await Task.WhenAll(responses.Select(response =>
+            response.Content.ReadFromJsonAsync<LearningContentReviewBatchResponse>()));
+        results.SelectMany(result => result!.Items).Select(item => item.ReviewItemId).Distinct().Should().ContainSingle();
+        results.Sum(result => result!.CreatedCount).Should().Be(1);
+        results.Sum(result => result!.ExistingCount).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task LessonDetail_ShouldProjectOwnerScopedReviewCandidateStateAndAllowReAddAfterArchive()
+    {
+        await SeedAsync();
+        using var owner = await CreateAuthenticatedClientAsync("lesson-review-owner");
+        using var other = await CreateAuthenticatedClientAsync("lesson-review-other");
+        var route = "/api/v1/review/from-learning-content/aspnet-core-service-lifetimes";
+        var created = await (await owner.PostAsJsonAsync(route,
+            new CreateLearningContentReviewsRequest(["scoped-per-request"], Guid.NewGuid()))).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+
+        var ownerDetail = await owner.GetFromJsonAsync<LearningContentDetailResponse>(
+            "/api/v1/learning-content/aspnet-core-service-lifetimes");
+        var otherDetail = await other.GetFromJsonAsync<LearningContentDetailResponse>(
+            "/api/v1/learning-content/aspnet-core-service-lifetimes");
+        ownerDetail!.ReviewCandidates.Single(item => item.Key == "scoped-per-request").IsInReview.Should().BeTrue();
+        otherDetail!.ReviewCandidates.Single(item => item.Key == "scoped-per-request").IsInReview.Should().BeFalse();
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var item = await db.ReviewItems.SingleAsync(value => value.Id == created!.Items.Single().ReviewItemId);
+        item.Archive(DateTimeOffset.UtcNow);
+        await db.SaveChangesAsync();
+        var readded = await (await owner.PostAsJsonAsync(route,
+            new CreateLearningContentReviewsRequest(["scoped-per-request"], Guid.NewGuid()))).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+        readded!.CreatedCount.Should().Be(1);
+        readded.Items.Single().ReviewItemId.Should().NotBe(item.Id);
+    }
+
+    [Fact]
+    public async Task AddToReview_ShouldRejectUnknownCandidateAndUnavailableLessonAtomically()
+    {
+        await SeedAsync();
+        await AddUnpublishedContentAsync();
+        using var client = await CreateAuthenticatedClientAsync("lesson-review-invalid");
+        var invalidSubmissionId = Guid.NewGuid();
+        using var invalid = await client.PostAsJsonAsync(
+            "/api/v1/review/from-learning-content/aspnet-core-service-lifetimes",
+            new CreateLearningContentReviewsRequest(
+                ["three-service-lifetimes", "not-a-candidate"], invalidSubmissionId));
+        using var archived = await client.PostAsJsonAsync(
+            "/api/v1/review/from-learning-content/hidden-archived-lesson",
+            new CreateLearningContentReviewsRequest(["anything"], Guid.NewGuid()));
+
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        archived.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await db.LearningContentReviewSubmissions.AnyAsync(item =>
+            item.SubmissionId == invalidSubmissionId)).Should().BeFalse();
     }
 
     private async Task SeedAsync()

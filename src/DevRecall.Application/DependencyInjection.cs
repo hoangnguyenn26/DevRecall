@@ -62,6 +62,7 @@ using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
 using DevRecall.Application.Reviews.GetDue;
 using DevRecall.Application.Reviews.GetHistory;
+using DevRecall.Application.Reviews.LearningContent;
 using DevRecall.Application.Search;
 using DevRecall.Application.Study.Cancel;
 using DevRecall.Application.Study.Complete;
@@ -168,6 +169,7 @@ public static class DependencyInjection
         services.AddScoped<GetKnowledgeTagsHandler>();
         services.AddScoped<CreateKnowledgeTagHandler>();
         services.AddScoped<CreateReviewItemHandler>();
+        services.AddScoped<CreateLearningContentReviewsHandler>();
         services.AddScoped<GenerateRecommendationsHandler>();
         services.AddScoped<GetRecommendationsHandler>();
         services.AddScoped<GetRecommendationDetailHandler>();

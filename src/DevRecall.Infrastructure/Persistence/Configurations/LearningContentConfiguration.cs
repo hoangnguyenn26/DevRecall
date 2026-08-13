@@ -41,10 +41,32 @@ internal sealed class LearningContentConfiguration : IEntityTypeConfiguration<Le
             .HasForeignKey(item => item.LearningContentId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(item => item.Sections).WithOne()
             .HasForeignKey(item => item.LearningContentId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(item => item.ReviewCandidates).WithOne()
+            .HasForeignKey(item => item.LearningContentId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(item => item.Technologies).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(item => item.Topics).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(item => item.Objectives).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(item => item.Sections).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(item => item.ReviewCandidates).UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class LearningReviewCandidateConfiguration
+    : IEntityTypeConfiguration<LearningReviewCandidate>
+{
+    public void Configure(EntityTypeBuilder<LearningReviewCandidate> builder)
+    {
+        builder.ToTable("learning_content_review_candidates", table =>
+            table.HasCheckConstraint("ck_learning_review_candidates_position", "position >= 0"));
+        builder.HasKey(item => item.Id);
+        builder.Property(item => item.Id).ValueGeneratedNever();
+        builder.Property(item => item.Key).HasMaxLength(100).IsRequired();
+        builder.Property(item => item.Prompt).HasMaxLength(500).IsRequired();
+        builder.Property(item => item.Answer).HasMaxLength(2_000).IsRequired();
+        builder.HasIndex(item => new { item.LearningContentId, item.Key }).IsUnique()
+            .HasDatabaseName("ux_learning_review_candidates_content_key");
+        builder.HasIndex(item => new { item.LearningContentId, item.Position }).IsUnique()
+            .HasDatabaseName("ux_learning_review_candidates_content_position");
     }
 }
 

@@ -8,12 +8,14 @@ public sealed class LearningContent
     public const int MaximumTopics = 20;
     public const int MaximumObjectives = 10;
     public const int MaximumSections = 50;
+    public const int MaximumReviewCandidates = 5;
     public const int MaximumSectionBodyLength = 50_000;
 
     private readonly List<LearningContentTechnology> _technologies = [];
     private readonly List<LearningContentTopic> _topics = [];
     private readonly List<LearningObjective> _objectives = [];
     private readonly List<LearningContentSection> _sections = [];
+    private readonly List<LearningReviewCandidate> _reviewCandidates = [];
     private LearningContent() { }
 
     public Guid Id { get; private set; }
@@ -35,13 +37,15 @@ public sealed class LearningContent
     public IReadOnlyCollection<LearningContentTopic> Topics => _topics.AsReadOnly();
     public IReadOnlyCollection<LearningObjective> Objectives => _objectives.AsReadOnly();
     public IReadOnlyCollection<LearningContentSection> Sections => _sections.AsReadOnly();
+    public IReadOnlyCollection<LearningReviewCandidate> ReviewCandidates => _reviewCandidates.AsReadOnly();
 
     public static LearningContent CreateDraft(Guid id, string slug, string title, string summary,
         LearningContentType contentType, ContentDifficulty difficulty, int estimatedMinutes,
         ContentSourceType sourceType, string sourceName, string? sourceUrl,
         IReadOnlyCollection<Technology> technologies, IReadOnlyCollection<Guid> topicIds,
         IReadOnlyCollection<LearningObjectiveInput> objectives,
-        IReadOnlyCollection<LearningContentSectionInput> sections, DateTimeOffset currentUtc)
+        IReadOnlyCollection<LearningContentSectionInput> sections, DateTimeOffset currentUtc,
+        IReadOnlyCollection<LearningReviewCandidateInput>? reviewCandidates = null)
     {
         if (id == Guid.Empty) throw new ArgumentException("Learning content id cannot be empty.", nameof(id));
         EnsureUtc(currentUtc);
@@ -49,7 +53,7 @@ public sealed class LearningContent
         if (estimatedMinutes is < 1 or > 480)
             throw new ArgumentOutOfRangeException(nameof(estimatedMinutes), "Estimated minutes must be between 1 and 480.");
         var normalizedSourceUrl = ValidateSource(sourceType, sourceUrl);
-        ValidateCollections(technologies, topicIds, objectives, sections);
+        ValidateCollections(technologies, topicIds, objectives, sections, reviewCandidates ?? []);
 
         var content = new LearningContent
         {
@@ -68,7 +72,7 @@ public sealed class LearningContent
             CreatedAtUtc = currentUtc,
             UpdatedAtUtc = currentUtc
         };
-        content.ReplaceChildren(technologies, topicIds, objectives, sections);
+        content.ReplaceChildren(technologies, topicIds, objectives, sections, reviewCandidates ?? []);
         return content;
     }
 
@@ -102,7 +106,8 @@ public sealed class LearningContent
 
     private void ReplaceChildren(IReadOnlyCollection<Technology> technologies,
         IReadOnlyCollection<Guid> topicIds, IReadOnlyCollection<LearningObjectiveInput> objectives,
-        IReadOnlyCollection<LearningContentSectionInput> sections)
+        IReadOnlyCollection<LearningContentSectionInput> sections,
+        IReadOnlyCollection<LearningReviewCandidateInput> reviewCandidates)
     {
         _technologies.AddRange(technologies.Order().Select(value =>
             new LearningContentTechnology(Guid.NewGuid(), Id, value)));
@@ -114,16 +119,20 @@ public sealed class LearningContent
             Guid.NewGuid(), Id, position, item.SectionType,
             LearningContentText.NormalizeOptional(item.Heading, "heading", 200),
             LearningContentText.NormalizeRequired(item.BodyMarkdown, "bodyMarkdown", MaximumSectionBodyLength))));
+        _reviewCandidates.AddRange(reviewCandidates.Select((item, position) => LearningReviewCandidate.Create(
+            Guid.NewGuid(), Id, position, item.Key, item.Prompt, item.Answer)));
     }
 
     private static void ValidateCollections(IReadOnlyCollection<Technology> technologies,
         IReadOnlyCollection<Guid> topicIds, IReadOnlyCollection<LearningObjectiveInput> objectives,
-        IReadOnlyCollection<LearningContentSectionInput> sections)
+        IReadOnlyCollection<LearningContentSectionInput> sections,
+        IReadOnlyCollection<LearningReviewCandidateInput> reviewCandidates)
     {
         ArgumentNullException.ThrowIfNull(technologies);
         ArgumentNullException.ThrowIfNull(topicIds);
         ArgumentNullException.ThrowIfNull(objectives);
         ArgumentNullException.ThrowIfNull(sections);
+        ArgumentNullException.ThrowIfNull(reviewCandidates);
         if (technologies.Count > MaximumTechnologies || technologies.Distinct().Count() != technologies.Count
             || technologies.Any(value => !Enum.IsDefined(value)))
             throw new ArgumentException("Technologies must be unique canonical values.", nameof(technologies));
@@ -134,6 +143,11 @@ public sealed class LearningContent
             throw new ArgumentException("At most ten objectives are allowed.", nameof(objectives));
         if (sections.Count > MaximumSections || sections.Any(item => !Enum.IsDefined(item.SectionType)))
             throw new ArgumentException("Sections must contain at most fifty valid items.", nameof(sections));
+        if (reviewCandidates.Count > MaximumReviewCandidates)
+            throw new ArgumentException("A lesson can have at most five review candidates.", nameof(reviewCandidates));
+        var keys = reviewCandidates.Select(item => LearningReviewCandidate.NormalizeKey(item.Key)).ToArray();
+        if (keys.Distinct(StringComparer.Ordinal).Count() != keys.Length)
+            throw new ArgumentException("Review candidate keys must be unique.", nameof(reviewCandidates));
     }
 
     private static string? ValidateSource(ContentSourceType sourceType, string? sourceUrl)

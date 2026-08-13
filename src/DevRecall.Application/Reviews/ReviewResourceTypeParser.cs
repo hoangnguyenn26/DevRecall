@@ -41,7 +41,7 @@ internal static class ReviewResourceTypeParser
         {
             ["resourceType"] =
             [
-                "Resource type must be KnowledgeNode, InterviewQuestion, or DsaProblem."
+                "Resource type must be KnowledgeNode, InterviewQuestion, DsaProblem, or LearningContent."
             ]
         });
 }

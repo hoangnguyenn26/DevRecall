@@ -6,7 +6,8 @@ namespace DevRecall.Infrastructure.Reviews;
 internal sealed class ReviewResourceResolver(
     IReviewKnowledgeResourceReader knowledgeReader,
     IReviewInterviewResourceReader interviewReader,
-    IReviewDsaResourceReader dsaReader)
+    IReviewDsaResourceReader dsaReader,
+    IReviewLearningContentResourceReader learningContentReader)
     : IReviewResourceResolver
 {
     public async Task<ReviewResourceResolution?> ResolveAsync(
@@ -23,6 +24,9 @@ internal sealed class ReviewResourceResolver(
                     userId, resourceId, cancellationToken),
             ReviewResourceType.DsaProblem =>
                 await dsaReader.FindAsync(
+                    userId, resourceId, cancellationToken),
+            ReviewResourceType.LearningContent =>
+                await learningContentReader.FindAsync(
                     userId, resourceId, cancellationToken),
             _ => null
         };

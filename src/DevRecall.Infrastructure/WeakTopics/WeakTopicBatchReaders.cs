@@ -25,6 +25,7 @@ internal sealed class WeakTopicCandidateReader(DevRecallDbContext dbContext)
                 on history.ReviewItemId equals item.Id
             where item.UserId == userId && history.ReviewedAtUtc >= fromUtc
                 && history.ReviewedAtUtc < toUtc
+                && item.ResourceType != ReviewResourceType.LearningContent
             select new { item.ResourceType, item.ResourceId })
             .Distinct().ToListAsync(cancellationToken);
         candidates.AddRange(reviews.Select(x =>
@@ -86,6 +87,7 @@ internal sealed class WeakTopicBatchSignalReader(DevRecallDbContext dbContext)
                 on history.ReviewItemId equals item.Id
             where item.UserId == userId && history.ReviewedAtUtc >= fromUtc
                 && history.ReviewedAtUtc < toUtc
+                && item.ResourceType != ReviewResourceType.LearningContent
             select new
             {
                 item.ResourceType,

@@ -24,6 +24,7 @@ internal sealed class ReviewResourceSummaryReader(DevRecallDbContext dbContext)
         var interviewIds = IdsFor(
             resources, ReviewResourceType.InterviewQuestion);
         var dsaIds = IdsFor(resources, ReviewResourceType.DsaProblem);
+        var learningContentIds = IdsFor(resources, ReviewResourceType.LearningContent);
 
         if (knowledgeIds.Length > 0)
         {
@@ -73,6 +74,20 @@ internal sealed class ReviewResourceSummaryReader(DevRecallDbContext dbContext)
             results.AddRange(rows.Select(row => new ReviewResourceSummary(
                 ReviewResourceType.DsaProblem, row.Id, row.Title,
                 ReviewPreviewBuilder.Build(row.Description))));
+        }
+
+        if (learningContentIds.Length > 0)
+        {
+            var rows = await (
+                from source in dbContext.ReviewLearningContentSources.AsNoTracking()
+                join review in dbContext.ReviewItems.AsNoTracking() on source.ReviewItemId equals review.Id
+                where source.UserId == userId && learningContentIds.Contains(source.CandidateId)
+                    && review.Status == ReviewItemStatus.Active
+                select new { source.CandidateId, source.PromptSnapshot, source.AnswerSnapshot })
+                .ToListAsync(cancellationToken);
+            results.AddRange(rows.Select(row => new ReviewResourceSummary(
+                ReviewResourceType.LearningContent, row.CandidateId,
+                row.PromptSnapshot, row.AnswerSnapshot)));
         }
 
         return results;

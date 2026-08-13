@@ -57,6 +57,8 @@ public static class LearningContentEndpoints
         item.Objectives.Select(value => new LearningContentObjectiveResponse(value.Position, value.Text)).ToArray(),
         item.Sections.Select(value => new LearningContentSectionResponse(
             value.Position, value.Type, value.Heading, value.BodyMarkdown)).ToArray(),
+        item.ReviewCandidates.Select(value => new LearningContentReviewCandidateResponse(
+            value.Key, value.Prompt, value.Answer, value.IsInReview)).ToArray(),
         new(item.Source.Type, item.Source.Name, item.Source.Url), item.PublishedAtUtc, Map(item.Progress));
 
     private static LearningContentProgressResponse Map(LearningContentProgressItem item) =>

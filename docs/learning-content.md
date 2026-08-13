@@ -118,6 +118,22 @@ The reusable Learn Markdown renderer creates Vue text nodes and safe elements ra
 Estimated duration is metadata, not actual study time. Progress does not create Review items, Weak Topics,
 Knowledge notes, Recommendations, or Interview/DSA practice activity.
 
+## Review candidates and Learn → Review
+
+A published lesson may expose zero to five ordered review candidates. Each candidate has a stable,
+lowercase hyphenated key plus a concise prompt and answer. Candidates are platform suggestions, not
+user Review items: completing a lesson never creates cards automatically.
+
+After completion, the user can explicitly select one or more candidates and submit them through
+`POST /api/v1/review/from-learning-content/{slug}`. The batch is atomic and retry-safe through one
+client-generated `submissionId`. Active cards are unique per user and candidate; selecting an existing
+candidate is a successful no-op, while archiving that Review item makes the candidate available again.
+
+Lesson-created Review items reuse the existing Review scheduler and start with its normal defaults.
+Their prompt, answer, and lesson title are snapshots, so later lesson edits do not alter an existing
+card. Adding a card is preparation rather than recall evidence: it does not create Review history,
+change lesson completion, update Weak Topics, or record an evaluation outcome.
+
 ## Writing a good lesson
 
 - Teach one primary concept; split broad subjects into separate lessons.
@@ -132,4 +148,6 @@ Knowledge notes, Recommendations, or Interview/DSA practice activity.
 
 Future matching may compare Learning Profile signals with content Technology, Topic, Difficulty, and Estimated Minutes. No matching or ranking algorithm exists yet.
 
-The following remain out of scope: Discover, recommendations, Review creation, section progress, timers, saved scroll position, relearning sessions, authoring APIs, content providers, crawlers, AI, attachments, and public lesson SEO.
+The following remain out of scope: Discover, automatic or AI-generated Review cards, section progress,
+timers, saved scroll position, relearning sessions, authoring APIs, content providers, crawlers, AI,
+attachments, and public lesson SEO.
