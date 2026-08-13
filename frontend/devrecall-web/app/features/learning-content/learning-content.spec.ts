@@ -8,6 +8,7 @@ import { isSafeMarkdownUrl, parseInlineMarkdown, parseMarkdown } from './learnin
 import { buildLessonKnowledgeDraft } from './lesson-knowledge'
 import { availableReviewCandidates, markReviewCandidatesAdded } from './lesson-review'
 import type { LearningContentDetail } from './learning-content.types'
+import { useLearningContentProgressSync } from '~/composables/useLearningContentProgressSync'
 
 const card = {
   slug: 'aspnet-core-service-lifetimes', title: 'ASP.NET Core Service Lifetimes',
@@ -45,6 +46,7 @@ describe('Learn catalog and reader', () => {
       'technology', 'EfCore')
     expect(filtered).toEqual({ technology: 'EfCore', difficulty: 'Intermediate', page: 1 })
     expect(learningContentKeys.list(filtered)).toContain('EfCore:Intermediate:1')
+    expect(learningContentKeys.list(filtered).startsWith(learningContentKeys.listBase)).toBe(true)
     expect(learningContentKeys.inProgress).not.toBe(learningContentKeys.list(filtered))
     expect(learningContentKeys.history(2)).toBe('learning-content:history:2')
   })
@@ -127,5 +129,22 @@ describe('Learn catalog and reader', () => {
     expect(markReviewCandidatesAdded(candidates, ['third'])).toEqual([
       candidates[0], candidates[1], { ...candidates[2], isInReview: true },
     ])
+  })
+
+  it('targets learning caches after completion without invalidating unrelated modules', () => {
+    const clear = vi.fn<(key: string | ((value: string) => boolean)) => void>()
+    const afterLessonCompleted = vi.fn<() => void>()
+    vi.stubGlobal('clearNuxtData', clear)
+    vi.stubGlobal('useLearningDataInvalidation', () => ({ afterLessonCompleted }))
+
+    useLearningContentProgressSync().afterProgressChanged('complete')
+
+    expect(afterLessonCompleted).toHaveBeenCalledOnce()
+    expect(clear).toHaveBeenCalledWith(learningContentKeys.inProgress)
+    const predicates = clear.mock.calls.map(call => call[0]).filter(value => typeof value === 'function')
+    expect(predicates.some(predicate => predicate('learning-content:list:all:all:1'))).toBe(true)
+    expect(predicates.some(predicate => predicate('learning-content:history:1'))).toBe(true)
+    expect(predicates.every(predicate => !predicate('knowledge:list:{}'))).toBe(true)
+    expect(predicates.every(predicate => !predicate('review:due'))).toBe(true)
   })
 })

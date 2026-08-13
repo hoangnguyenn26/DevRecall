@@ -27,7 +27,7 @@ const mutationPending = ref(false)
 const mutationError = ref<NormalizedApiError | null>(null)
 const completedJustNow = ref(false)
 const sessionApi = useStudySessionApi()
-const learningInvalidation = useLearningDataInvalidation()
+const progressSync = useLearningContentProgressSync()
 const sessionId = computed(() => typeof route.query.studySession === 'string' ? route.query.studySession : '')
 const sessionItemId = computed(() => typeof route.query.studyItem === 'string' ? route.query.studyItem : '')
 const sessionAttachError = ref('')
@@ -63,11 +63,7 @@ async function mutate(action: 'start' | 'complete') {
     lesson.value.progress = progress
     lesson.value.progressStatus = progress.status
     completedJustNow.value = action === 'complete'
-    clearNuxtData(learningContentKeys.inProgress)
-    if (action === 'complete') {
-      clearNuxtData(key => key.startsWith('learning-content:history:'))
-      learningInvalidation.afterLessonCompleted()
-    }
+    progressSync.afterProgressChanged(action)
     if (action === 'complete' && progress.completionEvidenceId && sessionId.value && sessionItemId.value) {
       pendingSessionEvidenceId.value = progress.completionEvidenceId
       try {
@@ -138,10 +134,10 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
         <div><strong>External resource</strong><p>{{ lesson.source.name }}</p></div>
         <UButton v-if="lesson.source.url" :to="lesson.source.url" target="_blank" rel="noopener noreferrer" trailing-icon="i-lucide-external-link">Open original resource</UButton>
       </aside>
-      <section class="completion-panel" aria-labelledby="lesson-completion">
+      <section class="completion-panel" aria-labelledby="lesson-completion" aria-live="polite">
         <template v-if="lesson.progress.status !== 'Completed'">
           <div><h2 id="lesson-completion">You've reached the end of this lesson.</h2><p>Completion is explicit and records one learning event.</p></div>
-          <UButton :loading="mutationPending" :disabled="mutationPending" @click="mutate('complete')">Complete lesson</UButton>
+          <UButton :loading="mutationPending" :disabled="mutationPending" @click="mutate('complete')">{{ mutationPending ? 'Completing...' : 'Complete lesson' }}</UButton>
         </template>
         <template v-else>
           <div><h2 id="lesson-completion">Lesson completed</h2><p>{{ completedJustNow ? 'Your learning evidence has been recorded.' : `Completed ${new Date(lesson.progress.completedAtUtc!).toLocaleDateString()}.` }}</p></div>
