@@ -31,7 +31,7 @@ public sealed class AnalyticsInsightsHandlerTests
     [Fact]
     public async Task Overview_ReturnsReaderFilledActivityAndComparisons()
     {
-        var reader = new ReaderStub { Activity = [new(new(2026, 8, 19), 0, 0), new(new(2026, 8, 20), 30, 2)] };
+        var reader = new ReaderStub { Activity = [new(new(2026, 8, 19), 0, 0, 0), new(new(2026, 8, 20), 30, 2, 1)] };
         var result = await Create(reader).GetOverviewAsync("7d", CancellationToken.None);
         result.Activity.Should().HaveCount(2);
         result.Practice.Difference.Should().Be(6);
@@ -54,9 +54,11 @@ public sealed class AnalyticsInsightsHandlerTests
         public Task<AnalyticsOverviewAggregate> ReadOverviewAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken)
         {
             OverviewRanges.Add(range); var current = OverviewRanges.Count == 1;
-            return Task.FromResult(current ? new AnalyticsOverviewAggregate(30, 1, 1, 2, 2, 2) : new(10, 1, 0, 0, 0, 0));
+            return Task.FromResult(current ? new AnalyticsOverviewAggregate(30, 1, 1, 2, 2, 2, 1) : new(10, 1, 0, 0, 0, 0, 0));
         }
         public Task<IReadOnlyList<AnalyticsActivityPoint>> ReadActivityAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken) => Task.FromResult(Activity);
+        public Task<IReadOnlyList<AnalyticsRecentActivity>> ReadRecentActivityAsync(Guid userId, AnalyticsDateRange range, int take, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<AnalyticsRecentActivity>>([]);
         public Task<(RatingDistribution Review, RatingDistribution Interview, RatingDistribution Dsa)> ReadPerformanceAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken) =>
             Task.FromResult<(RatingDistribution, RatingDistribution, RatingDistribution)>(
                 (new(0, 0, 0, 0), new(0, 0, 0, 0), new(0, 0, 0, 0)));

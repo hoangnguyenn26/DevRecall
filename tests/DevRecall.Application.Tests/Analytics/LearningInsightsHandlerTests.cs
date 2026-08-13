@@ -62,5 +62,6 @@ public sealed class LearningInsightsHandlerTests
         public Task<(RatingDistribution Review, RatingDistribution Interview, RatingDistribution Dsa)> ReadPerformanceAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken) => Task.FromResult(Performance[index++]);
         public Task<AnalyticsOverviewAggregate> ReadOverviewAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<IReadOnlyList<AnalyticsActivityPoint>> ReadActivityAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyList<AnalyticsRecentActivity>> ReadRecentActivityAsync(Guid userId, AnalyticsDateRange range, int take, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

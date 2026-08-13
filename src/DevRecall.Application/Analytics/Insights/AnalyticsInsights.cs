@@ -7,13 +7,16 @@ namespace DevRecall.Application.Analytics.Insights;
 public enum AnalyticsRange { SevenDays = 7, ThirtyDays = 30, NinetyDays = 90 }
 public sealed record AnalyticsComparison(long Current, long Previous) { public long Difference => Current - Previous; }
 public sealed record AnalyticsPeriod(DateTimeOffset StartUtc, DateTimeOffset EndUtc);
-public sealed record AnalyticsOverviewAggregate(int StudyMinutes, int ActiveDays, int Sessions, int Reviews, int Interviews, int DsaAttempts);
-public sealed record AnalyticsActivityPoint(DateOnly Date, int StudyMinutes, int PracticeCount);
+public sealed record AnalyticsOverviewAggregate(int StudyMinutes, int ActiveDays, int Sessions, int Reviews,
+    int Interviews, int DsaAttempts, int LearningContentCompleted);
+public sealed record AnalyticsActivityPoint(DateOnly Date, int StudyMinutes, int PracticeCount, int LessonsCompleted);
+public sealed record AnalyticsRecentActivity(string Type, string Title, DateTimeOffset OccurredAtUtc,
+    string? SourceSlug, bool IsSourceAvailable);
 public sealed record AnalyticsOverviewResult(string Range, AnalyticsPeriod Period,
     AnalyticsComparison StudyMinutes, AnalyticsComparison ActiveDays,
     AnalyticsComparison Sessions, AnalyticsComparison Practice,
-    int ReviewCount, int InterviewCount, int DsaAttemptCount,
-    IReadOnlyList<AnalyticsActivityPoint> Activity);
+    int ReviewCount, int InterviewCount, int DsaAttemptCount, int LearningContentCompletedCount,
+    IReadOnlyList<AnalyticsActivityPoint> Activity, IReadOnlyList<AnalyticsRecentActivity> RecentActivity);
 public sealed record RatingDistribution(int First, int Second, int Third, int Fourth) { public int Total => First + Second + Third + Fourth; }
 public sealed record AnalyticsPerformanceResult(string Range, AnalyticsPeriod Period,
     RatingDistribution ReviewCurrent, RatingDistribution ReviewPrevious,
@@ -24,6 +27,8 @@ public interface IAnalyticsInsightsReader
 {
     Task<AnalyticsOverviewAggregate> ReadOverviewAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken);
     Task<IReadOnlyList<AnalyticsActivityPoint>> ReadActivityAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken);
+    Task<IReadOnlyList<AnalyticsRecentActivity>> ReadRecentActivityAsync(Guid userId, AnalyticsDateRange range,
+        int take, CancellationToken cancellationToken);
     Task<(RatingDistribution Review, RatingDistribution Interview, RatingDistribution Dsa)> ReadPerformanceAsync(Guid userId, AnalyticsDateRange range, CancellationToken cancellationToken);
 }
 
@@ -36,12 +41,14 @@ public sealed class AnalyticsInsightsHandler(IAnalyticsInsightsReader reader, IC
         var currentData = await reader.ReadOverviewAsync(userId, current, cancellationToken);
         var previousData = await reader.ReadOverviewAsync(userId, previous, cancellationToken);
         var activity = await reader.ReadActivityAsync(userId, current, cancellationToken);
+        var recentActivity = await reader.ReadRecentActivityAsync(userId, current, 20, cancellationToken);
         var practice = currentData.Reviews + currentData.Interviews + currentData.DsaAttempts;
         var previousPractice = previousData.Reviews + previousData.Interviews + previousData.DsaAttempts;
         return new(name, new(current.FromUtc, current.ToUtc),
             new(currentData.StudyMinutes, previousData.StudyMinutes), new(currentData.ActiveDays, previousData.ActiveDays),
             new(currentData.Sessions, previousData.Sessions), new(practice, previousPractice),
-            currentData.Reviews, currentData.Interviews, currentData.DsaAttempts, activity);
+            currentData.Reviews, currentData.Interviews, currentData.DsaAttempts,
+            currentData.LearningContentCompleted, activity, recentActivity);
     }
 
     public async Task<AnalyticsPerformanceResult> GetPerformanceAsync(string? value, CancellationToken cancellationToken)

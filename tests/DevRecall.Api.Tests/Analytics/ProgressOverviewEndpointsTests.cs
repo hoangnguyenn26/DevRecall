@@ -55,7 +55,7 @@ public sealed class ProgressOverviewEndpointsTests(AuthApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         result.Should().Be(new ProgressOverviewResponse(
-            From, To, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+            From, To, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
     }
 
     [Fact]

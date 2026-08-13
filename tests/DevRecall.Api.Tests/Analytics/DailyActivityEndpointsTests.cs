@@ -76,11 +76,11 @@ public sealed class DailyActivityEndpointsTests(AuthApiFactory factory)
             await response.Content.ReadAsStringAsync());
         result!.Days.Should().BeInAscendingOrder(day => day.Date);
         result.Days[0].Should().Be(new DailyActivityDayResponse(
-            new DateOnly(2026, 8, 1), 30, 1, 1, 2, 1));
+            new DateOnly(2026, 8, 1), 30, 1, 1, 2, 1, 0));
         result.Days[1].Should().Be(new DailyActivityDayResponse(
-            new DateOnly(2026, 8, 2), 45, 1, 0, 0, 0));
+            new DateOnly(2026, 8, 2), 45, 1, 0, 0, 0, 0));
         result.Days[2].Should().Be(new DailyActivityDayResponse(
-            new DateOnly(2026, 8, 3), 0, 0, 0, 0, 0));
+            new DateOnly(2026, 8, 3), 0, 0, 0, 0, 0, 0));
     }
 
     private async Task SeedActivityAsync(Guid ownerId, Guid otherUserId)

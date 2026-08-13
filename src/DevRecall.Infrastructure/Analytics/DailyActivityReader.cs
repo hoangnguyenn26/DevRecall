@@ -66,11 +66,24 @@ internal sealed class DailyActivityReader(DevRecallDbContext dbContext)
             GROUP BY (a.attempted_at_utc AT TIME ZONE 'UTC')::date
             """,
             cancellationToken);
+        var lessons = await ReadCountsAsync(
+            $"""
+            SELECT
+                (completed_at_utc AT TIME ZONE 'UTC')::date AS date,
+                COUNT(*)::integer AS count
+            FROM learning_content_completion_evidence
+            WHERE user_id = {userId}
+              AND completed_at_utc >= {range.FromUtc}
+              AND completed_at_utc < {range.ToUtc}
+            GROUP BY (completed_at_utc AT TIME ZONE 'UTC')::date
+            """,
+            cancellationToken);
 
         var dates = sessions.Select(row => row.Date)
             .Concat(studyItems.Select(row => row.Date))
             .Concat(reviews.Select(row => row.Date))
             .Concat(attempts.Select(row => row.Date))
+            .Concat(lessons.Select(row => row.Date))
             .Distinct()
             .Order()
             .ToArray();
@@ -78,6 +91,7 @@ internal sealed class DailyActivityReader(DevRecallDbContext dbContext)
         var itemsByDate = studyItems.ToDictionary(row => row.Date, row => row.Count);
         var reviewsByDate = reviews.ToDictionary(row => row.Date, row => row.Count);
         var attemptsByDate = attempts.ToDictionary(row => row.Date, row => row.Count);
+        var lessonsByDate = lessons.ToDictionary(row => row.Date, row => row.Count);
         return dates.Select(date =>
         {
             sessionsByDate.TryGetValue(date, out var session);
@@ -86,7 +100,8 @@ internal sealed class DailyActivityReader(DevRecallDbContext dbContext)
                 session?.CompletedSessions ?? 0,
                 itemsByDate.GetValueOrDefault(date),
                 reviewsByDate.GetValueOrDefault(date),
-                attemptsByDate.GetValueOrDefault(date));
+                attemptsByDate.GetValueOrDefault(date),
+                lessonsByDate.GetValueOrDefault(date));
         }).ToList();
     }
 

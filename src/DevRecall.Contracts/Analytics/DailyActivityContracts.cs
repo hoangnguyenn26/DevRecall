@@ -5,4 +5,4 @@ public sealed record DailyActivityResponse(
     IReadOnlyList<DailyActivityDayResponse> Days);
 public sealed record DailyActivityDayResponse(
     DateOnly Date, int StudyMinutes, int CompletedSessions,
-    int CompletedStudyItems, int Reviews, int DsaAttempts);
+    int CompletedStudyItems, int Reviews, int DsaAttempts, int LessonsCompleted);

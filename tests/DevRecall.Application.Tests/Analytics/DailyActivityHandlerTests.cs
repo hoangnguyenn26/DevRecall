@@ -38,9 +38,9 @@ public sealed class DailyActivityHandlerTests
         var reader = new ReaderStub(
         [
             new DailyActivityAggregate(
-                new DateOnly(2026, 8, 3), 60, 1, 3, 2, 2),
+                new DateOnly(2026, 8, 3), 60, 1, 3, 2, 2, 1),
             new DailyActivityAggregate(
-                new DateOnly(2026, 8, 1), 45, 1, 2, 3, 1)
+                new DateOnly(2026, 8, 1), 45, 1, 2, 3, 1, 0)
         ]);
         var handler = new GetDailyActivityHandler(
             new AnalyticsDateRangeResolver(new FakeUtcClock(To)),
@@ -56,7 +56,7 @@ public sealed class DailyActivityHandlerTests
             new DateOnly(2026, 8, 3));
         result.Days[1].Should().Be(
             new DailyActivityDay(
-                new DateOnly(2026, 8, 2), 0, 0, 0, 0, 0));
+                new DateOnly(2026, 8, 2), 0, 0, 0, 0, 0, 0));
         reader.UserId.Should().Be(UserId);
     }
 

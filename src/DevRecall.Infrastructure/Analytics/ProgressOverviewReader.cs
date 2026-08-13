@@ -33,13 +33,17 @@ internal sealed class ProgressOverviewReader(DevRecallDbContext dbContext)
                 && attempt.AttemptedAtUtc >= range.FromUtc
                 && attempt.AttemptedAtUtc < range.ToUtc
             select attempt.Id).CountAsync(cancellationToken);
+        var learningCompletions = await dbContext.LearningContentCompletionEvidence.AsNoTracking()
+            .CountAsync(evidence => evidence.UserId == userId
+                && evidence.CompletedAtUtc >= range.FromUtc
+                && evidence.CompletedAtUtc < range.ToUtc, cancellationToken);
         var activeDays = await ReadActiveDaysAsync(
             userId, range, cancellationToken);
         return new ProgressOverviewReadModel(
             sessions.StudyMinutes, sessions.Completed,
             sessions.Cancelled, items.Completed, items.Skipped,
             reviews, attempts, items.InterviewCompleted,
-            items.KnowledgeCompleted, activeDays);
+            items.KnowledgeCompleted, learningCompletions, activeDays);
     }
 
     private async Task<SessionAggregate> ReadSessionsAsync(
@@ -136,6 +140,12 @@ internal sealed class ProgressOverviewReader(DevRecallDbContext dbContext)
                 WHERE p.user_id = {userId}
                   AND a.attempted_at_utc >= {range.FromUtc}
                   AND a.attempted_at_utc < {range.ToUtc}
+                UNION
+                SELECT (e.completed_at_utc AT TIME ZONE 'UTC')::date
+                FROM learning_content_completion_evidence e
+                WHERE e.user_id = {userId}
+                  AND e.completed_at_utc >= {range.FromUtc}
+                  AND e.completed_at_utc < {range.ToUtc}
             ) activity
             """).SingleAsync(cancellationToken);
 

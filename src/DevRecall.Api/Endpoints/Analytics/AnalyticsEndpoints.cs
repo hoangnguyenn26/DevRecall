@@ -24,7 +24,11 @@ public static class AnalyticsEndpoints
             return Results.Ok(new AnalyticsOverviewResponse(result.Range, new(result.Period.StartUtc, result.Period.EndUtc),
                 Map(result.StudyMinutes), Map(result.ActiveDays), Map(result.Sessions), Map(result.Practice),
                 result.ReviewCount, result.InterviewCount, result.DsaAttemptCount,
-                result.Activity.Select(x => new AnalyticsActivityPointResponse(x.Date, x.StudyMinutes, x.PracticeCount)).ToArray()));
+                result.LearningContentCompletedCount,
+                result.Activity.Select(x => new AnalyticsActivityPointResponse(
+                    x.Date, x.StudyMinutes, x.PracticeCount, x.LessonsCompleted)).ToArray(),
+                result.RecentActivity.Select(x => new AnalyticsRecentActivityResponse(
+                    x.Type, x.Title, x.OccurredAtUtc, x.SourceSlug, x.IsSourceAvailable)).ToArray()));
         }).WithName("GetAnalyticsOverview").Produces<AnalyticsOverviewResponse>().ProducesProblem(StatusCodes.Status400BadRequest);
         group.MapGet("/performance", async (string? range, AnalyticsInsightsHandler handler, CancellationToken ct) =>
         {
@@ -82,7 +86,7 @@ public static class AnalyticsEndpoints
                             day.Date, day.StudyMinutes,
                             day.CompletedSessions,
                             day.CompletedStudyItems, day.Reviews,
-                            day.DsaAttempts)).ToList()));
+                            day.DsaAttempts, day.LessonsCompleted)).ToList()));
             })
             .WithName("GetAnalyticsDailyActivity")
             .Produces<DailyActivityResponse>()
@@ -152,6 +156,7 @@ public static class AnalyticsEndpoints
                     result.ReviewsCompleted, result.DsaAttempts,
                     result.InterviewItemsCompleted,
                     result.KnowledgeItemsCompleted,
+                    result.LearningContentCompletedCount,
                     result.ActiveStudyDays));
             })
             .WithName("GetAnalyticsProgressOverview")

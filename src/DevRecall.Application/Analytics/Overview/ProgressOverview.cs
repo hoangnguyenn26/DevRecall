@@ -9,14 +9,14 @@ public sealed record ProgressOverviewReadModel(
     int StudyItemsCompleted, int StudyItemsSkipped,
     int ReviewsCompleted, int DsaAttempts,
     int InterviewItemsCompleted, int KnowledgeItemsCompleted,
-    int ActiveStudyDays);
+    int LearningContentCompletedCount, int ActiveStudyDays);
 public sealed record GetProgressOverviewResult(
     DateTimeOffset FromUtc, DateTimeOffset ToUtc,
     int StudyMinutes, int CompletedSessions, int CancelledSessions,
     int StudyItemsCompleted, int StudyItemsSkipped,
     int ReviewsCompleted, int DsaAttempts,
     int InterviewItemsCompleted, int KnowledgeItemsCompleted,
-    int ActiveStudyDays);
+    int LearningContentCompletedCount, int ActiveStudyDays);
 
 public interface IProgressOverviewReader
 {
@@ -46,6 +46,7 @@ public sealed class GetProgressOverviewHandler(
             overview.ReviewsCompleted, overview.DsaAttempts,
             overview.InterviewItemsCompleted,
             overview.KnowledgeItemsCompleted,
+            overview.LearningContentCompletedCount,
             overview.ActiveStudyDays);
     }
 

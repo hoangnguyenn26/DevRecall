@@ -38,6 +38,8 @@ internal sealed class LearningContentCompletionEvidenceConfiguration
         builder.Property(x => x.TitleSnapshot).HasMaxLength(200).IsRequired();
         builder.HasIndex(x => new { x.UserId, x.LearningContentId }).IsUnique()
             .HasDatabaseName("uq_learning_content_completion_evidence_user_content");
+        builder.HasIndex(x => new { x.UserId, x.CompletedAtUtc })
+            .HasDatabaseName("ix_learning_content_completion_evidence_user_completed_at");
         builder.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<LearningContentAggregate>().WithMany().HasForeignKey(x => x.LearningContentId)
             .OnDelete(DeleteBehavior.Restrict);

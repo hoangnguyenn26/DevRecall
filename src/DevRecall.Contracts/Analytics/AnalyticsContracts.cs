@@ -12,4 +12,4 @@ public sealed record ProgressOverviewResponse(
     int StudyItemsCompleted, int StudyItemsSkipped,
     int ReviewsCompleted, int DsaAttempts,
     int InterviewItemsCompleted, int KnowledgeItemsCompleted,
-    int ActiveStudyDays);
+    int LearningContentCompletedCount, int ActiveStudyDays);

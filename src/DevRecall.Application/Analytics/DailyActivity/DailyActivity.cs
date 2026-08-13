@@ -7,10 +7,10 @@ public sealed record GetDailyActivityQuery(
     DateTimeOffset? FromUtc, DateTimeOffset? ToUtc);
 public sealed record DailyActivityAggregate(
     DateOnly Date, int StudyMinutes, int CompletedSessions,
-    int CompletedStudyItems, int Reviews, int DsaAttempts);
+    int CompletedStudyItems, int Reviews, int DsaAttempts, int LessonsCompleted);
 public sealed record DailyActivityDay(
     DateOnly Date, int StudyMinutes, int CompletedSessions,
-    int CompletedStudyItems, int Reviews, int DsaAttempts);
+    int CompletedStudyItems, int Reviews, int DsaAttempts, int LessonsCompleted);
 public sealed record GetDailyActivityResult(
     DateTimeOffset FromUtc, DateTimeOffset ToUtc,
     IReadOnlyList<DailyActivityDay> Days);
@@ -48,11 +48,11 @@ public sealed class GetDailyActivityHandler(
                     aggregate.Date, aggregate.StudyMinutes,
                     aggregate.CompletedSessions,
                     aggregate.CompletedStudyItems, aggregate.Reviews,
-                    aggregate.DsaAttempts));
+                    aggregate.DsaAttempts, aggregate.LessonsCompleted));
             }
             else
             {
-                days.Add(new DailyActivityDay(date, 0, 0, 0, 0, 0));
+                days.Add(new DailyActivityDay(date, 0, 0, 0, 0, 0, 0));
             }
         }
 
