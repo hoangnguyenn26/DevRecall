@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { comparisonText, factualTrend, insightAction, parseAnalyticsRange } from './analytics.meta'
+import { comparisonText, factualTrend, insightAction, learningActivityTarget, parseAnalyticsRange } from './analytics.meta'
 describe('analytics presentation', () => {
   it('canonicalizes unsupported ranges', () => {
     expect(parseAnalyticsRange(undefined)).toBe('7d')
@@ -42,5 +42,12 @@ describe('analytics presentation', () => {
         isAvailable: false,
       }),
     ).toBeUndefined()
+  })
+  it('only links available lesson completion activity', () => {
+    const activity = { type: 'LearningContentCompleted' as const, title: 'EF Core',
+      occurredAtUtc: '2026-08-13T12:00:00Z', sourceSlug: 'ef-core', isSourceAvailable: true }
+    expect(learningActivityTarget(activity)).toBe('/app/learn/ef-core')
+    expect(learningActivityTarget({ ...activity, sourceSlug: undefined, isSourceAvailable: false }))
+      .toBeUndefined()
   })
 })

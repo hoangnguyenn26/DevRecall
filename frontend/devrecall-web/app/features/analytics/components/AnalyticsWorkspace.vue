@@ -2,7 +2,7 @@
 import type { EChartsCoreOption } from 'echarts/core'
 import LearningInsights from './LearningInsights.vue'
 import { formatMinutes } from '~/utils/format'
-import { comparisonText, factualTrend, parseAnalyticsRange } from '../analytics.meta'
+import { comparisonText, factualTrend, learningActivityTarget, parseAnalyticsRange } from '../analytics.meta'
 import { useAnalyticsApi } from '../analytics.api'
 import type {
   AnalyticsOverview,
@@ -108,6 +108,7 @@ const hasActivity = computed(
   () =>
     (overview.value?.studyMinutes.current ?? 0) +
       (overview.value?.practiceActivities.current ?? 0) >
+      0 || (overview.value?.learningContentCompletedCount ?? 0) >
     0,
 )
 const modules = [
@@ -195,6 +196,10 @@ function distribution(key: string, previous = false) {
           <span>Practice activities</span><strong>{{ overview.practiceActivities.current }}</strong
           ><small>{{ comparisonText(overview.practiceActivities, 'activities') }}</small>
         </article>
+        <article>
+          <span>Lessons completed</span><strong>{{ overview.learningContentCompletedCount }}</strong
+          ><small>Explicitly completed in this period</small>
+        </article>
       </section>
       <template v-if="view === 'overview'"
         ><AnalyticsChartContainer
@@ -208,6 +213,7 @@ function distribution(key: string, previous = false) {
                 <th>Date</th>
                 <th>Study minutes</th>
                 <th>Practice activities</th>
+                <th>Lessons completed</th>
               </tr>
             </thead>
             <tbody>
@@ -215,6 +221,7 @@ function distribution(key: string, previous = false) {
                 <td>{{ point.date }}</td>
                 <td>{{ point.studyMinutes }}</td>
                 <td>{{ point.practiceCount }}</td>
+                <td>{{ point.lessonsCompleted }}</td>
               </tr>
             </tbody>
           </table></AnalyticsChartContainer
@@ -230,8 +237,16 @@ function distribution(key: string, previous = false) {
           <p>
             DSA <strong>{{ overview.dsaAttemptCount }}</strong>
           </p>
-        </section></template
-      ><template v-else
+        </section>
+        <section v-if="overview.recentActivity.length" class="recent-activity" aria-labelledby="recent-learning-activity">
+          <h2 id="recent-learning-activity">Recent learning activity</h2>
+          <article v-for="item in overview.recentActivity" :key="`${item.occurredAtUtc}-${item.title}`">
+            <div><small>Lesson</small><strong>Completed lesson</strong><span>{{ item.title }}</span></div>
+            <time :datetime="item.occurredAtUtc">{{ new Date(item.occurredAtUtc).toLocaleString() }}</time>
+            <UButton v-if="learningActivityTarget(item)" :to="learningActivityTarget(item)" label="Open lesson" color="neutral" variant="ghost" />
+          </article>
+        </section>
+      </template><template v-else
         ><CoreLoadingState
           v-if="performanceLoading"
           label="Loading performance trends" /><CoreErrorState
@@ -288,7 +303,7 @@ function distribution(key: string, previous = false) {
 }
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -312,6 +327,21 @@ function distribution(key: string, previous = false) {
 .breakdown {
   margin-top: 1rem;
 }
+.recent-activity {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.recent-activity > article {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 0.75rem;
+}
+.recent-activity article div { display: grid; flex: 1; gap: 0.2rem; }
+.recent-activity small, .recent-activity span, .recent-activity time { color: var(--ui-text-muted); }
 .breakdown p,
 .outcome {
   display: flex;
@@ -340,6 +370,9 @@ td {
   .ranges > * {
     flex: 1;
   }
+}
+@media (max-width: 520px) {
+  .recent-activity > article { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 380px) {
   .metrics {

@@ -14,7 +14,15 @@ export interface AnalyticsOverview {
   reviewCount: number
   interviewAttemptCount: number
   dsaAttemptCount: number
-  activity: { date: string; studyMinutes: number; practiceCount: number }[]
+  learningContentCompletedCount: number
+  activity: { date: string; studyMinutes: number; practiceCount: number; lessonsCompleted: number }[]
+  recentActivity: {
+    type: 'LearningContentCompleted'
+    title: string
+    occurredAtUtc: string
+    sourceSlug?: string
+    isSourceAvailable: boolean
+  }[]
 }
 export interface Distribution {
   first: number

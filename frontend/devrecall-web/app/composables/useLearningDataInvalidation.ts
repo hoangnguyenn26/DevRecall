@@ -51,6 +51,7 @@ export function useLearningDataInvalidation() {
     clearNuxtData(queryKeys.today)
     clearAnalyticsAndInsights()
   }
+  const afterLessonCompleted = (): void => clearAnalyticsAndInsights()
   const afterRecommendationsChanged = async (): Promise<void> => {
     await refreshTodayAndNavigation()
     for (const range of insightRanges) clearNuxtData(queryKeys.learningInsights(range))
@@ -85,6 +86,7 @@ export function useLearningDataInvalidation() {
     afterInterviewPractice,
     afterDsaPractice,
     afterStudySessionChanged,
+    afterLessonCompleted,
     afterRecommendationDismissed,
     afterRecommendationsChanged,
     refreshLearningEntryPoints,

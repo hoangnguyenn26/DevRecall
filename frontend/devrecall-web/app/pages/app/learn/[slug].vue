@@ -27,6 +27,7 @@ const mutationPending = ref(false)
 const mutationError = ref<NormalizedApiError | null>(null)
 const completedJustNow = ref(false)
 const sessionApi = useStudySessionApi()
+const learningInvalidation = useLearningDataInvalidation()
 const sessionId = computed(() => typeof route.query.studySession === 'string' ? route.query.studySession : '')
 const sessionItemId = computed(() => typeof route.query.studyItem === 'string' ? route.query.studyItem : '')
 const sessionAttachError = ref('')
@@ -62,6 +63,7 @@ async function mutate(action: 'start' | 'complete') {
     lesson.value.progress = progress
     lesson.value.progressStatus = progress.status
     completedJustNow.value = action === 'complete'
+    if (action === 'complete') learningInvalidation.afterLessonCompleted()
     if (action === 'complete' && progress.completionEvidenceId && sessionId.value && sessionItemId.value) {
       pendingSessionEvidenceId.value = progress.completionEvidenceId
       try {

@@ -1,4 +1,4 @@
-import type { AnalyticsRange, Comparison, Distribution } from './analytics.types'
+import type { AnalyticsOverview, AnalyticsRange, Comparison, Distribution } from './analytics.types'
 export const analyticsRanges: AnalyticsRange[] = ['7d', '30d', '90d']
 export function parseAnalyticsRange(value: unknown): AnalyticsRange {
   return typeof value === 'string' && analyticsRanges.includes(value as AnalyticsRange)
@@ -28,6 +28,14 @@ export function factualTrend(
 export const analyticsQueryKeys = {
   overview: (range: AnalyticsRange) => `analytics:overview:${range}`,
   performance: (range: AnalyticsRange) => `analytics:performance:${range}`,
+}
+
+export function learningActivityTarget(
+  activity: AnalyticsOverview['recentActivity'][number],
+): string | undefined {
+  return activity.type === 'LearningContentCompleted' && activity.isSourceAvailable && activity.sourceSlug
+    ? `/app/learn/${encodeURIComponent(activity.sourceSlug)}`
+    : undefined
 }
 export function insightAction(action?: {
   type: string
