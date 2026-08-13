@@ -174,5 +174,10 @@ public sealed class ReviewHandlerTests
             DueAtOrBeforeUtc = dueAtOrBeforeUtc;
             return Task.FromResult(DueResult);
         }
+
+        public Task<IReadOnlyList<ReviewSourceProvenance>> GetLearningContentSourcesAsync(
+            Guid userId, IReadOnlyCollection<Guid> reviewItemIds,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ReviewSourceProvenance>>([]);
     }
 }

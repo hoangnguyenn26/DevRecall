@@ -23,4 +23,8 @@ public interface IReviewItemRepository
         Guid userId, DateTimeOffset dueAtOrBeforeUtc,
         ReviewResourceType? resourceType, int skip, int take,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ReviewSourceProvenance>> GetLearningContentSourcesAsync(
+        Guid userId, IReadOnlyCollection<Guid> reviewItemIds,
+        CancellationToken cancellationToken);
 }

@@ -32,8 +32,11 @@ public sealed class GetDueReviewItemsHandler(
             .ToArray();
         var summaries = await resourceSummaryReader.ReadManyAsync(
             userId, references, cancellationToken);
+        var sources = await reviewItemRepository.GetLearningContentSourcesAsync(
+            userId, dueItems.Items.Select(item => item.ReviewItemId).ToArray(), cancellationToken);
         var summaryByKey = summaries.ToDictionary(
             summary => (summary.ResourceType, summary.ResourceId));
+        var sourceByReviewItemId = sources.ToDictionary(source => source.ReviewItemId);
         var totalPages = dueItems.TotalCount == 0
             ? 0
             : (int)Math.Ceiling(dueItems.TotalCount / (double)query.PageSize);
@@ -42,12 +45,13 @@ public sealed class GetDueReviewItemsHandler(
         {
             summaryByKey.TryGetValue(
                 (item.ResourceType, item.ResourceId), out var summary);
+            sourceByReviewItemId.TryGetValue(item.ReviewItemId, out var source);
             return new DueReviewItem(
                 item.ReviewItemId, item.ResourceType.ToString(),
                 item.ResourceId, summary?.Title ?? "Unavailable resource",
                 summary?.Preview, item.DueAtUtc, item.LastReviewedAtUtc,
                 item.IntervalDays, item.ReviewCount,
-                CalculateOverdueMinutes(item.DueAtUtc, now));
+                CalculateOverdueMinutes(item.DueAtUtc, now), source);
         }).ToList();
 
         return new GetDueReviewItemsResult(

@@ -1,4 +1,5 @@
 using DevRecall.Api.Authorization;
+using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.Create;
 using DevRecall.Application.Reviews.Evaluate;
 using DevRecall.Application.Reviews.GetDetail;
@@ -78,7 +79,7 @@ public static class ReviewItemEndpoints
                     item.ReviewItemId, item.ResourceType, item.ResourceId,
                     item.ResourceTitle, item.ResourcePreview, item.DueAtUtc,
                     item.LastReviewedAtUtc, item.IntervalDays, item.ReviewCount,
-                    item.OverdueMinutes)).ToList(),
+                    item.OverdueMinutes, MapSource(item.Source))).ToList(),
                 result.Page, result.PageSize, result.TotalCount,
                 result.TotalPages));
     }
@@ -116,6 +117,7 @@ public static class ReviewItemEndpoints
                 result.Resource.ResourceType, result.Resource.ResourceId,
                 result.Resource.Title, result.Resource.Preview,
                 result.Resource.IsAvailable),
+            MapSource(result.Source),
             result.RecentHistory.Select(MapHistory).ToList()));
     }
 
@@ -146,4 +148,10 @@ public static class ReviewItemEndpoints
             history.NextIntervalDays, history.PreviousDueAtUtc,
             history.NextDueAtUtc, history.ReviewedAtUtc,
             history.CreatedAtUtc);
+
+    private static ReviewSourceResponse? MapSource(ReviewSourceProvenance? source) =>
+        source is null
+            ? null
+            : new ReviewSourceResponse(
+                source.Type, source.Title, source.Slug, source.IsAvailable);
 }

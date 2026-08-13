@@ -2,6 +2,7 @@ using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Common.Pagination;
 using DevRecall.Application.Reviews;
 using DevRecall.Application.Reviews.GetDue;
+using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.Reviews;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -95,5 +96,22 @@ internal sealed class ReviewItemRepository(DevRecallDbContext dbContext)
                 item.LastReviewedAtUtc, item.IntervalDays, item.ReviewCount))
             .ToListAsync(cancellationToken);
         return new PagedReadResult<DueReviewItemReadModel>(items, totalCount);
+    }
+
+    public async Task<IReadOnlyList<ReviewSourceProvenance>> GetLearningContentSourcesAsync(
+        Guid userId, IReadOnlyCollection<Guid> reviewItemIds,
+        CancellationToken cancellationToken)
+    {
+        if (reviewItemIds.Count == 0) return [];
+
+        return await (
+            from source in dbContext.ReviewLearningContentSources.AsNoTracking()
+            join content in dbContext.LearningContents.AsNoTracking()
+                on source.LearningContentId equals content.Id
+            where source.UserId == userId && reviewItemIds.Contains(source.ReviewItemId)
+            select new ReviewSourceProvenance(
+                source.ReviewItemId, "LearningContent", source.SourceTitleSnapshot,
+                content.Slug, content.Status == ContentStatus.Published))
+            .ToListAsync(cancellationToken);
     }
 }

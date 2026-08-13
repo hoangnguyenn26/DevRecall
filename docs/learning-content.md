@@ -191,6 +191,18 @@ Their prompt, answer, and lesson title are snapshots, so later lesson edits do n
 card. Adding a card is preparation rather than recall evidence: it does not create Review history,
 change lesson completion, update Weak Topics, or record an evaluation outcome.
 
+When a card becomes due, Review may expose the source as optional provenance (`type`, title snapshot,
+slug, and current availability). The prompt remains standalone and the answer remains hidden until the
+normal Reveal action. A source lesson action is offered only after the rating has been saved, opens in a
+new tab, and cannot reveal, rate, or complete the active Review. Archiving the lesson disables the link
+without changing the card snapshot or its schedule.
+
+Lesson completion and Review performance are separate historical facts. A later `Again` rating does not
+reset the lesson to In Progress, and revisiting a completed source does not create another completion.
+Analytics counts the lesson completion once and each Review attempt through the existing Review signal.
+Weak Topics receive lesson-derived outcomes only when the Review item already has valid attribution under
+the v1 model; DevRecall never silently maps a global Content Topic into the user's personal taxonomy.
+
 ## Study Plan and Study Session integration
 
 An unfinished published lesson can be explicitly added to an existing Draft Study Plan. The plan stores

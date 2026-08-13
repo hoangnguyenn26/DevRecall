@@ -1,6 +1,13 @@
 export type ReviewRating = 'Again' | 'Hard' | 'Good' | 'Easy'
 export type ReviewCardPhase = 'prompt' | 'answer' | 'submitting' | 'feedback' | 'completed'
 
+export interface ReviewSource {
+  type: 'LearningContent'
+  title: string
+  slug: string
+  isAvailable: boolean
+}
+
 export interface DueReviewItem {
   reviewItemId: string
   resourceType: string
@@ -12,6 +19,7 @@ export interface DueReviewItem {
   intervalDays: number
   reviewCount: number
   overdueMinutes: number
+  source?: ReviewSource
 }
 
 export interface ReviewResult {

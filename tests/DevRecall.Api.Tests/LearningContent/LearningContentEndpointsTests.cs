@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
+using DevRecall.Contracts.Analytics;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Knowledge;
 using DevRecall.Contracts.LearningContent;
@@ -506,7 +507,83 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var due = await client.GetFromJsonAsync<PagedResponse<DueReviewItemResponse>>(
             "/api/v1/review-items/due?resourceType=LearningContent&page=1&pageSize=10");
         due!.Items.Should().Contain(item => item.ResourceTitle.Contains("three built-in", StringComparison.Ordinal)
-            && item.ResourcePreview == "Transient, Scoped, and Singleton.");
+            && item.ResourcePreview == "Transient, Scoped, and Singleton."
+            && item.Source == new ReviewSourceResponse("LearningContent",
+                "ASP.NET Core Service Lifetimes", "aspnet-core-service-lifetimes", true));
+    }
+
+    [Fact]
+    public async Task LessonReviewSource_ShouldRemainUsableAndBecomeUnavailableAfterLessonArchive()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("lesson-review-archive");
+        var created = await (await client.PostAsJsonAsync(
+            "/api/v1/review/from-learning-content/aspnet-core-service-lifetimes",
+            new CreateLearningContentReviewsRequest(["captive-dependency"], Guid.NewGuid()))).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+        var reviewItemId = created!.Items.Single().ReviewItemId;
+
+        try
+        {
+            await SetLessonArchivedAsync("aspnet-core-service-lifetimes", true);
+            var due = await client.GetFromJsonAsync<PagedResponse<DueReviewItemResponse>>(
+                "/api/v1/review-items/due?resourceType=LearningContent&page=1&pageSize=10");
+            var item = due!.Items.Single(value => value.ReviewItemId == reviewItemId);
+
+            item.ResourceTitle.Should().Be("Why can injecting a Scoped service into a Singleton be problematic?");
+            item.ResourcePreview.Should().Contain("captive dependency");
+            item.Source.Should().Be(new ReviewSourceResponse("LearningContent",
+                "ASP.NET Core Service Lifetimes", "aspnet-core-service-lifetimes", false));
+        }
+        finally
+        {
+            await SetLessonArchivedAsync("aspnet-core-service-lifetimes", false);
+        }
+    }
+
+    [Fact]
+    public async Task LessonReviews_ShouldUseNormalOutcomesWithoutChangingLessonCompletionEvidence()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("lesson-review-retention");
+        const string slug = "aspnet-core-service-lifetimes";
+        (await client.PostAsJsonAsync($"/api/v1/learning-content/{slug}/progress/complete",
+            new CompleteLearningContentRequest(null))).EnsureSuccessStatusCode();
+        var created = await (await client.PostAsJsonAsync($"/api/v1/review/from-learning-content/{slug}",
+            new CreateLearningContentReviewsRequest(
+                ["three-service-lifetimes", "captive-dependency"], Guid.NewGuid()))).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+
+        var first = created!.Items[0].ReviewItemId;
+        var second = created.Items[1].ReviewItemId;
+        using var good = await client.PostAsJsonAsync($"/api/v1/review-items/{first}/evaluate",
+            new EvaluateReviewItemRequest("Good", 0, Guid.NewGuid()));
+        using var again = await client.PostAsJsonAsync($"/api/v1/review-items/{second}/evaluate",
+            new EvaluateReviewItemRequest("Again", 0, Guid.NewGuid()));
+        var goodResult = await good.Content.ReadFromJsonAsync<EvaluateReviewItemResponse>();
+        var againResult = await again.Content.ReadFromJsonAsync<EvaluateReviewItemResponse>();
+        var analytics = await client.GetFromJsonAsync<AnalyticsOverviewResponse>(
+            "/api/v1/analytics/overview?range=7d");
+
+        good.EnsureSuccessStatusCode();
+        again.EnsureSuccessStatusCode();
+        goodResult!.Evaluation.Should().Be("Good");
+        goodResult.NextIntervalDays.Should().BeGreaterThan(0);
+        againResult!.Evaluation.Should().Be("Again");
+        againResult.NextIntervalDays.Should().BeGreaterThan(0);
+        analytics!.LearningContentCompletedCount.Should().Be(1);
+        analytics.ReviewCount.Should().Be(2);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var contentId = await db.LearningContents.Where(item => item.Slug == slug)
+            .Select(item => item.Id).SingleAsync();
+        var userId = await db.ReviewItems.Where(review => review.Id == first)
+            .Select(review => review.UserId).SingleAsync();
+        (await db.LearningContentCompletionEvidence.CountAsync(item =>
+            item.UserId == userId && item.LearningContentId == contentId)).Should().Be(1);
+        (await db.ReviewHistories.CountAsync(item => item.ReviewItemId == first
+            || item.ReviewItemId == second)).Should().Be(2);
     }
 
     [Fact]

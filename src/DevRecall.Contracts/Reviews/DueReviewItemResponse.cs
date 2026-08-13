@@ -10,4 +10,5 @@ public sealed record DueReviewItemResponse(
     DateTimeOffset? LastReviewedAtUtc,
     int IntervalDays,
     int ReviewCount,
-    int OverdueMinutes);
+    int OverdueMinutes,
+    ReviewSourceResponse? Source);

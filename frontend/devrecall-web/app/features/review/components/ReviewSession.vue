@@ -18,6 +18,7 @@ import ReviewAnswer from './ReviewAnswer.vue'
 import ReviewRatingActions from './ReviewRatingActions.vue'
 import ReviewScheduleFeedback from './ReviewScheduleFeedback.vue'
 import ReviewCompletionSummary from './ReviewCompletionSummary.vue'
+import ReviewLessonSource from './ReviewLessonSource.vue'
 
 const reviewApi = useReviewApi()
 const { afterReviewEvaluation } = useLearningDataInvalidation()
@@ -70,9 +71,10 @@ onMounted(load)
     <PracticeEmptyState v-else-if="!session.items.value.length" description="There are no review items due right now." />
     <ReviewCompletionSummary v-else-if="session.phase.value === 'completed'" :results="session.results.value" :duration-minutes="session.durationMinutes.value" :remaining-due-count="session.remainingDueCount.value" />
     <template v-else-if="session.currentItem.value">
-      <ReviewPrompt :title="session.currentItem.value.resourceTitle" :resource-type="session.currentItem.value.resourceType" />
+      <ReviewPrompt :title="session.currentItem.value.resourceTitle" :resource-type="session.currentItem.value.resourceType" :source="session.currentItem.value.source" />
       <ReviewAnswer v-if="session.phase.value !== 'prompt'" :answer="session.currentItem.value.resourcePreview" />
       <ReviewScheduleFeedback v-if="session.phase.value === 'feedback' && session.results.value.at(-1)" :result="session.results.value.at(-1)!" />
+      <ReviewLessonSource v-if="session.phase.value !== 'prompt' && session.currentItem.value.source" :source="session.currentItem.value.source" :can-open="session.phase.value === 'feedback'" />
       <FeedbackAppErrorState v-if="session.mutationError.value" class="mx-auto mt-5 w-full max-w-2xl" title="Unable to save this review" :description="isConflict() ? 'This review item was already updated elsewhere.' : 'Your answer is still here. Retry with the same submission identifier.'" @retry="isConflict() ? load() : retryRating()" />
       <UButton v-if="isConflict()" class="mx-auto mt-3" color="neutral" variant="outline" @click="skipConflict">Skip to next</UButton>
     </template>

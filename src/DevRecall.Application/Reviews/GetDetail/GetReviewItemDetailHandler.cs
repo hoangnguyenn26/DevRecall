@@ -31,6 +31,8 @@ public sealed class GetReviewItemDetailHandler(
             [new ReviewResourceReference(item.ResourceType, item.ResourceId)],
             cancellationToken);
         var summary = summaries.SingleOrDefault();
+        var source = (await reviewItemRepository.GetLearningContentSourcesAsync(
+            userId, [item.Id], cancellationToken)).SingleOrDefault();
         var recent = await reviewHistoryRepository.GetRecentAsync(
             item.Id, RecentHistoryCount, cancellationToken);
 
@@ -42,6 +44,7 @@ public sealed class GetReviewItemDetailHandler(
                 item.ResourceType.ToString(), item.ResourceId,
                 summary?.Title ?? "Unavailable resource", summary?.Preview,
                 summary is not null),
+            source,
             recent.Select(MapHistory).ToList());
     }
 

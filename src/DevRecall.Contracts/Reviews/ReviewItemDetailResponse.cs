@@ -10,4 +10,5 @@ public sealed record ReviewItemDetailResponse(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     ReviewResourceSummaryResponse Resource,
+    ReviewSourceResponse? Source,
     IReadOnlyList<ReviewHistoryItemResponse> RecentHistory);
