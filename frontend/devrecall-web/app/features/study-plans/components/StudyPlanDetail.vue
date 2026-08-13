@@ -52,7 +52,8 @@ const emit = defineEmits<{ edit: []; start: [] }>()
           </p>
         </div>
         <span>{{ item.plannedDurationMinutes }} min</span>
-        <UButton v-if="item.resourceType === 'LearningContent' && item.isResourceAvailable && item.resourceKey"
+        <UButton
+          v-if="item.resourceType === 'LearningContent' && item.isResourceAvailable && item.resourceKey"
           :to="`/app/learn/${item.resourceKey}`" label="Open lesson" color="neutral" variant="ghost" />
       </li>
     </ol>

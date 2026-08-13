@@ -20,6 +20,9 @@ public interface ILearningContentProgressRepository
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
 
+public sealed class LearningContentProgressRaceException(string message, Exception innerException)
+    : Exception(message, innerException);
+
 public sealed class StartLearningContentHandler(ILearningContentProgressRepository repository,
     ICurrentUser currentUser, IUtcClock clock)
 {
@@ -33,7 +36,12 @@ public sealed class StartLearningContentHandler(ILearningContentProgressReposito
         {
             progress = LearningContentProgress.Start(Guid.NewGuid(), userId, content.Id, clock.UtcNow);
             repository.Add(progress);
-            await repository.SaveChangesAsync(cancellationToken);
+            try { await repository.SaveChangesAsync(cancellationToken); }
+            catch (LearningContentProgressRaceException)
+            {
+                progress = await repository.GetAsync(userId, content.Id, cancellationToken);
+                if (progress is null) throw;
+            }
         }
         return Map(progress);
     }
@@ -76,7 +84,27 @@ public sealed class CompleteLearningContentHandler(ILearningContentProgressRepos
         }
         var evidence = LearningContentCompletionEvidence.Create(Guid.NewGuid(), userId, content.Id, content.Title, now);
         repository.Add(evidence);
-        await repository.SaveChangesAsync(cancellationToken);
+        try { await repository.SaveChangesAsync(cancellationToken); }
+        catch (LearningContentProgressRaceException)
+        {
+            var canonicalProgress = await repository.GetAsync(userId, content.Id, cancellationToken);
+            var canonicalEvidence = await repository.GetCompletionEvidenceAsync(userId, content.Id, cancellationToken);
+            if (canonicalProgress?.Status != LearningProgressStatus.Completed || canonicalEvidence is null) throw;
+            return StartLearningContentHandler.Map(canonicalProgress) with
+            {
+                CompletionEvidenceId = canonicalEvidence.Id
+            };
+        }
+        catch (ConcurrencyException)
+        {
+            var canonicalProgress = await repository.GetAsync(userId, content.Id, cancellationToken);
+            var canonicalEvidence = await repository.GetCompletionEvidenceAsync(userId, content.Id, cancellationToken);
+            if (canonicalProgress?.Status != LearningProgressStatus.Completed || canonicalEvidence is null) throw;
+            return StartLearningContentHandler.Map(canonicalProgress) with
+            {
+                CompletionEvidenceId = canonicalEvidence.Id
+            };
+        }
         return StartLearningContentHandler.Map(progress) with { CompletionEvidenceId = evidence.Id };
     }
 

@@ -1,6 +1,5 @@
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Knowledge;
-using DevRecall.Domain.LearningContent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using LearningContentAggregate = DevRecall.Domain.LearningContent.LearningContent;

@@ -3,8 +3,8 @@ using System.Net.Http.Json;
 using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Common;
-using DevRecall.Contracts.LearningContent;
 using DevRecall.Contracts.Knowledge;
+using DevRecall.Contracts.LearningContent;
 using DevRecall.Contracts.Reviews;
 using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.LearningProfiles;
@@ -201,6 +201,29 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         startAgain!.Status.Should().Be("Completed");
         startAgain.Version.Should().Be(completed.Version);
         completed.Version.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Completion_ConcurrentRequests_ShouldConvergeOnOneEvidence()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("complete-race");
+        var route = "/api/v1/learning-content/ef-core-tracking-vs-no-tracking/progress/complete";
+
+        var responses = await Task.WhenAll(
+            client.PostAsJsonAsync(route, new CompleteLearningContentRequest(null)),
+            client.PostAsJsonAsync(route, new CompleteLearningContentRequest(null)));
+
+        responses.Should().OnlyContain(response => response.IsSuccessStatusCode);
+        var results = await Task.WhenAll(responses.Select(response =>
+            response.Content.ReadFromJsonAsync<LearningContentProgressResponse>()));
+        results.Should().OnlyContain(result => result!.Status == "Completed");
+        results.Select(result => result!.CompletionEvidenceId).Distinct().Should().ContainSingle();
+        var evidenceId = results[0]!.CompletionEvidenceId;
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await db.LearningContentCompletionEvidence.CountAsync(item => item.Id == evidenceId))
+            .Should().Be(1);
     }
 
     [Fact]

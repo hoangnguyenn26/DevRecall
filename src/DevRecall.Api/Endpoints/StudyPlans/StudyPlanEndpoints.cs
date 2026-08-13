@@ -3,8 +3,8 @@ using DevRecall.Application.StudyPlans.Convert;
 using DevRecall.Application.StudyPlans.Generate;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
-using DevRecall.Application.StudyPlans.Mutations;
 using DevRecall.Application.StudyPlans.LearningContent;
+using DevRecall.Application.StudyPlans.Mutations;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.StudyPlans;
 

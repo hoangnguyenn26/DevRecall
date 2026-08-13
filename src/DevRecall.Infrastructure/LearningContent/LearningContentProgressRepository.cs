@@ -3,6 +3,7 @@ using DevRecall.Application.LearningContent;
 using DevRecall.Domain.LearningContent;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using LearningContentAggregate = DevRecall.Domain.LearningContent.LearningContent;
 
 namespace DevRecall.Infrastructure.LearningContent;
@@ -26,8 +27,19 @@ internal sealed class LearningContentProgressRepository(DevRecallDbContext dbCon
         try { await dbContext.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException exception)
         {
+            dbContext.ChangeTracker.Clear();
             throw new ConcurrencyException("LEARNING_CONTENT_PROGRESS_CONFLICT",
                 "The lesson progress changed since it was loaded.", exception);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            ConstraintName: "uq_learning_content_progresses_user_content"
+                    or "uq_learning_content_completion_evidence_user_content"
+        })
+        {
+            dbContext.ChangeTracker.Clear();
+            throw new LearningContentProgressRaceException(
+                "Concurrent learning progress converged on the canonical state.", exception);
         }
     }
 }
