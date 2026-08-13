@@ -32,3 +32,9 @@ public sealed record LearningContentDetailResponse(Guid Id, string Slug, string 
     IReadOnlyList<LearningContentReviewCandidateResponse> ReviewCandidates,
     LearningContentSourceResponse Source, DateTimeOffset PublishedAtUtc,
     LearningContentProgressResponse Progress);
+public sealed record ContinueLearningContentResponse(
+    string Slug, string Title, string Summary, string Difficulty, int EstimatedMinutes,
+    IReadOnlyList<LearningContentTechnologyResponse> Technologies, DateTimeOffset StartedAtUtc);
+public sealed record LearningContentHistoryItemResponse(
+    Guid EvidenceId, string Title, DateTimeOffset CompletedAtUtc,
+    string? SourceSlug, bool IsSourceAvailable);

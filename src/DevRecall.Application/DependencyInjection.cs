@@ -123,6 +123,8 @@ public static class DependencyInjection
         services.AddScoped<GetCurrentLearningProfileSignalsHandler>();
         services.AddScoped<GetPublishedLearningContentHandler>();
         services.AddScoped<GetPublishedLearningContentDetailHandler>();
+        services.AddScoped<GetContinueLearningContentHandler>();
+        services.AddScoped<GetLearningContentHistoryHandler>();
         services.AddScoped<StartLearningContentHandler>();
         services.AddScoped<CompleteLearningContentHandler>();
         services.AddScoped<GetCurrentUserHandler>();

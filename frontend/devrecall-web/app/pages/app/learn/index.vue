@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLearningContentApi } from '~/features/learning-content/learning-content.api'
+import { learningContentKeys } from '~/features/learning-content/learning-content.query-keys'
 import type { LearningContentPage } from '~/features/learning-content/learning-content.types'
 import { filtersFromQuery, learningContentDifficulties, learningContentTechnologies,
   queryFromFilters, withFilter } from '~/features/learning-content/learning-content.filters'
@@ -10,6 +11,7 @@ useSeoMeta({ title: 'Learn' })
 const route = useRoute()
 const router = useRouter()
 const api = useLearningContentApi()
+const continueQuery = useApiQuery(learningContentKeys.inProgress, () => api.continueLearning())
 const page = ref<LearningContentPage | null>(null)
 const loading = ref(true)
 const error = ref<NormalizedApiError | null>(null)
@@ -63,7 +65,21 @@ onBeforeUnmount(() => requestController?.abort())
 
 <template>
   <div class="learn-page">
-    <CorePageHeader title="Learn" description="Build stronger engineering fundamentals with focused, practical lessons." />
+    <CorePageHeader title="Learn" description="Build stronger engineering fundamentals with focused, practical lessons.">
+      <UButton to="/app/learn/history" label="Learning history" icon="i-lucide-history" color="neutral" variant="outline" />
+    </CorePageHeader>
+    <section v-if="continueQuery.data.value?.length" class="continue-section" aria-labelledby="continue-learning-title">
+      <div><h2 id="continue-learning-title">Continue learning</h2><p>Pick up an in-progress lesson when you're ready.</p></div>
+      <div class="continue-grid">
+        <article v-for="item in continueQuery.data.value" :key="item.slug">
+          <div class="continue-meta"><UBadge color="primary" variant="subtle">In progress</UBadge><span>{{ item.difficulty }} · {{ item.estimatedMinutes }} min</span></div>
+          <div><h3>{{ item.title }}</h3><p>{{ item.summary }}</p></div>
+          <small>Started {{ new Date(item.startedAtUtc).toLocaleDateString() }}</small>
+          <UButton :to="{ path: `/app/learn/${item.slug}`, query: { returnTo } }" label="Continue" trailing-icon="i-lucide-arrow-right" variant="soft" />
+        </article>
+      </div>
+    </section>
+    <div class="browse-heading"><div><h2>Browse lessons</h2><p>Explore the complete published catalog.</p></div></div>
     <section class="filter-bar" aria-label="Filter lessons">
       <label>Technology<select v-model="technology"><option value="">All technologies</option><option v-for="item in learningContentTechnologies" :key="item[0]" :value="item[0]">{{ item[1] }}</option></select></label>
       <label>Level<select v-model="difficulty"><option value="">All levels</option><option v-for="item in learningContentDifficulties" :key="item" :value="item">{{ item }}</option></select></label>
@@ -90,4 +106,5 @@ onBeforeUnmount(() => requestController?.abort())
 
 <style scoped>
 .learn-page{display:grid;gap:1.25rem}.filter-bar{display:flex;flex-wrap:wrap;gap:.75rem;border:1px solid var(--ui-border);border-radius:.85rem;background:var(--ui-bg-elevated);padding:.85rem}.filter-bar label{display:grid;min-width:13rem;gap:.35rem;color:var(--ui-text-muted);font-size:.78rem;font-weight:650}.filter-bar select{border:1px solid var(--ui-border);border-radius:.55rem;background:var(--ui-bg);padding:.62rem .75rem;color:var(--ui-text);font-size:.9rem}.catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr));gap:1rem}.skeleton-card{display:grid;gap:1rem}.pagination{display:flex;align-items:center;justify-content:center;gap:1rem;color:var(--ui-text-muted);font-size:.875rem}@media(max-width:480px){.filter-bar{display:grid}.filter-bar label{min-width:0}.pagination{justify-content:space-between}.pagination span{font-size:.78rem}}
+.continue-section{display:grid;gap:1rem;border-bottom:1px solid var(--ui-border);padding-bottom:1.5rem}.continue-section>div:first-child p,.browse-heading p,.continue-grid p,.continue-grid small{color:var(--ui-text-muted)}.continue-section h2,.browse-heading h2{font-size:1.25rem;font-weight:750}.continue-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));gap:.85rem}.continue-grid article{display:grid;align-content:start;gap:.85rem;border:1px solid color-mix(in srgb,var(--ui-primary) 25%,var(--ui-border));border-radius:1rem;background:color-mix(in srgb,var(--ui-primary) 4%,var(--ui-bg-elevated));padding:1rem}.continue-grid article h3{font-weight:750}.continue-grid article p{margin-top:.35rem;font-size:.88rem;line-height:1.5}.continue-meta{display:flex;align-items:center;justify-content:space-between;gap:.5rem;color:var(--ui-text-muted);font-size:.78rem}.continue-grid :deep(a){justify-self:start}.browse-heading{display:flex;justify-content:space-between}
 </style>

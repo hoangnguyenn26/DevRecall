@@ -120,6 +120,18 @@ The reusable Learn Markdown renderer creates Vue text nodes and safe elements ra
 Estimated duration is metadata, not actual study time. Progress does not create Review items, Weak Topics,
 Knowledge notes, Recommendations, or Interview/DSA practice activity.
 
+## Progress recovery and learning history
+
+The Learn home has three distinct responsibilities:
+
+- **Continue learning** shows at most five Published lessons whose current user's progress is `InProgress`, newest `StartedAtUtc` first. Browse filters do not change this list.
+- **Browse lessons** remains the deterministic Published catalog. In-progress lessons may also appear here because browsing and recovery answer different questions.
+- **Learning history** at `/app/learn/history` is a paginated, newest-first record of immutable completion evidence.
+
+Simply opening a lesson never makes it eligible for Continue learning and does not update a last-viewed timestamp. Completing a lesson removes it from Continue learning and adds one history entry. Reading it again does not create another evidence record, change the original completion timestamp, or increment Analytics.
+
+History uses the completion evidence title snapshot. A later archived source remains visible as historical fact but is marked unavailable and has no broken lesson link. Continue learning excludes Draft or Archived sources while preserving their underlying progress rows. Both reads are owner-scoped and use no read-side mutation.
+
 ## Review candidates and Learn → Review
 
 A published lesson may expose zero to five ordered review candidates. Each candidate has a stable,

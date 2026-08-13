@@ -20,6 +20,19 @@ export interface LearningContentDetail extends LearningContentListItem {
 export interface LearningContentPage {
   items: LearningContentListItem[]; page: number; pageSize: number; totalCount: number; totalPages: number
 }
+export interface ContinueLearningContentItem {
+  slug: string; title: string; summary: string
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced'; estimatedMinutes: number
+  technologies: LearningContentTechnology[]; startedAtUtc: string
+}
+export interface LearningContentHistoryItem {
+  evidenceId: string; title: string; completedAtUtc: string
+  sourceSlug: string | null; isSourceAvailable: boolean
+}
+export interface LearningContentHistoryPage {
+  items: LearningContentHistoryItem[]; page: number; pageSize: number
+  totalCount: number; totalPages: number
+}
 export interface LearningContentFilters { technology?: string; difficulty?: string; page: number }
 export interface SaveLessonToKnowledgeInput {
   title: string; content: string; topicId: string | null; tagIds: string[]; submissionId: string

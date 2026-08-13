@@ -227,6 +227,111 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task ContinueAndHistory_ShouldReflectCanonicalProgressAndRemainOwnerScoped()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("recovery");
+        using var other = await CreateAuthenticatedClientAsync("recovery-other");
+        const string slug = "ef-core-tracking-vs-no-tracking";
+
+        using var started = await client.PostAsync(
+            $"/api/v1/learning-content/{slug}/progress/start", null);
+        var inProgress = await client.GetFromJsonAsync<ContinueLearningContentResponse[]>(
+            "/api/v1/learning-content/continue");
+        var otherInProgress = await other.GetFromJsonAsync<ContinueLearningContentResponse[]>(
+            "/api/v1/learning-content/continue");
+
+        started.EnsureSuccessStatusCode();
+        inProgress.Should().ContainSingle(item => item.Slug == slug);
+        inProgress.Should().OnlyContain(item => item.StartedAtUtc != default);
+        otherInProgress.Should().BeEmpty();
+
+        using var completed = await client.PostAsJsonAsync(
+            $"/api/v1/learning-content/{slug}/progress/complete",
+            new CompleteLearningContentRequest(1));
+        var afterCompletion = await client.GetFromJsonAsync<ContinueLearningContentResponse[]>(
+            "/api/v1/learning-content/continue");
+        var history = await client.GetFromJsonAsync<PagedResponse<LearningContentHistoryItemResponse>>(
+            "/api/v1/learning-content/history?page=1&pageSize=20");
+        var otherHistory = await other.GetFromJsonAsync<PagedResponse<LearningContentHistoryItemResponse>>(
+            "/api/v1/learning-content/history?page=1&pageSize=20");
+
+        completed.EnsureSuccessStatusCode();
+        afterCompletion.Should().BeEmpty();
+        history!.Items.Should().ContainSingle(item => item.Title == "EF Core Tracking vs No Tracking"
+            && item.IsSourceAvailable && item.SourceSlug == slug);
+        otherHistory!.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Continue_ShouldBeBoundedAndNewestStartedFirst()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("continue-order");
+        var slugs = new[]
+        {
+            "dependency-injection-fundamentals",
+            "aspnet-core-service-lifetimes",
+            "ef-core-tracking-vs-no-tracking"
+        };
+        foreach (var slug in slugs)
+        {
+            using var response = await client.PostAsync(
+                $"/api/v1/learning-content/{slug}/progress/start", null);
+            response.EnsureSuccessStatusCode();
+            await Task.Delay(10);
+        }
+
+        var result = await client.GetFromJsonAsync<ContinueLearningContentResponse[]>(
+            "/api/v1/learning-content/continue");
+
+        result.Should().HaveCountLessThanOrEqualTo(5);
+        result!.Select(item => item.Slug).Should().Equal(slugs.Reverse());
+        result.Select(item => item.StartedAtUtc).Should().BeInDescendingOrder();
+    }
+
+    [Fact]
+    public async Task History_ShouldPreserveSnapshotWhenCompletedLessonIsArchived()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("archived-history");
+        const string slug = "ef-core-tracking-vs-no-tracking";
+        using var completed = await client.PostAsJsonAsync(
+            $"/api/v1/learning-content/{slug}/progress/complete",
+            new CompleteLearningContentRequest(null));
+        completed.EnsureSuccessStatusCode();
+
+        await SetLessonArchivedAsync(slug, true);
+        try
+        {
+            var history = await client.GetFromJsonAsync<PagedResponse<LearningContentHistoryItemResponse>>(
+                "/api/v1/learning-content/history?page=1&pageSize=20");
+            var inProgress = await client.GetFromJsonAsync<ContinueLearningContentResponse[]>(
+                "/api/v1/learning-content/continue");
+
+            history!.Items.Should().ContainSingle(item => item.Title == "EF Core Tracking vs No Tracking"
+                && !item.IsSourceAvailable && item.SourceSlug == null);
+            inProgress.Should().BeEmpty();
+        }
+        finally
+        {
+            await SetLessonArchivedAsync(slug, false);
+        }
+    }
+
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(1, 0)]
+    [InlineData(1, 51)]
+    public async Task History_ShouldValidateBoundedPagination(int page, int pageSize)
+    {
+        using var client = await CreateAuthenticatedClientAsync("history-validation");
+        using var response = await client.GetAsync(
+            $"/api/v1/learning-content/history?page={page}&pageSize={pageSize}");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Mutations_ShouldHideDraftAndArchivedLessons()
     {
         await SeedAsync();
@@ -478,6 +583,18 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         archived.Archive(DateTimeOffset.UtcNow);
         dbContext.LearningContents.AddRange(draft, archived);
         await dbContext.SaveChangesAsync();
+    }
+
+    private async Task SetLessonArchivedAsync(string slug, bool archived)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var content = await db.LearningContents.Include(item => item.Topics)
+            .Include(item => item.Objectives).Include(item => item.Sections)
+            .SingleAsync(item => item.Slug == slug);
+        if (archived) content.Archive(DateTimeOffset.UtcNow);
+        else content.Publish(DateTimeOffset.UtcNow);
+        await db.SaveChangesAsync();
     }
 
     private static LearningContentAggregate Create(string slug, Guid topicId) =>

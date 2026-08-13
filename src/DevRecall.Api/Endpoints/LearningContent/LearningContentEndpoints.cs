@@ -14,6 +14,12 @@ public static class LearningContentEndpoints
         group.MapGet("", GetListAsync).WithSummary("Lists published Learning Content.")
             .Produces<PagedResponse<LearningContentListItemResponse>>().ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
+        group.MapGet("/continue", GetContinueAsync).WithSummary("Lists recent in-progress lessons.")
+            .Produces<IReadOnlyList<ContinueLearningContentResponse>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
+        group.MapGet("/history", GetHistoryAsync).WithSummary("Lists completed lesson history.")
+            .Produces<PagedResponse<LearningContentHistoryItemResponse>>().ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
         group.MapGet("/{slug}", GetDetailAsync).WithSummary("Gets published Learning Content by slug.")
             .Produces<LearningContentDetailResponse>().ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
@@ -37,6 +43,24 @@ public static class LearningContentEndpoints
     private static async Task<IResult> GetDetailAsync(string slug,
         GetPublishedLearningContentDetailHandler handler, CancellationToken cancellationToken) =>
         Results.Ok(Map(await handler.HandleAsync(slug, cancellationToken)));
+
+    private static async Task<IResult> GetContinueAsync(GetContinueLearningContentHandler handler,
+        CancellationToken cancellationToken) => Results.Ok((await handler.HandleAsync(cancellationToken))
+            .Select(item => new ContinueLearningContentResponse(item.Slug, item.Title, item.Summary,
+                item.Difficulty, item.EstimatedMinutes,
+                item.Technologies.Select(value => new LearningContentTechnologyResponse(
+                    value.Value, value.Label)).ToArray(), item.StartedAtUtc)).ToArray());
+
+    private static async Task<IResult> GetHistoryAsync(int? page, int? pageSize,
+        GetLearningContentHistoryHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(
+            new(page ?? 1, pageSize ?? 20), cancellationToken);
+        return Results.Ok(new PagedResponse<LearningContentHistoryItemResponse>(result.Items.Select(item =>
+            new LearningContentHistoryItemResponse(item.EvidenceId, item.Title, item.CompletedAtUtc,
+                item.SourceSlug, item.IsSourceAvailable)).ToArray(), result.Page, result.PageSize,
+            result.TotalCount, result.TotalPages));
+    }
 
     private static async Task<IResult> StartAsync(string slug, StartLearningContentHandler handler,
         CancellationToken cancellationToken) => Results.Ok(Map(await handler.HandleAsync(slug, cancellationToken)));

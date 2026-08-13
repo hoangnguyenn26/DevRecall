@@ -45,6 +45,8 @@ describe('Learn catalog and reader', () => {
       'technology', 'EfCore')
     expect(filtered).toEqual({ technology: 'EfCore', difficulty: 'Intermediate', page: 1 })
     expect(learningContentKeys.list(filtered)).toContain('EfCore:Intermediate:1')
+    expect(learningContentKeys.inProgress).not.toBe(learningContentKeys.list(filtered))
+    expect(learningContentKeys.history(2)).toBe('learning-content:history:2')
   })
 
   it('renders a learning-oriented lesson card without internal fields', () => {

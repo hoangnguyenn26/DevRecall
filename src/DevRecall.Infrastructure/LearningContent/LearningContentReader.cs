@@ -127,6 +127,43 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                 raw.Progress.EvidenceId));
     }
 
+    public async Task<IReadOnlyList<ContinueLearningContentItem>> GetInProgressAsync(
+        Guid userId, int take, CancellationToken cancellationToken) =>
+        await (from progress in dbContext.LearningContentProgresses.AsNoTracking()
+               join content in dbContext.LearningContents.AsNoTracking()
+                   on progress.LearningContentId equals content.Id
+               where progress.UserId == userId
+                   && progress.Status == LearningProgressStatus.InProgress
+                   && content.Status == ContentStatus.Published
+               orderby progress.StartedAtUtc descending, progress.Id
+               select new ContinueLearningContentItem(
+                   content.Slug, content.Title, content.Summary, content.Difficulty.ToString(),
+                   content.EstimatedMinutes,
+                   content.Technologies.OrderBy(item => item.Technology)
+                       .Select(item => MapTechnology(item.Technology)).ToArray(),
+                   progress.StartedAtUtc!.Value))
+            .Take(take).ToListAsync(cancellationToken);
+
+    public async Task<LearningContentHistoryPage> GetHistoryAsync(
+        Guid userId, int skip, int take, CancellationToken cancellationToken)
+    {
+        var query = dbContext.LearningContentCompletionEvidence.AsNoTracking()
+            .Where(evidence => evidence.UserId == userId);
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await (from evidence in query
+                           join content in dbContext.LearningContents.AsNoTracking()
+                               on evidence.LearningContentId equals content.Id into contents
+                           from content in contents.DefaultIfEmpty()
+                           orderby evidence.CompletedAtUtc descending, evidence.Id descending
+                           select new LearningContentHistoryItem(
+                               evidence.Id, evidence.TitleSnapshot, evidence.CompletedAtUtc,
+                               content != null && content.Status == ContentStatus.Published
+                                   ? content.Slug : null,
+                               content != null && content.Status == ContentStatus.Published))
+            .Skip(skip).Take(take).ToListAsync(cancellationToken);
+        return new(items, totalCount);
+    }
+
     private static LearningContentTechnologyItem MapTechnology(Technology value)
     {
         var metadata = LearningProfileMetadata.TechnologyValue(value, false);

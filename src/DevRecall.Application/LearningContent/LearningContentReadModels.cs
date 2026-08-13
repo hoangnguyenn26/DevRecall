@@ -25,6 +25,14 @@ public sealed record PublishedLearningContentDetail(
 
 public sealed record PublishedLearningContentPage(
     IReadOnlyList<PublishedLearningContentListItem> Items, int TotalCount);
+public sealed record ContinueLearningContentItem(
+    string Slug, string Title, string Summary, string Difficulty, int EstimatedMinutes,
+    IReadOnlyList<LearningContentTechnologyItem> Technologies, DateTimeOffset StartedAtUtc);
+public sealed record LearningContentHistoryItem(
+    Guid EvidenceId, string Title, DateTimeOffset CompletedAtUtc,
+    string? SourceSlug, bool IsSourceAvailable);
+public sealed record LearningContentHistoryPage(
+    IReadOnlyList<LearningContentHistoryItem> Items, int TotalCount);
 
 public interface ILearningContentReader
 {
@@ -32,5 +40,9 @@ public interface ILearningContentReader
         string? topicSlug, string? difficulty, int skip, int take,
         CancellationToken cancellationToken);
     Task<PublishedLearningContentDetail?> GetPublishedBySlugAsync(Guid userId, string slug,
+        CancellationToken cancellationToken);
+    Task<IReadOnlyList<ContinueLearningContentItem>> GetInProgressAsync(Guid userId, int take,
+        CancellationToken cancellationToken);
+    Task<LearningContentHistoryPage> GetHistoryAsync(Guid userId, int skip, int take,
         CancellationToken cancellationToken);
 }

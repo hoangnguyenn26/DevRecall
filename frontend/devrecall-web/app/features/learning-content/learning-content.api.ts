@@ -1,4 +1,4 @@
-import type { LearningContentDetail, LearningContentFilters, LearningContentPage, LearningContentProgress, LearningContentReviewBatch, SaveLessonToKnowledgeInput, SavedLessonKnowledge } from './learning-content.types'
+import type { ContinueLearningContentItem, LearningContentDetail, LearningContentFilters, LearningContentHistoryPage, LearningContentPage, LearningContentProgress, LearningContentReviewBatch, SaveLessonToKnowledgeInput, SavedLessonKnowledge } from './learning-content.types'
 
 export function useLearningContentApi() {
   const api = useApi()
@@ -6,6 +6,10 @@ export function useLearningContentApi() {
     list: (filters: LearningContentFilters, signal?: AbortSignal) => api.get<LearningContentPage>(
       '/learning-content', { technology: filters.technology, difficulty: filters.difficulty,
         page: filters.page, pageSize: 12 }, signal),
+    continueLearning: (signal?: AbortSignal) => api.get<ContinueLearningContentItem[]>(
+      '/learning-content/continue', undefined, signal),
+    history: (page: number, signal?: AbortSignal) => api.get<LearningContentHistoryPage>(
+      '/learning-content/history', { page, pageSize: 20 }, signal),
     detail: (slug: string, signal?: AbortSignal) => api.get<LearningContentDetail>(
       `/learning-content/${encodeURIComponent(slug)}`, undefined, signal),
     start: (slug: string) => api.post<LearningContentProgress>(

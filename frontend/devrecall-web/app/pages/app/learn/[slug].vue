@@ -63,7 +63,11 @@ async function mutate(action: 'start' | 'complete') {
     lesson.value.progress = progress
     lesson.value.progressStatus = progress.status
     completedJustNow.value = action === 'complete'
-    if (action === 'complete') learningInvalidation.afterLessonCompleted()
+    clearNuxtData(learningContentKeys.inProgress)
+    if (action === 'complete') {
+      clearNuxtData(key => key.startsWith('learning-content:history:'))
+      learningInvalidation.afterLessonCompleted()
+    }
     if (action === 'complete' && progress.completionEvidenceId && sessionId.value && sessionItemId.value) {
       pendingSessionEvidenceId.value = progress.completionEvidenceId
       try {

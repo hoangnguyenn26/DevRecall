@@ -69,3 +69,38 @@ public sealed class GetPublishedLearningContentDetailHandler(
             ?? throw new NotFoundException("LEARNING_CONTENT_NOT_FOUND", "Learning content was not found.");
     }
 }
+
+public sealed class GetContinueLearningContentHandler(
+    ILearningContentReader reader, ICurrentUser currentUser)
+{
+    public async Task<IReadOnlyList<ContinueLearningContentItem>> HandleAsync(
+        CancellationToken cancellationToken)
+    {
+        GetPublishedLearningContentHandler.EnsureAuthenticated(currentUser);
+        return await reader.GetInProgressAsync(currentUser.UserId!.Value, 5, cancellationToken);
+    }
+}
+
+public sealed record GetLearningContentHistoryQuery(int Page, int PageSize);
+public sealed record GetLearningContentHistoryResult(
+    IReadOnlyList<LearningContentHistoryItem> Items, int Page, int PageSize,
+    int TotalCount, int TotalPages);
+
+public sealed class GetLearningContentHistoryHandler(
+    ILearningContentReader reader, ICurrentUser currentUser)
+{
+    public async Task<GetLearningContentHistoryResult> HandleAsync(
+        GetLearningContentHistoryQuery query, CancellationToken cancellationToken)
+    {
+        GetPublishedLearningContentHandler.EnsureAuthenticated(currentUser);
+        var errors = new Dictionary<string, string[]>();
+        if (query.Page < 1) errors["page"] = ["Page must be greater than or equal to 1."];
+        if (query.PageSize is < 1 or > 50) errors["pageSize"] = ["Page size must be between 1 and 50."];
+        if (errors.Count > 0) throw new ValidationException(errors);
+        var result = await reader.GetHistoryAsync(currentUser.UserId!.Value,
+            (query.Page - 1) * query.PageSize, query.PageSize, cancellationToken);
+        var totalPages = result.TotalCount == 0 ? 0
+            : (int)Math.Ceiling(result.TotalCount / (double)query.PageSize);
+        return new(result.Items, query.Page, query.PageSize, result.TotalCount, totalPages);
+    }
+}
