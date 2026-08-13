@@ -10,6 +10,7 @@ DevRecall analytics report historical learning facts without inferring mastery o
 - A lesson completion contributes to the user's active UTC day using the same half-open date ranges as existing analytics.
 - `EstimatedMinutes` is content metadata and never contributes to measured study minutes.
 - Completing a Learning Content Study Session item does not create another lesson completion. Study Session actual duration can still contribute to study minutes under the existing Study semantics.
+- Retry, Read again, Knowledge/Review post-actions, and Study Session attachment do not change the original completion count or timestamp.
 
 Only lessons create completion evidence in the current MVP. The UI labels the metric **Lessons completed**; it does not claim that topics were learned or mastered.
 
@@ -18,3 +19,5 @@ Only lessons create completion evidence in the current MVP. The UI labels the me
 Recent lesson completion activity uses the evidence title snapshot. Archiving a lesson does not remove its completion from counts or history. A current published source can link back to the lesson; an unavailable source remains visible without a route.
 
 Summary counts query evidence directly and do not join against the current content status. Queries are owner-scoped, bounded to 7, 30, or 90-day half-open ranges, and use database-side aggregation.
+
+Active days are distinct UTC dates across the existing meaningful activity sources. Multiple activities, including multiple lesson completions, on the same UTC date contribute one active day. The upper range boundary is exclusive.

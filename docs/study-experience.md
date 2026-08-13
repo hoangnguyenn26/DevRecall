@@ -29,6 +29,12 @@ it to the Session item fails. Retrying attachment reuses that evidence and never
 again. Because completion is currently lifetime-unique, already completed lessons cannot be newly added
 to a Study Plan; repeat-learning attempts remain outside this MVP.
 
+The Session item references and validates Learning Content evidence; it never owns or creates that
+evidence. The evidence belongs to the user and lesson, survives Session lifecycle changes, and is not
+cascade-deleted with a Session. Resource mismatch, cross-user evidence, stale timestamps, and forged
+Session context are rejected by the backend. A failed attachment leaves a valid recoverable state:
+the lesson is Completed with evidence while the Session item remains pending.
+
 ## Idempotency and concurrency
 
 Plan conversion is idempotent for the converted plan. Complete and Skip commands carry a submission ID protected by a named unique constraint. Reusing the same submission for the same logical transition returns the existing state; reusing it for another item conflicts.

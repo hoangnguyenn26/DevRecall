@@ -140,7 +140,15 @@ For each `(UserId, LearningContentId)`, normal state is restricted to:
 - `InProgress` progress and no evidence;
 - `Completed` progress and exactly one completion evidence.
 
+| State | Progress | Evidence | Continue learning | History | Analytics |
+| --- | --- | --- | --- | --- | --- |
+| NotStarted | none | none | No | No | No |
+| InProgress | `InProgress` | none | Yes, while Published | No | No |
+| Completed | `Completed` | exactly one completion | No | Yes | Yes |
+
 Completion writes progress and evidence in one `SaveChanges` transaction. PostgreSQL uniquely constrains both progress and evidence per user/lesson, and concurrent completion resolves to the canonical row without changing the original completion time or version. History and Analytics read evidence; Continue learning and catalog status read progress.
+
+Complete is final-state idempotent. Repeated requests after a successful completion return the same canonical evidence, timestamp, and progress version. Archiving removes content availability, not the evidence or its History/Analytics projections.
 
 Normal reads never repair inconsistent data. Start or Complete returns the stable `LEARNING_CONTENT_COMPLETION_INCONSISTENT` conflict when it encounters mismatched progress/evidence. Known Development data can be repaired explicitly with:
 
