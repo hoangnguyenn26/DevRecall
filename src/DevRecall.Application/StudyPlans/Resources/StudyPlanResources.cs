@@ -11,7 +11,8 @@ public sealed record StudyPlanResourceSummary(
     Guid ResourceId,
     string Title,
     string? Preview,
-    bool IsAvailable);
+    bool IsAvailable,
+    string? PublicKey = null);
 
 public interface IStudyPlanResourceSummaryReader
 {

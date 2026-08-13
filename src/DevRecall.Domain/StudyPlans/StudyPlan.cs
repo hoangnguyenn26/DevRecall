@@ -156,6 +156,25 @@ public sealed class StudyPlan
         return true;
     }
 
+    public StudyPlanItem EnsureManualItem(Guid itemId, StudyPlanResourceType resourceType,
+        Guid resourceId, int plannedDurationMinutes, int expectedVersion, DateTimeOffset addedAtUtc)
+    {
+        EnsureDraft();
+        EnsureUtc(addedAtUtc, nameof(addedAtUtc));
+        var existing = _items.SingleOrDefault(item => item.ResourceType == resourceType
+            && item.ResourceId == resourceId);
+        if (existing is not null) return existing;
+        EnsureExpectedVersion(expectedVersion);
+        if (itemId == Guid.Empty || resourceId == Guid.Empty) throw new ArgumentException("Ids cannot be empty.");
+        EnsureDuration(plannedDurationMinutes);
+        EnsureCapacity(plannedDurationMinutes);
+        var item = new StudyPlanItem(itemId, null, StudyPlanSourceType.Manual, resourceType,
+            resourceId, plannedDurationMinutes, _items.Count + 1, addedAtUtc);
+        _items.Add(item);
+        Touch(addedAtUtc);
+        return item;
+    }
+
     public bool ReplaceDraft(
         string title, IReadOnlyList<DraftStudyPlanItem> items,
         int expectedVersion, DateTimeOffset updatedAtUtc)

@@ -207,6 +207,7 @@ public sealed class ReplaceStudyPlanDraftHandler(
             "KnowledgeNode" or "Knowledge" => StudyPlanResourceType.KnowledgeNode,
             "InterviewQuestion" => StudyPlanResourceType.InterviewQuestion,
             "DsaProblem" => StudyPlanResourceType.DsaProblem,
+            "LearningContent" => StudyPlanResourceType.LearningContent,
             _ => throw new ValidationException(new Dictionary<string, string[]>
             {
                 ["resourceType"] = ["Resource type is invalid."]

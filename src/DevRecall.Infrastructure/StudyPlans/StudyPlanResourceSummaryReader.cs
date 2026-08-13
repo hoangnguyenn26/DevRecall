@@ -2,6 +2,7 @@ using DevRecall.Application.StudyPlans.Resources;
 using DevRecall.Domain.Dsa;
 using DevRecall.Domain.Interview;
 using DevRecall.Domain.Knowledge;
+using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.StudyPlans;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,16 @@ internal sealed class StudyPlanResourceSummaryReader(
                         ? x.Description.Substring(0, PreviewLength)
                         : x.Description,
                     x.Status == DsaProblemStatus.Active))
+                .ToListAsync(cancellationToken));
+        }
+
+        var lessonIds = Ids(resources, StudyPlanResourceType.LearningContent);
+        if (lessonIds.Length > 0)
+        {
+            result.AddRange(await dbContext.LearningContents.AsNoTracking()
+                .Where(x => lessonIds.Contains(x.Id))
+                .Select(x => new StudyPlanResourceSummary(StudyPlanResourceType.LearningContent,
+                    x.Id, x.Title, x.Summary, x.Status == ContentStatus.Published, x.Slug))
                 .ToListAsync(cancellationToken));
         }
 

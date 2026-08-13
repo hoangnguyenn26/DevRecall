@@ -7,6 +7,12 @@ export function useStudyPlanApi() {
     list: (status = '', pageSize = 50) =>
       api.get<PagedResponse<StudyPlanListItem>>('/study-plans', { status, page: 1, pageSize }),
     detail: (id: string) => api.get<StudyPlanDetail>(`/study-plans/${id}`),
+    addLearningContent: (id: string, slug: string, expectedVersion: number, submissionId: string) =>
+      api.post<{ studyPlanId: string; itemId: string; planTitle: string; added: boolean; version: number }>(
+        `/study-plans/${id}/learning-content/${encodeURIComponent(slug)}`,
+        { expectedVersion, submissionId }),
+    learningContentOptions: (slug: string) => api.get<Array<StudyPlanListItem & { alreadyContains: boolean }>>(
+      `/study-plans/learning-content/${encodeURIComponent(slug)}/options`),
     saveDraft: (id: string, state: StudyPlanEditState) =>
       api.put(`/study-plans/${id}/draft`, {
         title: state.title,

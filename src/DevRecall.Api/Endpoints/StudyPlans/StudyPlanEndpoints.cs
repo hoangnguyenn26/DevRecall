@@ -4,6 +4,7 @@ using DevRecall.Application.StudyPlans.Generate;
 using DevRecall.Application.StudyPlans.GetDetail;
 using DevRecall.Application.StudyPlans.GetList;
 using DevRecall.Application.StudyPlans.Mutations;
+using DevRecall.Application.StudyPlans.LearningContent;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.StudyPlans;
 
@@ -84,7 +85,34 @@ public static class StudyPlanEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapPost("/{studyPlanId:guid}/learning-content/{slug}", AddLearningContentAsync)
+            .WithName("AddLearningContentToStudyPlan")
+            .Produces<AddLearningContentToStudyPlanResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+        group.MapGet("/learning-content/{slug}/options", GetLearningContentOptionsAsync)
+            .WithName("GetLearningContentStudyPlanOptions")
+            .Produces<IReadOnlyList<LearningContentStudyPlanOptionResponse>>();
         return endpoints;
+    }
+
+    private static async Task<IResult> GetLearningContentOptionsAsync(string slug,
+        GetLearningContentStudyPlanOptionsHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(slug, cancellationToken);
+        return Results.Ok(result.Select(item => new LearningContentStudyPlanOptionResponse(item.StudyPlanId,
+            item.Title, item.ItemCount, item.TotalPlannedDurationMinutes, item.Version,
+            item.AlreadyContains)).ToArray());
+    }
+
+    private static async Task<IResult> AddLearningContentAsync(Guid studyPlanId, string slug,
+        AddLearningContentToStudyPlanRequest request, AddLearningContentToStudyPlanHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(new(studyPlanId, slug, request.ExpectedVersion,
+            request.SubmissionId), cancellationToken);
+        return Results.Ok(new AddLearningContentToStudyPlanResponse(result.StudyPlanId,
+            result.ItemId, result.PlanTitle, result.Added, result.Version));
     }
 
     private static async Task<IResult> ConvertAsync(
@@ -227,5 +255,5 @@ public static class StudyPlanEndpoints
             item.ItemId, item.SourceRecommendationId, item.SourceType,
             item.ResourceType, item.ResourceId, item.ResourceTitle,
             item.ResourcePreview, item.IsResourceAvailable,
-            item.PlannedDurationMinutes, item.Position);
+            item.PlannedDurationMinutes, item.Position, item.ResourceKey);
 }

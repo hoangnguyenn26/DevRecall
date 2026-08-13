@@ -21,6 +21,7 @@ export const studyPlanResourceMeta: Record<
     route: '/app/interview',
   },
   DsaProblem: { label: 'DSA', icon: 'i-lucide-code-2', route: '/app/dsa' },
+  LearningContent: { label: 'Lesson', icon: 'i-lucide-graduation-cap', route: '/app/learn' },
 }
 
 export function getStudyPlanStatusMeta(status: StudyPlanStatus) {

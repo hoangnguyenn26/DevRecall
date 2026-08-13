@@ -26,7 +26,8 @@ public sealed record StudyPlanItemResponse(
     string? ResourcePreview,
     bool IsResourceAvailable,
     int PlannedDurationMinutes,
-    int Position);
+    int Position,
+    string? ResourceKey = null);
 
 public sealed class GetStudyPlansRequest
 {
@@ -89,3 +90,8 @@ public sealed record ConvertStudyPlanResponse(
     string StudySessionStatus, string Title, int ItemCount,
     int TotalPlannedDurationMinutes, DateTimeOffset ConvertedAtUtc,
     int StudyPlanVersion, int StudySessionVersion);
+public sealed record AddLearningContentToStudyPlanRequest(int ExpectedVersion, Guid SubmissionId);
+public sealed record AddLearningContentToStudyPlanResponse(Guid StudyPlanId, Guid ItemId,
+    string PlanTitle, bool Added, int Version);
+public sealed record LearningContentStudyPlanOptionResponse(Guid StudyPlanId, string Title,
+    int ItemCount, int TotalPlannedDurationMinutes, int Version, bool AlreadyContains);

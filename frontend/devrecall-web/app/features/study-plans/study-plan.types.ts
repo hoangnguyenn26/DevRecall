@@ -1,5 +1,5 @@
 export type StudyPlanStatus = 'Draft' | 'Ready' | 'Converted' | 'Cancelled' | string
-export type StudyPlanResourceType = 'KnowledgeNode' | 'InterviewQuestion' | 'DsaProblem'
+export type StudyPlanResourceType = 'KnowledgeNode' | 'InterviewQuestion' | 'DsaProblem' | 'LearningContent'
 
 export interface StudyPlanListItem {
   studyPlanId: string
@@ -24,6 +24,7 @@ export interface StudyPlanItem {
   isResourceAvailable: boolean
   plannedDurationMinutes: number
   position: number
+  resourceKey?: string
 }
 
 export interface StudyPlanDetail extends StudyPlanListItem {

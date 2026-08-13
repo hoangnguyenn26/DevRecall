@@ -188,6 +188,8 @@ public static class DependencyInjection
             StudyPlanResourceSummaryReader>();
         services.AddScoped<IStudyPlanListReader, StudyPlanListReader>();
         services.AddScoped<IStudyPlanDetailReader, StudyPlanDetailReader>();
+        services.AddScoped<DevRecall.Application.StudyPlans.LearningContent.ILearningContentPlanSourceReader,
+            LearningContentPlanSourceReader>();
         services.AddScoped<
             IStudyPlanConversionPersistence,
             StudyPlanConversionPersistence>();

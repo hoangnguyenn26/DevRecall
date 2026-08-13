@@ -206,6 +206,8 @@ public static class DependencyInjection
         services.AddScoped<MarkStudyPlanReadyHandler>();
         services.AddScoped<CancelStudyPlanHandler>();
         services.AddScoped<ConvertStudyPlanHandler>();
+        services.AddScoped<DevRecall.Application.StudyPlans.LearningContent.AddLearningContentToStudyPlanHandler>();
+        services.AddScoped<DevRecall.Application.StudyPlans.LearningContent.GetLearningContentStudyPlanOptionsHandler>();
         services.AddScoped<RecalculateWeakTopicHandler>();
         services.AddScoped<GetWeakTopicsHandler>();
         services.AddScoped<GetWeakTopicDetailHandler>();
