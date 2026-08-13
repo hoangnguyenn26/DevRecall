@@ -5,6 +5,8 @@ import type { LearningContentDetail } from '~/features/learning-content/learning
 import { difficultyColor, visibleTags } from '~/features/learning-content/learning-content.meta'
 import SaveLessonToKnowledge from '~/features/learning-content/components/SaveLessonToKnowledge.vue'
 import AddLessonToReview from '~/features/learning-content/components/AddLessonToReview.vue'
+import AddLessonToStudyPlan from '~/features/learning-content/components/AddLessonToStudyPlan.vue'
+import { useStudySessionApi } from '~/features/study-sessions/study-session.api'
 import { markReviewCandidatesAdded } from '~/features/learning-content/lesson-review'
 import { normalizeApiError, type NormalizedApiError } from '~/utils/normalize-api-error'
 
@@ -24,6 +26,31 @@ const topics = computed(() => visibleTags(lesson.value?.topics ?? []))
 const mutationPending = ref(false)
 const mutationError = ref<NormalizedApiError | null>(null)
 const completedJustNow = ref(false)
+const sessionApi = useStudySessionApi()
+const sessionId = computed(() => typeof route.query.studySession === 'string' ? route.query.studySession : '')
+const sessionItemId = computed(() => typeof route.query.studyItem === 'string' ? route.query.studyItem : '')
+const sessionAttachError = ref('')
+const pendingSessionEvidenceId = ref('')
+const sessionCompletionSubmissionId = ref(crypto.randomUUID())
+
+async function attachToStudySession(evidenceId: string) {
+  if (!sessionId.value || !sessionItemId.value) return
+  const session = await sessionApi.detail(sessionId.value)
+  const item = session.items.find(candidate => candidate.id === sessionItemId.value
+    && candidate.resourceType === 'LearningContent' && candidate.resourceId === lesson.value?.id)
+  if (!item) throw new Error('This lesson does not match the Study Session item.')
+  await sessionApi.completeItem(session.id, item.id, session.version,
+    sessionCompletionSubmissionId.value, evidenceId)
+  pendingSessionEvidenceId.value = ''
+  sessionAttachError.value = ''
+}
+async function retrySessionAttachment() {
+  if (!pendingSessionEvidenceId.value || mutationPending.value) return
+  mutationPending.value = true
+  try { await attachToStudySession(pendingSessionEvidenceId.value) }
+  catch (error) { sessionAttachError.value = normalizeApiError(error).detail ?? 'Return to the session and retry this item.' }
+  finally { mutationPending.value = false }
+}
 
 async function mutate(action: 'start' | 'complete') {
   if (!lesson.value || mutationPending.value) return
@@ -35,6 +62,14 @@ async function mutate(action: 'start' | 'complete') {
     lesson.value.progress = progress
     lesson.value.progressStatus = progress.status
     completedJustNow.value = action === 'complete'
+    if (action === 'complete' && progress.completionEvidenceId && sessionId.value && sessionItemId.value) {
+      pendingSessionEvidenceId.value = progress.completionEvidenceId
+      try {
+        await attachToStudySession(progress.completionEvidenceId)
+      } catch (error) {
+        sessionAttachError.value = normalizeApiError(error).detail ?? 'Return to the session and retry this item.'
+      }
+    }
   } catch (error) {
     mutationError.value = normalizeApiError(error)
   } finally { mutationPending.value = false }
@@ -49,7 +84,7 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
 
 <template>
   <main class="lesson-page">
-    <UButton :to="returnTo" icon="i-lucide-arrow-left" color="neutral" variant="ghost">Back to Learn</UButton>
+    <UButton :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" icon="i-lucide-arrow-left" color="neutral" variant="ghost">{{ sessionId ? 'Back to Study Session' : 'Back to Learn' }}</UButton>
     <CoreLoadingState v-if="lessonQuery.isPending.value" label="Loading lesson" />
     <section v-else-if="lessonQuery.error.value?.status === 404" class="lesson-state">
       <CoreEmptyState title="Lesson not found" description="It may have been removed or is no longer available." icon="i-lucide-book-x">
@@ -59,6 +94,7 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
     <CoreErrorState v-else-if="lessonQuery.error.value" title="We couldn't load this lesson" description="The app remains available. Retry this lesson when you're ready." :error="lessonQuery.error.value" @retry="lessonQuery.refresh" />
     <article v-else-if="lesson" class="lesson">
       <header class="lesson-header">
+        <UAlert v-if="sessionId" color="primary" variant="subtle" title="Studying in a Study Session" description="Complete the lesson to attach fresh learning evidence to the current session item." />
         <div class="primary-meta"><UBadge :color="difficultyColor(lesson.difficulty)" variant="subtle">{{ lesson.difficulty }}</UBadge><span><UIcon name="i-lucide-clock-3" /> {{ lesson.estimatedMinutes }} min</span></div>
         <h1>{{ lesson.title }}</h1>
         <p class="summary">{{ lesson.summary }}</p>
@@ -73,9 +109,11 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
           <UButton v-if="lesson.progress.status === 'NotStarted'" :loading="mutationPending" :disabled="mutationPending" @click="mutate('start')">Start lesson</UButton>
           <span v-else-if="lesson.progress.status === 'InProgress'" class="calm-status">Continue learning at your own pace.</span>
           <span v-else class="calm-status">Read again anytime. Your completion remains recorded.</span>
+          <AddLessonToStudyPlan :slug="lesson.slug" :completed="lesson.progress.status === 'Completed'" />
         </div>
         <UAlert v-if="mutationError" color="error" variant="subtle" title="Progress wasn't updated" :description="mutationError.detail" />
         <UButton v-if="mutationError?.status === 409" color="neutral" variant="outline" @click="() => lessonQuery.refresh()">Reload latest progress</UButton>
+        <div v-if="sessionAttachError" class="session-attach-error"><UAlert color="warning" variant="subtle" title="Lesson completed, but the Study Session wasn't updated" :description="sessionAttachError" /><UButton color="neutral" variant="outline" :loading="mutationPending" @click="retrySessionAttachment">Retry session update</UButton></div>
       </header>
 
       <section class="objectives" aria-labelledby="lesson-objectives">

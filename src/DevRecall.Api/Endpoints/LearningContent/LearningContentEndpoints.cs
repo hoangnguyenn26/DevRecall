@@ -51,7 +51,7 @@ public static class LearningContentEndpoints
         item.Topics.Select(value => new LearningContentTopicResponse(value.Slug, value.Name)).ToArray(), item.ProgressStatus);
 
     private static LearningContentDetailResponse Map(PublishedLearningContentDetail item) => new(
-        item.Slug, item.Title, item.Summary, item.ContentType, item.Difficulty, item.EstimatedMinutes,
+        item.Id, item.Slug, item.Title, item.Summary, item.ContentType, item.Difficulty, item.EstimatedMinutes,
         item.Technologies.Select(value => new LearningContentTechnologyResponse(value.Value, value.Label)).ToArray(),
         item.Topics.Select(value => new LearningContentTopicResponse(value.Slug, value.Name)).ToArray(),
         item.Objectives.Select(value => new LearningContentObjectiveResponse(value.Position, value.Text)).ToArray(),
@@ -62,5 +62,5 @@ public static class LearningContentEndpoints
         new(item.Source.Type, item.Source.Name, item.Source.Url), item.PublishedAtUtc, Map(item.Progress));
 
     private static LearningContentProgressResponse Map(LearningContentProgressItem item) =>
-        new(item.Status, item.StartedAtUtc, item.CompletedAtUtc, item.Version);
+        new(item.Status, item.StartedAtUtc, item.CompletedAtUtc, item.Version, item.CompletionEvidenceId);
 }

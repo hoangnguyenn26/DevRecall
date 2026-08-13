@@ -18,11 +18,16 @@ Starting a Session snapshots the ordered learning items, resource titles, and pl
 
 ## Evidence and practice handoff
 
-Knowledge items use explicit completion. Interview and DSA items may be completed with a validated, owner-scoped practice attempt matching the item resource. Evidence summaries are bounded projections and never include full answers, code, or solutions. Missing historical evidence does not make the Session unreadable.
+Knowledge items use explicit completion. Interview and DSA items may be completed with a validated, owner-scoped practice attempt matching the item resource. Learning Content items require the canonical lesson-completion evidence to belong to the same user and lesson and to have been created after the Session started. Evidence summaries are bounded projections and never include full answers, code, solutions, or lesson bodies. Missing historical evidence does not make the Session unreadable.
 
 Successful practice and successful Session-item completion are separate mutations. The practice result remains successful if the subsequent Session update fails. The frontend retains the same completion submission ID when retrying the Session mutation and does not resubmit the attempt.
 
 Session context in practice URLs is navigation context only. Backend ownership, resource matching, lifecycle, and evidence checks remain authoritative, so standalone practice continues to work without Session parameters.
+
+Learning Content uses the same two-mutation boundary: lesson completion remains canonical if attaching
+it to the Session item fails. Retrying attachment reuses that evidence and never completes the lesson
+again. Because completion is currently lifetime-unique, already completed lessons cannot be newly added
+to a Study Plan; repeat-learning attempts remain outside this MVP.
 
 ## Idempotency and concurrency
 

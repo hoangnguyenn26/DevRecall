@@ -7,12 +7,14 @@ using LearningContentAggregate = DevRecall.Domain.LearningContent.LearningConten
 namespace DevRecall.Application.LearningContent;
 
 public sealed record LearningContentProgressItem(string Status, DateTimeOffset? StartedAtUtc,
-    DateTimeOffset? CompletedAtUtc, int? Version);
+    DateTimeOffset? CompletedAtUtc, int? Version, Guid? CompletionEvidenceId = null);
 
 public interface ILearningContentProgressRepository
 {
     Task<LearningContentAggregate?> GetPublishedContentAsync(string slug, CancellationToken cancellationToken);
     Task<LearningContentProgress?> GetAsync(Guid userId, Guid contentId, CancellationToken cancellationToken);
+    Task<LearningContentCompletionEvidence?> GetCompletionEvidenceAsync(Guid userId, Guid contentId,
+        CancellationToken cancellationToken);
     void Add(LearningContentProgress progress);
     void Add(LearningContentCompletionEvidence evidence);
     Task SaveChangesAsync(CancellationToken cancellationToken);
@@ -54,7 +56,11 @@ public sealed class CompleteLearningContentHandler(ILearningContentProgressRepos
         var content = await repository.GetPublishedContentAsync(StartLearningContentHandler.NormalizeSlug(slug), cancellationToken)
             ?? throw StartLearningContentHandler.NotFound();
         var progress = await repository.GetAsync(userId, content.Id, cancellationToken);
-        if (progress?.Status == LearningProgressStatus.Completed) return StartLearningContentHandler.Map(progress);
+        if (progress?.Status == LearningProgressStatus.Completed)
+        {
+            var existing = await repository.GetCompletionEvidenceAsync(userId, content.Id, cancellationToken);
+            return StartLearningContentHandler.Map(progress) with { CompletionEvidenceId = existing?.Id };
+        }
         var now = clock.UtcNow;
         if (progress is null)
         {
@@ -68,9 +74,10 @@ public sealed class CompleteLearningContentHandler(ILearningContentProgressRepos
             try { progress.Complete(expectedVersion.Value, now); }
             catch (InvalidOperationException) { throw Conflict(); }
         }
-        repository.Add(LearningContentCompletionEvidence.Create(Guid.NewGuid(), userId, content.Id, content.Title, now));
+        var evidence = LearningContentCompletionEvidence.Create(Guid.NewGuid(), userId, content.Id, content.Title, now);
+        repository.Add(evidence);
         await repository.SaveChangesAsync(cancellationToken);
-        return StartLearningContentHandler.Map(progress);
+        return StartLearningContentHandler.Map(progress) with { CompletionEvidenceId = evidence.Id };
     }
 
     private static ConcurrencyException Conflict() => new("LEARNING_CONTENT_PROGRESS_CONFLICT",

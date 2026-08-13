@@ -34,6 +34,22 @@ public sealed class ConvertStudyPlanHandlerTests
         context.Persistence.SaveCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Handle_ShouldMaterializeLearningContentAsSessionResource()
+    {
+        var plan = StudyPlan.Create(Guid.NewGuid(), Guid.NewGuid(), "Learn plan", Now, null);
+        var lessonId = Guid.NewGuid();
+        plan.EnsureManualItem(Guid.NewGuid(), StudyPlanResourceType.LearningContent,
+            lessonId, 15, plan.Version, Now.AddMinutes(1));
+        plan.MarkReady(plan.Version, Now.AddMinutes(2));
+        var context = new Context(plan);
+
+        await context.Handler.HandleAsync(new(plan.Id, plan.Version), default);
+
+        context.Persistence.Added!.Items.Should().ContainSingle(item =>
+            item.ResourceType == StudyResourceType.LearningContent && item.ResourceId == lessonId);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

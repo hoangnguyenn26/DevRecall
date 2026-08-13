@@ -20,6 +20,7 @@ internal sealed class StudyResourceSummaryReader(DevRecallDbContext dbContext)
             resources, StudyResourceType.InterviewQuestion);
         var dsaIds = Ids(resources, StudyResourceType.DsaProblem);
         var reviewIds = Ids(resources, StudyResourceType.ReviewItem);
+        var lessonIds = Ids(resources, StudyResourceType.LearningContent);
         if (knowledgeIds.Length > 0)
         {
             var rows = await dbContext.KnowledgeNodes.AsNoTracking()
@@ -77,6 +78,14 @@ internal sealed class StudyResourceSummaryReader(DevRecallDbContext dbContext)
                     "Scheduled Review",
                     item.ResourceType.ToString() + " review"))
                 .ToListAsync(cancellationToken));
+        }
+
+        if (lessonIds.Length > 0)
+        {
+            results.AddRange(await dbContext.LearningContents.AsNoTracking()
+                .Where(item => lessonIds.Contains(item.Id))
+                .Select(item => new StudyResourceSummary(StudyResourceType.LearningContent,
+                    item.Id, item.Title, item.Summary, item.Slug)).ToListAsync(cancellationToken));
         }
 
         return results;

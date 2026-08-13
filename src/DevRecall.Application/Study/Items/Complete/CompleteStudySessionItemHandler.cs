@@ -13,7 +13,7 @@ public interface IStudySessionEvidenceValidator
 {
     Task<bool> IsValidAsync(
         Guid userId, StudyResourceType resourceType, Guid resourceId,
-        Guid? evidenceId, CancellationToken cancellationToken);
+        Guid? evidenceId, DateTimeOffset? sessionStartedAtUtc, CancellationToken cancellationToken);
 }
 
 public sealed class CompleteStudySessionItemHandler(
@@ -45,7 +45,7 @@ public sealed class CompleteStudySessionItemHandler(
                 StudySessionErrors.ItemNotFound.Message);
         if (!await evidenceValidator.IsValidAsync(
             userId, item.ResourceType, item.ResourceId,
-            command.EvidenceId, cancellationToken))
+            command.EvidenceId, session.StartedAtUtc, cancellationToken))
         {
             throw new ValidationException(new Dictionary<string, string[]>
             {

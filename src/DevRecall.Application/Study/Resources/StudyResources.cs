@@ -30,7 +30,7 @@ public sealed record StudyResourceReference(
     StudyResourceType ResourceType, Guid ResourceId);
 public sealed record StudyResourceSummary(
     StudyResourceType ResourceType, Guid ResourceId,
-    string Title, string? Preview);
+    string Title, string? Preview, string? PublicKey = null);
 
 public interface IStudyResourceSummaryReader
 {

@@ -127,6 +127,7 @@ function resourceTarget(item: StudySessionItem): string | undefined {
   if (item.resourceType === 'KnowledgeNode') return `/app/knowledge/${item.resourceId}`
   if (item.resourceType === 'InterviewQuestion') return `/app/interview/${item.resourceId}`
   if (item.resourceType === 'DsaProblem') return `/app/dsa/${item.resourceId}`
+  if (item.resourceType === 'LearningContent' && item.resourceKey) return `/app/learn/${item.resourceKey}`
 }
 async function saveReflection(): Promise<void> {
   if (!detail.value || pending.value || !reflectionDirty.value) return
@@ -271,7 +272,8 @@ onMounted(load)
               v-if="studySessionItemTarget(detail.id, current)"
               :to="studySessionItemTarget(detail.id, current)!"
               :label="
-                current.resourceType === 'KnowledgeNode' ? 'Open knowledge' : 'Start practice'
+                current.resourceType === 'KnowledgeNode' ? 'Open knowledge'
+                  : current.resourceType === 'LearningContent' ? 'Open lesson' : 'Start practice'
               "
               icon="i-lucide-play"
             /><UButton

@@ -21,9 +21,9 @@ public sealed record LearningContentListItemResponse(string Slug, string Title, 
     IReadOnlyList<LearningContentTechnologyResponse> Technologies,
     IReadOnlyList<LearningContentTopicResponse> Topics, string ProgressStatus);
 public sealed record LearningContentProgressResponse(string Status, DateTimeOffset? StartedAtUtc,
-    DateTimeOffset? CompletedAtUtc, int? Version);
+    DateTimeOffset? CompletedAtUtc, int? Version, Guid? CompletionEvidenceId);
 public sealed record CompleteLearningContentRequest(int? ExpectedVersion);
-public sealed record LearningContentDetailResponse(string Slug, string Title, string Summary,
+public sealed record LearningContentDetailResponse(Guid Id, string Slug, string Title, string Summary,
     string ContentType, string Difficulty, int EstimatedMinutes,
     IReadOnlyList<LearningContentTechnologyResponse> Technologies,
     IReadOnlyList<LearningContentTopicResponse> Topics,

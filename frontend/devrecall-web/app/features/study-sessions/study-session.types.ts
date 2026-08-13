@@ -2,6 +2,7 @@ export interface StudySessionItem {
   id: string
   resourceType: 'KnowledgeNode' | 'InterviewQuestion' | 'DsaProblem' | string
   resourceId: string
+  resourceKey?: string
   resourceTitle: string
   resourcePreview?: string
   isResourceAvailable: boolean

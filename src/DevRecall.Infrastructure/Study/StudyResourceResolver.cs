@@ -2,12 +2,14 @@ using DevRecall.Application.Reviews.Resources;
 using DevRecall.Application.Study.Resources;
 using DevRecall.Domain.Reviews;
 using DevRecall.Domain.Study;
+using DevRecall.Domain.LearningContent;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace DevRecall.Infrastructure.Study;
 
 internal sealed class StudyResourceResolver(
+    DevRecallDbContext dbContext,
     IReviewKnowledgeResourceReader knowledgeReader,
     IReviewInterviewResourceReader interviewReader,
     IReviewDsaResourceReader dsaReader,
@@ -22,6 +24,17 @@ internal sealed class StudyResourceResolver(
         {
             return await reviewItemReader.FindAsync(
                 userId, resourceId, cancellationToken);
+        }
+
+        if (resourceType == StudyResourceType.LearningContent)
+        {
+            var lesson = await dbContext.LearningContents.AsNoTracking()
+                .Where(item => item.Id == resourceId)
+                .Select(item => new { item.Id, item.Title, item.Summary, item.Status })
+                .SingleOrDefaultAsync(cancellationToken);
+            return lesson is null ? null : new StudyResourceResolution(resourceType, lesson.Id,
+                lesson.Title, lesson.Summary, lesson.Status == ContentStatus.Published
+                    ? StudyResourceAvailability.Available : StudyResourceAvailability.Archived);
         }
 
         ReviewSourceResource? source = resourceType switch

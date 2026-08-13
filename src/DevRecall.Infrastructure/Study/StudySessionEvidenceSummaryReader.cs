@@ -71,6 +71,22 @@ internal sealed class StudySessionEvidenceSummaryReader(
             }
         }
 
+        var lessons = evidence.Where(item =>
+            item.ResourceType == StudyResourceType.LearningContent).ToArray();
+        if (lessons.Length > 0)
+        {
+            var ids = lessons.Select(item => item.EvidenceId).ToArray();
+            var completed = await dbContext.LearningContentCompletionEvidence.AsNoTracking()
+                .Where(item => item.UserId == userId && ids.Contains(item.Id))
+                .Select(item => new { item.Id }).ToListAsync(cancellationToken);
+            foreach (var reference in lessons)
+            {
+                if (completed.Any(item => item.Id == reference.EvidenceId))
+                    result[reference.ItemId] = new(reference.EvidenceId,
+                        "LearningContentCompletion", "Completed", 0, null);
+            }
+        }
+
         return result;
     }
 }

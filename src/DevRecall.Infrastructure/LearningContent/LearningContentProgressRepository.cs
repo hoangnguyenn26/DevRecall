@@ -16,6 +16,9 @@ internal sealed class LearningContentProgressRepository(DevRecallDbContext dbCon
     public Task<LearningContentProgress?> GetAsync(Guid userId, Guid contentId, CancellationToken cancellationToken) =>
         dbContext.LearningContentProgresses.SingleOrDefaultAsync(x => x.UserId == userId &&
             x.LearningContentId == contentId, cancellationToken);
+    public Task<LearningContentCompletionEvidence?> GetCompletionEvidenceAsync(Guid userId, Guid contentId,
+        CancellationToken cancellationToken) => dbContext.LearningContentCompletionEvidence.AsNoTracking()
+        .SingleOrDefaultAsync(x => x.UserId == userId && x.LearningContentId == contentId, cancellationToken);
     public void Add(LearningContentProgress progress) => dbContext.LearningContentProgresses.Add(progress);
     public void Add(LearningContentCompletionEvidence evidence) => dbContext.LearningContentCompletionEvidence.Add(evidence);
     public async Task SaveChangesAsync(CancellationToken cancellationToken)

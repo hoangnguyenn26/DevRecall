@@ -18,7 +18,7 @@ public sealed record StudySessionDetailItem(
     DateTimeOffset? StartedAtUtc, DateTimeOffset? CompletedAtUtc,
     string? Notes, StudySessionEvidenceSummary? Evidence,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc, string? ResourceKey = null);
 public sealed record StudySessionEvidenceSummary(
     Guid AttemptId, string Kind, string Outcome,
     int DurationSeconds, string? TimeComplexity);
@@ -86,7 +86,7 @@ public sealed class GetStudySessionDetailHandler(
                 item.Status.ToString(), item.StartedAtUtc,
                 item.CompletedAtUtc, item.Notes,
                 evidence.GetValueOrDefault(item.Id),
-                item.CreatedAtUtc, item.UpdatedAtUtc);
+                item.CreatedAtUtc, item.UpdatedAtUtc, resource?.PublicKey);
         }).ToList();
         var current = ordered.FirstOrDefault(item =>
             item.Status == StudySessionItemStatus.InProgress)

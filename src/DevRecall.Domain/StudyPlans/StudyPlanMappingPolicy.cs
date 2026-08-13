@@ -30,6 +30,8 @@ public static class StudyPlanMappingPolicy
                 StudyResourceType.InterviewQuestion,
             StudyPlanResourceType.DsaProblem =>
                 StudyResourceType.DsaProblem,
+            StudyPlanResourceType.LearningContent =>
+                StudyResourceType.LearningContent,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(resourceType), resourceType,
                 "Unsupported study plan resource type.")

@@ -14,7 +14,7 @@ public sealed record PublishedLearningContentListItem(
     IReadOnlyList<LearningContentTopicItem> Topics, string ProgressStatus);
 
 public sealed record PublishedLearningContentDetail(
-    string Slug, string Title, string Summary, string ContentType, string Difficulty,
+    Guid Id, string Slug, string Title, string Summary, string ContentType, string Difficulty,
     int EstimatedMinutes, IReadOnlyList<LearningContentTechnologyItem> Technologies,
     IReadOnlyList<LearningContentTopicItem> Topics,
     IReadOnlyList<LearningContentObjectiveItem> Objectives,

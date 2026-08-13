@@ -7,5 +7,7 @@ export function studySessionItemTarget(sessionId: string, item: StudySessionItem
   if (item.resourceType === 'InterviewQuestion')
     return `/app/interview/${item.resourceId}/practice${query}`
   if (item.resourceType === 'DsaProblem') return `/app/dsa/${item.resourceId}/practice${query}`
+  if (item.resourceType === 'LearningContent' && item.resourceKey)
+    return `/app/learn/${item.resourceKey}${query}`
   return null
 }

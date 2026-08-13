@@ -5,5 +5,6 @@ public enum StudyResourceType
     KnowledgeNode = 1,
     InterviewQuestion = 2,
     DsaProblem = 3,
-    ReviewItem = 4
+    ReviewItem = 4,
+    LearningContent = 5
 }

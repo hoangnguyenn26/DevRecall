@@ -61,6 +61,8 @@ All endpoints require authentication and expose global content rather than user-
 | `GET` | `/api/v1/learning-content` | Bounded published catalog with optional `technology`, `topic`, and `difficulty` filters. |
 | `GET` | `/api/v1/learning-content/{slug}` | Published lesson detail including objectives, sections, and provenance. |
 | `POST` | `/api/v1/knowledge/from-learning-content/{slug}` | Explicitly saves an editable personal Knowledge note with immutable lesson provenance. |
+| `GET` | `/api/v1/study-plans/learning-content/{slug}/options` | Lists editable plans and existing lesson membership in one bounded projection. |
+| `POST` | `/api/v1/study-plans/{planId}/learning-content/{slug}` | Ensures a published, unfinished lesson is present in an owned Draft plan. |
 
 ## Saving a lesson to Knowledge
 
@@ -133,6 +135,19 @@ Lesson-created Review items reuse the existing Review scheduler and start with i
 Their prompt, answer, and lesson title are snapshots, so later lesson edits do not alter an existing
 card. Adding a card is preparation rather than recall evidence: it does not create Review history,
 change lesson completion, update Weak Topics, or record an evaluation outcome.
+
+## Study Plan and Study Session integration
+
+An unfinished published lesson can be explicitly added to an existing Draft Study Plan. The plan stores
+the lesson UUID and duration metadata; it never copies objectives, sections, or Markdown. Duplicate
+references in one plan are success-equivalent, while separate plans may reference the same lesson.
+Adding a lesson does not start or complete it and creates no analytics activity. Completed lessons are
+excluded until repeat-learning attempts exist; Review and Read again cover the current retention flow.
+
+Plan conversion maps the item to the stable `LearningContent` Study resource type. Opening the lesson
+from a Study Session carries navigation context only. Lesson completion returns the canonical evidence
+ID, and the client separately completes the Session item. The Study module validates the user, lesson,
+and that the evidence was created no earlier than the Session start.
 
 ## Writing a good lesson
 

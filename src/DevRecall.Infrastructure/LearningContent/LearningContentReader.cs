@@ -86,7 +86,11 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                         progress.Status,
                         progress.StartedAtUtc,
                         progress.CompletedAtUtc,
-                        progress.Version
+                        progress.Version,
+                        EvidenceId = dbContext.LearningContentCompletionEvidence
+                            .Where(evidence => evidence.UserId == userId
+                                && evidence.LearningContentId == item.Id)
+                            .Select(evidence => (Guid?)evidence.Id).SingleOrDefault()
                     }).SingleOrDefault(),
                 Technologies = item.Technologies.OrderBy(value => value.Technology)
                     .Select(value => value.Technology).ToArray(),
@@ -110,7 +114,7 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                 && candidateIds.Contains(item.ResourceId))
             .Select(item => item.ResourceId).ToArrayAsync(cancellationToken);
         var activeCandidateIdSet = activeCandidateIds.ToHashSet();
-        return new(raw.Slug, raw.Title, raw.Summary, raw.ContentType.ToString(), raw.Difficulty.ToString(),
+        return new(raw.Id, raw.Slug, raw.Title, raw.Summary, raw.ContentType.ToString(), raw.Difficulty.ToString(),
             raw.EstimatedMinutes, raw.Technologies.Select(MapTechnology).ToArray(), topics,
             raw.Objectives.Select(item => new LearningContentObjectiveItem(item.Position, item.Text)).ToArray(),
             raw.Sections.Select(item => new LearningContentSectionItem(item.Position,
@@ -119,7 +123,8 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                 item.Key, item.Prompt, item.Answer, activeCandidateIdSet.Contains(item.Id))).ToArray(),
             new(raw.SourceType.ToString(), raw.SourceName, raw.SourceUrl), raw.PublishedAtUtc,
             raw.Progress is null ? new("NotStarted", null, null, null) : new(raw.Progress.Status.ToString(),
-                raw.Progress.StartedAtUtc, raw.Progress.CompletedAtUtc, raw.Progress.Version));
+                raw.Progress.StartedAtUtc, raw.Progress.CompletedAtUtc, raw.Progress.Version,
+                raw.Progress.EvidenceId));
     }
 
     private static LearningContentTechnologyItem MapTechnology(Technology value)
