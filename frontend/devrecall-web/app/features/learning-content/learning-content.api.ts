@@ -1,4 +1,4 @@
-import type { LearningContentDetail, LearningContentFilters, LearningContentPage, LearningContentProgress } from './learning-content.types'
+import type { LearningContentDetail, LearningContentFilters, LearningContentPage, LearningContentProgress, SaveLessonToKnowledgeInput, SavedLessonKnowledge } from './learning-content.types'
 
 export function useLearningContentApi() {
   const api = useApi()
@@ -12,5 +12,7 @@ export function useLearningContentApi() {
       `/learning-content/${encodeURIComponent(slug)}/progress/start`),
     complete: (slug: string, expectedVersion: number | null) => api.post<LearningContentProgress>(
       `/learning-content/${encodeURIComponent(slug)}/progress/complete`, { expectedVersion }),
+    saveToKnowledge: (slug: string, input: SaveLessonToKnowledgeInput) => api.post<SavedLessonKnowledge>(
+      `/knowledge/from-learning-content/${encodeURIComponent(slug)}`, input),
   }
 }

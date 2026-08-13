@@ -18,3 +18,7 @@ export interface LearningContentPage {
   items: LearningContentListItem[]; page: number; pageSize: number; totalCount: number; totalPages: number
 }
 export interface LearningContentFilters { technology?: string; difficulty?: string; page: number }
+export interface SaveLessonToKnowledgeInput {
+  title: string; content: string; topicId: string | null; tagIds: string[]; submissionId: string
+}
+export interface SavedLessonKnowledge { id: string; title: string; alreadyExisted: boolean }

@@ -7,8 +7,9 @@ export interface KnowledgeListItem {
 }
 export type KnowledgeListPage = PagedResponse<KnowledgeListItem>
 export interface KnowledgeDetail extends KnowledgeListItem {
-  content: string; description?: string; sourceUrl?: string; relatedItems: RelatedKnowledge[]
+  content: string; description?: string; sourceUrl?: string; relatedItems: RelatedKnowledge[]; source?: KnowledgeSource
 }
+export interface KnowledgeSource { type: 'LearningContent'; title: string; slug?: string; isAvailable: boolean }
 export interface RelatedKnowledge { id: string; title: string; topicName?: string; sharedTagCount: number; sameTopic: boolean; updatedAtUtc: string }
 export interface KnowledgeTagOption extends KnowledgeTag { normalizedName: string; knowledgeCount: number }
 export interface KnowledgeEditState { title: string; content: string; topicId: string | null; tagIds: string[]; expectedVersion: number }

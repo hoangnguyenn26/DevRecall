@@ -5,6 +5,8 @@ import LearningContentCard from '~/components/learning-content/LearningContentCa
 import { filtersFromQuery, queryFromFilters, withFilter } from './learning-content.filters'
 import { learningContentKeys } from './learning-content.query-keys'
 import { isSafeMarkdownUrl, parseInlineMarkdown, parseMarkdown } from './learning-markdown'
+import { buildLessonKnowledgeDraft } from './lesson-knowledge'
+import type { LearningContentDetail } from './learning-content.types'
 
 const card = {
   slug: 'aspnet-core-service-lifetimes', title: 'ASP.NET Core Service Lifetimes',
@@ -86,5 +88,29 @@ describe('Learn catalog and reader', () => {
     })
     expect(wrapper.get('pre code').text()).toContain('AddScoped')
     expect(wrapper.get('button').attributes('aria-label')).toBe('Copy csharp example')
+  })
+
+  it('builds a deterministic Knowledge draft from key takeaways only', () => {
+    const lesson = { ...card, objectives: [], source: { type: 'Internal' as const, name: 'DevRecall', url: null },
+      publishedAtUtc: '2026-08-13T00:00:00Z', progress: { status: 'Completed' as const,
+        startedAtUtc: null, completedAtUtc: '2026-08-13T00:00:00Z', version: 1 },
+      sections: [
+        { position: 0, type: 'Explanation' as const, heading: null, bodyMarkdown: 'Long lesson body' },
+        { position: 2, type: 'KeyTakeaway' as const, heading: null, bodyMarkdown: 'Second takeaway' },
+        { position: 1, type: 'KeyTakeaway' as const, heading: null, bodyMarkdown: 'First takeaway' },
+      ] } satisfies LearningContentDetail
+
+    expect(buildLessonKnowledgeDraft(lesson, 'submission-1')).toEqual({
+      title: lesson.title, content: '## Key takeaways\n\nFirst takeaway\n\nSecond takeaway',
+      topicId: null, tagIds: [], submissionId: 'submission-1',
+    })
+  })
+
+  it('starts with an empty note body when a lesson has no key takeaways', () => {
+    const lesson = { ...card, objectives: [], sections: [],
+      source: { type: 'Internal' as const, name: 'DevRecall', url: null },
+      publishedAtUtc: '2026-08-13T00:00:00Z', progress: { status: 'Completed' as const,
+        startedAtUtc: null, completedAtUtc: '2026-08-13T00:00:00Z', version: 1 } } satisfies LearningContentDetail
+    expect(buildLessonKnowledgeDraft(lesson, 'submission-2').content).toBe('')
   })
 })

@@ -3,6 +3,7 @@ import { useLearningContentApi } from '~/features/learning-content/learning-cont
 import { learningContentKeys } from '~/features/learning-content/learning-content.query-keys'
 import type { LearningContentDetail } from '~/features/learning-content/learning-content.types'
 import { difficultyColor, visibleTags } from '~/features/learning-content/learning-content.meta'
+import SaveLessonToKnowledge from '~/features/learning-content/components/SaveLessonToKnowledge.vue'
 import { normalizeApiError, type NormalizedApiError } from '~/utils/normalize-api-error'
 
 definePageMeta({ layout: 'app' })
@@ -92,8 +93,8 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
           <UButton :loading="mutationPending" :disabled="mutationPending" @click="mutate('complete')">Complete lesson</UButton>
         </template>
         <template v-else>
-          <div><h2 id="lesson-completion">Lesson completed</h2><p>{{ completedJustNow ? 'Your learning evidence has been recorded.' : `Completed ${new Date(lesson.progress.completedAtUtc!).toLocaleDateString()}.` }}</p></div>
-          <UBadge color="success" variant="subtle">Completed</UBadge>
+          <div><h2 id="lesson-completion">Keep what matters</h2><p>{{ completedJustNow ? 'Your learning evidence has been recorded. Save only the ideas you want to revisit.' : `Completed ${new Date(lesson.progress.completedAtUtc!).toLocaleDateString()}. Your personal note stays editable.` }}</p></div>
+          <div class="flex flex-wrap items-center gap-2"><UBadge color="success" variant="subtle">Completed</UBadge><SaveLessonToKnowledge :lesson="lesson" /></div>
         </template>
       </section>
       <footer><UButton :to="returnTo" icon="i-lucide-arrow-left" color="neutral" variant="outline">Back to Learn</UButton></footer>
