@@ -185,6 +185,19 @@ if (args.Contains("--seed-learning-content", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
+if (args.Contains("--repair-learning-content-consistency", StringComparer.OrdinalIgnoreCase))
+{
+    LearningContentConsistencyRepair.EnsureDevelopmentEnvironment(app.Environment.IsDevelopment());
+    await using var scope = app.Services.CreateAsyncScope();
+    var repair = scope.ServiceProvider.GetRequiredService<LearningContentConsistencyRepair>();
+    var report = await repair.RepairAsync();
+    Console.WriteLine($"Learning Content consistency repair complete. "
+        + $"Found {report.CompletedProgressWithoutEvidence} completed progress row(s) without evidence "
+        + $"and {report.EvidenceWithoutCompletedProgress} evidence row(s) without completed progress. "
+        + $"Repaired {report.RepairedEvidence} evidence row(s) and {report.RepairedProgresses} progress row(s).");
+    return;
+}
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();

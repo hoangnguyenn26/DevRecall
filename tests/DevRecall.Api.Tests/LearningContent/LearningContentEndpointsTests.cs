@@ -157,7 +157,8 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
 
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
-        (await db.LearningContentCompletionEvidence.CountAsync()).Should().Be(1);
+        (await db.LearningContentCompletionEvidence.CountAsync(item =>
+            item.Id == progress.CompletionEvidenceId)).Should().Be(1);
         (await db.ReviewItems.CountAsync()).Should().Be(reviewCount);
         (await db.WeakTopicProfiles.CountAsync()).Should().Be(weakTopicCount);
     }

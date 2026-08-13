@@ -278,6 +278,12 @@ dotnet build DevRecall.slnx
 dotnet test DevRecall.slnx
 ```
 
+Explicit Development-only Learning Content consistency repair:
+
+```powershell
+dotnet run --project src/DevRecall.Api -- --repair-learning-content-consistency
+```
+
 ### Frontend
 
 ```powershell

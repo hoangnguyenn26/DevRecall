@@ -102,6 +102,7 @@ public static class DependencyInjection
 
         services.AddScoped<DemoDataSeeder>();
         services.AddScoped<LearningContentSeeder>();
+        services.AddScoped<LearningContentConsistencyRepair>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserLearningPreferenceRepository,

@@ -32,6 +32,8 @@ public sealed class StartLearningContentHandler(ILearningContentProgressReposito
         var content = await repository.GetPublishedContentAsync(NormalizeSlug(slug), cancellationToken)
             ?? throw NotFound();
         var progress = await repository.GetAsync(userId, content.Id, cancellationToken);
+        var evidence = await repository.GetCompletionEvidenceAsync(userId, content.Id, cancellationToken);
+        EnsureConsistent(progress, evidence);
         if (progress is null)
         {
             progress = LearningContentProgress.Start(Guid.NewGuid(), userId, content.Id, clock.UtcNow);
@@ -41,15 +43,25 @@ public sealed class StartLearningContentHandler(ILearningContentProgressReposito
             {
                 progress = await repository.GetAsync(userId, content.Id, cancellationToken);
                 if (progress is null) throw;
+                evidence = await repository.GetCompletionEvidenceAsync(userId, content.Id, cancellationToken);
+                EnsureConsistent(progress, evidence);
             }
         }
-        return Map(progress);
+        return Map(progress) with { CompletionEvidenceId = evidence?.Id };
     }
 
     internal static Guid RequireUser(ICurrentUser user) => user.IsAuthenticated && user.UserId is { } id
         ? id : throw new UnauthorizedException("IDENTITY_UNAUTHENTICATED", "Authentication is required.");
     internal static string NormalizeSlug(string slug) => string.IsNullOrWhiteSpace(slug) ? "" : slug.Trim().ToLowerInvariant();
     internal static NotFoundException NotFound() => new("LEARNING_CONTENT_NOT_FOUND", "Learning content was not found.");
+    internal static void EnsureConsistent(LearningContentProgress? progress,
+        LearningContentCompletionEvidence? evidence)
+    {
+        var isCompleted = progress?.Status == LearningProgressStatus.Completed;
+        if (isCompleted != (evidence is not null))
+            throw new ConflictException("LEARNING_CONTENT_COMPLETION_INCONSISTENT",
+                "Lesson progress and completion history are inconsistent. Run the explicit Development repair command.");
+    }
     internal static LearningContentProgressItem Map(LearningContentProgress value) => new(
         value.Status.ToString(), value.StartedAtUtc, value.CompletedAtUtc, value.Version);
 }
@@ -64,10 +76,15 @@ public sealed class CompleteLearningContentHandler(ILearningContentProgressRepos
         var content = await repository.GetPublishedContentAsync(StartLearningContentHandler.NormalizeSlug(slug), cancellationToken)
             ?? throw StartLearningContentHandler.NotFound();
         var progress = await repository.GetAsync(userId, content.Id, cancellationToken);
+        var existingEvidence = await repository.GetCompletionEvidenceAsync(
+            userId, content.Id, cancellationToken);
+        StartLearningContentHandler.EnsureConsistent(progress, existingEvidence);
         if (progress?.Status == LearningProgressStatus.Completed)
         {
-            var existing = await repository.GetCompletionEvidenceAsync(userId, content.Id, cancellationToken);
-            return StartLearningContentHandler.Map(progress) with { CompletionEvidenceId = existing?.Id };
+            return StartLearningContentHandler.Map(progress) with
+            {
+                CompletionEvidenceId = existingEvidence!.Id
+            };
         }
         var now = clock.UtcNow;
         if (progress is null)

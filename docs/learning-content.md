@@ -132,6 +132,24 @@ Simply opening a lesson never makes it eligible for Continue learning and does n
 
 History uses the completion evidence title snapshot. A later archived source remains visible as historical fact but is marked unavailable and has no broken lesson link. Continue learning excludes Draft or Archived sources while preserving their underlying progress rows. Both reads are owner-scoped and use no read-side mutation.
 
+### Progress/evidence consistency
+
+For each `(UserId, LearningContentId)`, normal state is restricted to:
+
+- no progress and no evidence (`NotStarted`);
+- `InProgress` progress and no evidence;
+- `Completed` progress and exactly one completion evidence.
+
+Completion writes progress and evidence in one `SaveChanges` transaction. PostgreSQL uniquely constrains both progress and evidence per user/lesson, and concurrent completion resolves to the canonical row without changing the original completion time or version. History and Analytics read evidence; Continue learning and catalog status read progress.
+
+Normal reads never repair inconsistent data. Start or Complete returns the stable `LEARNING_CONTENT_COMPLETION_INCONSISTENT` conflict when it encounters mismatched progress/evidence. Known Development data can be repaired explicitly with:
+
+```powershell
+dotnet run --project src/DevRecall.Api -- --repair-learning-content-consistency
+```
+
+The command is Development-only and idempotent. It uses the trusted progress completion timestamp when evidence is missing; when evidence already exists, that historical fact wins and the current progress is repaired to Completed. It is not a background service and never runs during API startup.
+
 ## Review candidates and Learn → Review
 
 A published lesson may expose zero to five ordered review candidates. Each candidate has a stable,
