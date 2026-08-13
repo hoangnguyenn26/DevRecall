@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using DevRecall.Api.Tests.Infrastructure;
-using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Analytics;
+using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.Knowledge;
 using DevRecall.Contracts.LearningContent;

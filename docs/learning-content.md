@@ -233,3 +233,11 @@ Future matching may compare Learning Profile signals with content Technology, To
 The following remain out of scope: Discover, automatic or AI-generated Review cards, section progress,
 timers, saved scroll position, relearning sessions, authoring APIs, content providers, crawlers, AI,
 attachments, and public lesson SEO.
+
+## Week 5 dogfood checkpoint
+
+The Week 5 validation and product decision are recorded in
+[`v2-week5-validation.md`](v2-week5-validation.md). The core Learn → Complete → Knowledge / Review loop is
+ready for continued dogfooding, but Discover remains paused until lesson choice becomes a demonstrated
+bottleneck. In the lesson-to-Knowledge dialog, Title and Note form the default workflow; optional Topic
+and Tags live under Additional details and load only when the user asks for them.

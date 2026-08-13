@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import type { KnowledgeTagOption, KnowledgeTopic, KnowledgeTopicTree } from '~/features/knowledge/knowledge.types'
 import { queryKeys } from '~/query/query-keys'
 import { normalizeApiError } from '~/utils/normalize-api-error'
@@ -31,6 +31,7 @@ const topics = computed(() => [{ label: 'Uncategorized', value: null }, ...flatt
 const tags = computed(() => (tagOptions.value ?? []).map(tag => ({ label: tag.name, value: tag.id })))
 const dirty = computed(() => !result.value && JSON.stringify(form) !== JSON.stringify(initial.value))
 const optionsLoaded = ref(false)
+const additionalDetailsOpen = ref(false)
 
 async function loadOptions() {
   if (optionsLoaded.value) return
@@ -44,8 +45,13 @@ function begin() {
   errors.value = {}
   formError.value = ''
   result.value = null
+  additionalDetailsOpen.value = false
   open.value = true
-  void loadOptions()
+}
+
+function toggleAdditionalDetails() {
+  additionalDetailsOpen.value = !additionalDetailsOpen.value
+  if (additionalDetailsOpen.value) void loadOptions()
 }
 
 async function close() {
@@ -72,6 +78,11 @@ async function save() {
     const normalized = normalizeApiError(error)
     errors.value = normalized.fieldErrors
     formError.value = normalized.detail ?? normalized.title
+    if (errors.value.topicId?.length || errors.value.tagIds?.length) {
+      additionalDetailsOpen.value = true
+      await nextTick()
+      void loadOptions()
+    }
   } finally { pending.value = false }
 }
 </script>
@@ -89,10 +100,16 @@ async function save() {
         <div class="rounded-lg border border-default bg-elevated/40 px-3 py-2 text-sm text-muted"><span class="font-medium text-default">From lesson:</span> {{ lesson.title }}</div>
         <UFormField label="Title" required :error="errors.title?.[0]"><UInput v-model="form.title" autofocus class="w-full" maxlength="200" /></UFormField>
         <UFormField label="Note" hint="Started from this lesson's key takeaways" :error="errors.content?.[0]"><UTextarea v-model="form.content" :rows="10" class="w-full font-mono text-sm" placeholder="Write down the ideas you want to keep from this lesson..." /></UFormField>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <UFormField label="Topic" :error="errors.topicId?.[0]"><USelect v-model="form.topicId" :items="topics" value-key="value" class="w-full" /></UFormField>
-          <UFormField label="Tags" hint="Optional" :error="errors.tagIds?.[0]"><USelect v-model="form.tagIds" multiple :items="tags" value-key="value" class="w-full" placeholder="Select existing tags" /></UFormField>
-        </div>
+        <section class="rounded-xl border border-default">
+          <button type="button" class="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-sm font-medium" :aria-expanded="additionalDetailsOpen" aria-controls="lesson-knowledge-additional" @click="toggleAdditionalDetails">
+            <span>Additional details</span>
+            <span class="text-xs font-normal text-muted">Topic and tags · Optional</span>
+          </button>
+          <div v-if="additionalDetailsOpen" id="lesson-knowledge-additional" class="grid gap-4 border-t border-default px-4 py-4 sm:grid-cols-2">
+            <UFormField label="Topic" :error="errors.topicId?.[0]"><USelect v-model="form.topicId" :items="topics" value-key="value" class="w-full" /></UFormField>
+            <UFormField label="Tags" :error="errors.tagIds?.[0]"><USelect v-model="form.tagIds" multiple :items="tags" value-key="value" class="w-full" placeholder="Select existing tags" /></UFormField>
+          </div>
+        </section>
         <UAlert v-if="formError" color="error" variant="subtle" title="We couldn't save this note" :description="`${formError} Your draft is still here, and your lesson remains completed.`" />
         <div class="flex flex-col-reverse justify-end gap-2 border-t border-default pt-4 sm:flex-row"><UButton type="button" color="neutral" variant="ghost" :disabled="pending" @click="close">Cancel</UButton><UButton type="submit" :loading="pending" :disabled="pending">Save note</UButton></div>
       </form>

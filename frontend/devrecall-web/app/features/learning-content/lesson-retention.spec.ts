@@ -10,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   saveToKnowledge: vi.fn<(slug: string, input: SaveLessonToKnowledgeInput) => Promise<SavedLessonKnowledge>>(),
   addToReview: vi.fn<(slug: string, keys: string[], submissionId: string) => Promise<LearningContentReviewBatch>>(),
 }))
+const optionRefreshMocks = vi.hoisted(() => ({ topics: vi.fn<() => Promise<void>>(), tags: vi.fn<() => Promise<void>>() }))
 
 vi.mock('./learning-content.api', () => ({
   useLearningContentApi: () => apiMocks,
@@ -58,18 +59,34 @@ const lesson: LearningContentDetail = {
 describe('Post-lesson retention dialogs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    optionRefreshMocks.topics.mockResolvedValue(undefined)
+    optionRefreshMocks.tags.mockResolvedValue(undefined)
     let sequence = 0
     vi.stubGlobal('crypto', { randomUUID: () => `submission-${++sequence}` })
     vi.stubGlobal('useApi', () => ({ get: vi.fn<(path: string) => Promise<unknown>>() }))
     vi.stubGlobal('useConfirmDialog', () => ({ open: vi.fn<() => Promise<boolean>>().mockResolvedValue(true) }))
     vi.stubGlobal('useAsyncData', (key: string) => ({
       data: ref(key.includes('topics') ? { items: [] } : []),
-      refresh: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      refresh: key.includes('topics') ? optionRefreshMocks.topics : optionRefreshMocks.tags,
     }))
     vi.stubGlobal('clearNuxtData', vi.fn<(key: unknown) => void>())
     vi.stubGlobal('useLearningDataInvalidation', () => ({
       afterReviewItemsAdded: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     }))
+  })
+
+  it('keeps optional Knowledge organization secondary and reveals it on demand', async () => {
+    const wrapper = mount(SaveLessonToKnowledge, { props: { lesson }, global: { stubs } })
+
+    await wrapper.get('button').trigger('click')
+    const details = wrapper.get('button[aria-controls="lesson-knowledge-additional"]')
+    expect(details.attributes('aria-expanded')).toBe('false')
+    expect(details.text()).toContain('Topic and tags · Optional')
+    expect(wrapper.find('#lesson-knowledge-additional').exists()).toBe(false)
+
+    await details.trigger('click')
+    expect(details.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('#lesson-knowledge-additional').exists()).toBe(true)
   })
 
   it('prefills an editable Knowledge draft, preserves it on retry, and starts a new submission later', async () => {
