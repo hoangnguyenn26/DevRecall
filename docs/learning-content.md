@@ -60,6 +60,20 @@ All endpoints require authentication and expose global content rather than user-
 | --- | --- | --- |
 | `GET` | `/api/v1/learning-content` | Bounded published catalog with optional `technology`, `topic`, and `difficulty` filters. |
 | `GET` | `/api/v1/learning-content/{slug}` | Published lesson detail including objectives, sections, and provenance. |
+| `POST` | `/api/v1/knowledge/from-learning-content/{slug}` | Explicitly saves an editable personal Knowledge note with immutable lesson provenance. |
+
+## Saving a lesson to Knowledge
+
+Completing a lesson never creates Knowledge automatically. After completion, the user may open the
+“Save to Knowledge” flow, edit a title and note body, and optionally select an existing Knowledge topic
+and tags. The request includes a client-generated `submissionId`; retries with the same user and
+submission ID return the original note, while a new submission ID may create another note from the
+same lesson.
+
+The saved note is a snapshot and remains independently editable. Its detail exposes only public source
+metadata (`type`, title snapshot, slug, and availability). If the lesson is later archived, the source
+title remains visible but the UI does not link to the unavailable lesson. This workflow does not create
+topics, tags, Review items, recommendations, or analytics signals.
 
 Pagination defaults to 20 and is limited to 50. Catalog order is `publishedAtUtc DESC`, then ID. Technology and difficulty accept case-sensitive canonical strings and reject numeric enum representations. An unknown topic slug returns an empty catalog page.
 

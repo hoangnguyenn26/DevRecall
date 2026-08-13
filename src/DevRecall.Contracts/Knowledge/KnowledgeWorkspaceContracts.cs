@@ -19,7 +19,15 @@ public sealed record KnowledgeWorkspaceDetailResponse(
     Guid Id, string Title, string Content, string? Description, string? SourceUrl,
     Guid? TopicId, string? TopicName, IReadOnlyList<KnowledgeWorkspaceTagResponse> Tags,
     IReadOnlyList<RelatedKnowledgeResponse> RelatedItems,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version);
+    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version,
+    KnowledgeSourceResponse? Source);
+
+public sealed record KnowledgeSourceResponse(string Type, string Title, string? Slug, bool IsAvailable);
+
+public sealed record SaveLearningContentToKnowledgeRequest(string Title, string Content,
+    Guid? TopicId, IReadOnlyList<Guid> TagIds, Guid SubmissionId);
+
+public sealed record SavedKnowledgeResponse(Guid Id, string Title, bool AlreadyExisted);
 
 public sealed record UpdateKnowledgeRequest(
     string Title, string Content, Guid? TopicId,

@@ -8,6 +8,7 @@ using DevRecall.Application.Knowledge.GetDetail;
 using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Application.Knowledge.Move;
 using DevRecall.Application.Knowledge.Reorder;
+using DevRecall.Application.Knowledge.SaveLearningContent;
 using DevRecall.Application.Knowledge.Tags.Assign;
 using DevRecall.Application.Knowledge.Tags.Remove;
 using DevRecall.Application.Knowledge.Update;
@@ -50,6 +51,7 @@ public static class KnowledgeEndpoints
         workspace.MapGet("/topics/tree", GetWorkspaceTopicTreeAsync);
         workspace.MapGet("/tags", GetWorkspaceTagsAsync);
         workspace.MapPost("/tags", CreateWorkspaceTagAsync);
+        workspace.MapPost("/from-learning-content/{slug}", SaveLearningContentAsync);
         workspace.MapGet("/{knowledgeId:guid}", GetWorkspaceDetailAsync);
         workspace.MapPut("/{knowledgeId:guid}", UpdateWorkspaceAsync);
         workspace.MapDelete("/{knowledgeId:guid}", DeleteWorkspaceAsync);
@@ -83,7 +85,17 @@ public static class KnowledgeEndpoints
             result.RelatedItems.Select(item => new RelatedKnowledgeResponse(
                 item.Id, item.Title, item.TopicName, item.SharedTagCount,
                 item.SameTopic, item.UpdatedAtUtc)).ToList(),
-            result.CreatedAtUtc, result.UpdatedAtUtc, result.Version));
+            result.CreatedAtUtc, result.UpdatedAtUtc, result.Version, MapSource(result.Source)));
+    }
+
+    private static async Task<IResult> SaveLearningContentAsync(string slug,
+        SaveLearningContentToKnowledgeRequest request, SaveLearningContentToKnowledgeHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(new SaveLearningContentToKnowledgeCommand(slug,
+            request.Title, request.Content, request.TopicId, request.TagIds ?? [], request.SubmissionId),
+            cancellationToken);
+        return Results.Ok(new SavedKnowledgeResponse(result.Id, result.Title, result.AlreadyExisted));
     }
 
     private static async Task<IResult> UpdateWorkspaceAsync(
@@ -149,7 +161,10 @@ public static class KnowledgeEndpoints
             result.Tags.Select(tag => new KnowledgeWorkspaceTagResponse(tag.Id, tag.Name)).ToList(),
             result.RelatedItems.Select(item => new RelatedKnowledgeResponse(item.Id,
                 item.Title, item.TopicName, item.SharedTagCount, item.SameTopic, item.UpdatedAtUtc)).ToList(),
-            result.CreatedAtUtc, result.UpdatedAtUtc, result.Version);
+            result.CreatedAtUtc, result.UpdatedAtUtc, result.Version, MapSource(result.Source));
+
+    private static KnowledgeSourceResponse? MapSource(KnowledgeSourceReadModel? source) => source is null
+        ? null : new KnowledgeSourceResponse(source.Type, source.Title, source.Slug, source.IsAvailable);
 
     private static List<Guid> ParseTagIds(string? value)
     {

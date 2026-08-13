@@ -33,7 +33,10 @@ public sealed record KnowledgeDetailReadModel(
     Guid Id, string Title, string Content, string? Description, string? SourceUrl,
     Guid? TopicId, string? TopicName, IReadOnlyList<KnowledgeTagReadModel> Tags,
     IReadOnlyList<RelatedKnowledgeReadModel> RelatedItems,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version);
+    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Version,
+    KnowledgeSourceReadModel? Source);
+
+public sealed record KnowledgeSourceReadModel(string Type, string Title, string? Slug, bool IsAvailable);
 
 public sealed record RelatedKnowledgeReadModel(
     Guid Id, string Title, string? TopicName, int SharedTagCount,

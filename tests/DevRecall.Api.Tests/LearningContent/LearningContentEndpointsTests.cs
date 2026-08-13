@@ -4,6 +4,7 @@ using DevRecall.Api.Tests.Infrastructure;
 using DevRecall.Contracts.Auth;
 using DevRecall.Contracts.Common;
 using DevRecall.Contracts.LearningContent;
+using DevRecall.Contracts.Knowledge;
 using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.LearningProfiles;
 using DevRecall.Infrastructure.Development;
@@ -217,6 +218,91 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         }
     }
 
+    [Fact]
+    public async Task SaveToKnowledge_ShouldCreateEditableNoteWithTagsAndSource()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("save-knowledge");
+        var topic = await CreateKnowledgeAsync(client, "Dependency injection notes");
+        var tag = await (await client.PostAsJsonAsync("/api/v1/knowledge/tags",
+            new CreateKnowledgeTagRequest("dotnet"))).Content.ReadFromJsonAsync<KnowledgeTagSummaryResponse>();
+        var submissionId = Guid.NewGuid();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/knowledge/from-learning-content/dependency-injection-fundamentals",
+            new SaveLearningContentToKnowledgeRequest("My DI notes", "## Key takeaways\n\nPrefer explicit dependencies.",
+                topic.Id, [tag!.Id], submissionId));
+
+        response.EnsureSuccessStatusCode();
+        var saved = await response.Content.ReadFromJsonAsync<SavedKnowledgeResponse>();
+        saved!.AlreadyExisted.Should().BeFalse();
+        var detail = await client.GetFromJsonAsync<KnowledgeWorkspaceDetailResponse>(
+            $"/api/v1/knowledge/{saved.Id}");
+        detail!.Title.Should().Be("My DI notes");
+        detail.Content.Should().Contain("Prefer explicit dependencies");
+        detail.TopicId.Should().Be(topic.Id);
+        detail.Tags.Should().ContainSingle(item => item.Id == tag.Id);
+        detail.Source.Should().Be(new KnowledgeSourceResponse("LearningContent",
+            "Dependency Injection Fundamentals", "dependency-injection-fundamentals", true));
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var lesson = await db.LearningContents.Include(item => item.Topics)
+            .Include(item => item.Objectives).Include(item => item.Sections)
+            .SingleAsync(item => item.Slug == "dependency-injection-fundamentals");
+        lesson.Archive(DateTimeOffset.UtcNow);
+        await db.SaveChangesAsync();
+        var afterArchive = await client.GetFromJsonAsync<KnowledgeWorkspaceDetailResponse>(
+            $"/api/v1/knowledge/{saved.Id}");
+        afterArchive!.Source.Should().Be(new KnowledgeSourceResponse("LearningContent",
+            "Dependency Injection Fundamentals", null, false));
+        lesson.Publish(DateTimeOffset.UtcNow);
+        await db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task SaveToKnowledge_ShouldBeIdempotentPerUserSubmission()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("save-idempotent");
+        var submissionId = Guid.NewGuid();
+        var request = new SaveLearningContentToKnowledgeRequest("First title", "First body", null, [], submissionId);
+
+        var first = await (await client.PostAsJsonAsync(
+            "/api/v1/knowledge/from-learning-content/aspnet-core-service-lifetimes", request))
+            .Content.ReadFromJsonAsync<SavedKnowledgeResponse>();
+        var retry = await (await client.PostAsJsonAsync(
+            "/api/v1/knowledge/from-learning-content/aspnet-core-service-lifetimes",
+            request with { Title = "Changed retry title" })).Content.ReadFromJsonAsync<SavedKnowledgeResponse>();
+
+        retry!.Id.Should().Be(first!.Id);
+        retry.Title.Should().Be("First title");
+        retry.AlreadyExisted.Should().BeTrue();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await db.KnowledgeSources.CountAsync(item => item.SubmissionId == submissionId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SaveToKnowledge_ShouldRejectUnavailableLessonAndForeignOrganization()
+    {
+        await SeedAsync();
+        await AddUnpublishedContentAsync();
+        using var owner = await CreateAuthenticatedClientAsync("save-owner");
+        using var other = await CreateAuthenticatedClientAsync("save-other");
+        var foreignTopic = await CreateKnowledgeAsync(other, "Private topic");
+        var request = new SaveLearningContentToKnowledgeRequest("Notes", "", foreignTopic.Id, [], Guid.NewGuid());
+
+        using var foreign = await owner.PostAsJsonAsync(
+            "/api/v1/knowledge/from-learning-content/dependency-injection-fundamentals", request);
+        using var draft = await owner.PostAsJsonAsync(
+            "/api/v1/knowledge/from-learning-content/hidden-draft-lesson", request with
+            { TopicId = null, SubmissionId = Guid.NewGuid() });
+
+        foreign.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        draft.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private async Task SeedAsync()
     {
         await using var scope = factory.Services.CreateAsyncScope();
@@ -247,7 +333,15 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
 
     private static async Task<PagedResponse<LearningContentListItemResponse>> GetPageAsync(
         HttpClient client, string query) => (await client.GetFromJsonAsync<
-            PagedResponse<LearningContentListItemResponse>>($"/api/v1/learning-content?{query}"))!;
+        PagedResponse<LearningContentListItemResponse>>($"/api/v1/learning-content?{query}"))!;
+
+    private static async Task<KnowledgeNodeResponse> CreateKnowledgeAsync(HttpClient client, string title)
+    {
+        using var response = await client.PostAsJsonAsync("/api/v1/knowledge-nodes",
+            new CreateKnowledgeNodeRequest(title, null));
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<KnowledgeNodeResponse>())!;
+    }
 
     private async Task<HttpClient> CreateAuthenticatedClientAsync(string prefix)
     {

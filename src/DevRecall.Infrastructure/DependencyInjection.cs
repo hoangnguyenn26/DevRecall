@@ -17,6 +17,7 @@ using DevRecall.Application.Interview.Practice;
 using DevRecall.Application.Knowledge;
 using DevRecall.Application.Knowledge.Tags;
 using DevRecall.Application.Knowledge.Workspace;
+using DevRecall.Application.Knowledge.SaveLearningContent;
 using DevRecall.Application.LearningContent;
 using DevRecall.Application.LearningProfiles;
 using DevRecall.Application.Navigation;
@@ -137,6 +138,7 @@ public static class DependencyInjection
         services.AddScoped<IKnowledgeNodeTagRepository, KnowledgeNodeTagRepository>();
         services.AddScoped<IKnowledgeWorkspaceReader, KnowledgeWorkspaceReader>();
         services.AddScoped<IKnowledgeWorkspaceWriter, KnowledgeWorkspaceWriter>();
+        services.AddScoped<ILearningContentKnowledgeRepository, LearningContentKnowledgeRepository>();
         services.AddScoped<IKnowledgeTagReader, KnowledgeTagReader>();
         services.AddScoped<IReviewItemRepository, ReviewItemRepository>();
         services.AddScoped<

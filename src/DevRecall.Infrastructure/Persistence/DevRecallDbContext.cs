@@ -75,6 +75,8 @@ public sealed class DevRecallDbContext(
     public DbSet<KnowledgeNode> KnowledgeNodes =>
         Set<KnowledgeNode>();
 
+    public DbSet<KnowledgeSource> KnowledgeSources => Set<KnowledgeSource>();
+
     public DbSet<Tag> Tags =>
         Set<Tag>();
 

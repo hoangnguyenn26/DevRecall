@@ -124,9 +124,18 @@ internal sealed class KnowledgeWorkspaceReader(DevRecallDbContext dbContext)
             .ToListAsync(cancellationToken);
         var tagIds = tags.Select(tag => tag.Id).ToArray();
         var related = await ReadRelatedAsync(userId, knowledgeId, row.TopicId, tagIds, cancellationToken);
+        var source = await (
+            from provenance in dbContext.KnowledgeSources.AsNoTracking()
+            join content in dbContext.LearningContents.AsNoTracking()
+                on provenance.LearningContentId equals content.Id
+            where provenance.KnowledgeNodeId == knowledgeId && provenance.UserId == userId
+            select new KnowledgeSourceReadModel("LearningContent", provenance.SourceTitleSnapshot,
+                content.Status == DevRecall.Domain.LearningContent.ContentStatus.Published ? content.Slug : null,
+                content.Status == DevRecall.Domain.LearningContent.ContentStatus.Published))
+            .SingleOrDefaultAsync(cancellationToken);
         return new KnowledgeDetailReadModel(row.Id, row.Title, row.Content, row.Description,
             row.SourceUrl, row.TopicId, row.TopicName, tags, related,
-            row.CreatedAtUtc, row.UpdatedAtUtc, row.Version);
+            row.CreatedAtUtc, row.UpdatedAtUtc, row.Version, source);
     }
 
     public async Task<KnowledgeTopicTreeReadModel> GetTopicTreeAsync(

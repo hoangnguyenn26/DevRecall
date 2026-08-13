@@ -38,6 +38,7 @@ using DevRecall.Application.Knowledge.GetDetail;
 using DevRecall.Application.Knowledge.GetTree;
 using DevRecall.Application.Knowledge.Move;
 using DevRecall.Application.Knowledge.Reorder;
+using DevRecall.Application.Knowledge.SaveLearningContent;
 using DevRecall.Application.Knowledge.Tags.Archive;
 using DevRecall.Application.Knowledge.Tags.Assign;
 using DevRecall.Application.Knowledge.Tags.Create;
@@ -142,6 +143,7 @@ public static class DependencyInjection
         services.AddScoped<GetInterviewPracticeHistoryHandler>();
         services.AddScoped<GetInterviewPracticeAttemptHandler>();
         services.AddScoped<CreateKnowledgeNodeHandler>();
+        services.AddScoped<SaveLearningContentToKnowledgeHandler>();
         services.AddScoped<GetKnowledgeNodeDetailHandler>();
         services.AddScoped<GetKnowledgeByTagsHandler>();
         services.AddScoped<GetKnowledgeTreeHandler>();
