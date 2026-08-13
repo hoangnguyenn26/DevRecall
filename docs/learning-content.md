@@ -4,7 +4,7 @@
 
 Learning Content is the global catalog of material that DevRecall offers users to learn. It is separate from user-owned Knowledge: Learning Content is platform content; Knowledge is what an individual user explicitly saves and organizes.
 
-This foundation stores and serves lessons. It does not track reading progress, create Knowledge notes, schedule Reviews, or generate Recommendations.
+This foundation stores and serves lessons. It does not infer reading progress, automatically create Knowledge notes, automatically schedule Reviews, or generate Recommendations.
 
 ## Content types
 
@@ -76,6 +76,23 @@ The saved note is a snapshot and remains independently editable. Its detail expo
 metadata (`type`, title snapshot, slug, and availability). If the lesson is later archived, the source
 title remains visible but the UI does not link to the unavailable lesson. This workflow does not create
 topics, tags, Review items, recommendations, or analytics signals.
+
+### Post-lesson retention experience
+
+Completion is a terminal success and never opens another workflow automatically. The completed lesson
+offers two quiet, optional intents under **Keep what matters**:
+
+- **Save your notes** creates an editable Knowledge draft from concise Key Takeaway sections. The title
+  defaults to the lesson title, provenance is read-only, topic and tags remain optional, and a failed
+  request preserves the draft and its submission ID for a safe retry. Closing a successful dialog and
+  intentionally opening it again creates a new submission ID, so multiple personal notes remain valid.
+- **Remember key concepts** starts with no candidates selected. Answer previews are selection context
+  only and never create Review evidence. Existing active candidates are labelled rather than selectable;
+  lessons with no candidates hide the Review action entirely.
+
+Add to Study Plan remains a pre-learning planning action and is not shown in the post-completion card.
+When the lesson belongs to a Study Session, Back to Study Session takes priority over Back to Learn.
+Knowledge and Review failures never roll back or obscure the completed lesson state.
 
 Pagination defaults to 20 and is limited to 50. Catalog order is `publishedAtUtc DESC`, then ID. Technology and difficulty accept case-sensitive canonical strings and reject numeric enum representations. An unknown topic slug returns an empty catalog page.
 

@@ -415,6 +415,46 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task SaveToKnowledge_DifferentSubmissions_ShouldCreateIndependentSnapshotNotes()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("save-independent-notes");
+        var route = "/api/v1/knowledge/from-learning-content/aspnet-core-service-lifetimes";
+
+        var first = await (await client.PostAsJsonAsync(route,
+            new SaveLearningContentToKnowledgeRequest("Lifetime notes", "First personal note", null, [],
+                Guid.NewGuid()))).Content.ReadFromJsonAsync<SavedKnowledgeResponse>();
+        var second = await (await client.PostAsJsonAsync(route,
+            new SaveLearningContentToKnowledgeRequest("Lifetime follow-up", "Second personal note", null, [],
+                Guid.NewGuid()))).Content.ReadFromJsonAsync<SavedKnowledgeResponse>();
+
+        second!.Id.Should().NotBe(first!.Id);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await db.KnowledgeSources.CountAsync(item => item.KnowledgeNodeId == first.Id
+            || item.KnowledgeNodeId == second.Id)).Should().Be(2);
+
+        var originalTitle = await db.LearningContents.Where(item => item.Slug == "aspnet-core-service-lifetimes")
+            .Select(item => item.Title).SingleAsync();
+        try
+        {
+            await db.LearningContents.Where(item => item.Slug == "aspnet-core-service-lifetimes")
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Title, "Revised source title"));
+            var saved = await client.GetFromJsonAsync<KnowledgeWorkspaceDetailResponse>(
+                $"/api/v1/knowledge/{first.Id}");
+            saved!.Title.Should().Be("Lifetime notes");
+            saved.Content.Should().Be("First personal note");
+            saved.Source.Should().Be(new KnowledgeSourceResponse("LearningContent",
+                originalTitle, "aspnet-core-service-lifetimes", true));
+        }
+        finally
+        {
+            await db.LearningContents.Where(item => item.Slug == "aspnet-core-service-lifetimes")
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Title, originalTitle));
+        }
+    }
+
+    [Fact]
     public async Task SaveToKnowledge_ShouldRejectUnavailableLessonAndForeignOrganization()
     {
         await SeedAsync();
@@ -470,6 +510,43 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
     }
 
     [Fact]
+    public async Task AddToReview_ShouldKeepPromptAndAnswerSnapshotsAfterCandidateRevision()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("lesson-review-snapshot");
+        var created = await (await client.PostAsJsonAsync(
+            "/api/v1/review/from-learning-content/ef-core-tracking-vs-no-tracking",
+            new CreateLearningContentReviewsRequest(["tracking-query"], Guid.NewGuid()))).Content
+            .ReadFromJsonAsync<LearningContentReviewBatchResponse>();
+        var reviewItemId = created!.Items.Single().ReviewItemId;
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var candidate = await db.LearningContentReviewCandidates.AsNoTracking()
+            .SingleAsync(item => item.Key == "tracking-query");
+        try
+        {
+            await db.LearningContentReviewCandidates.Where(item => item.Id == candidate.Id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Prompt, "Revised prompt")
+                    .SetProperty(item => item.Answer, "Revised answer"));
+            var due = await client.GetFromJsonAsync<PagedResponse<DueReviewItemResponse>>(
+                "/api/v1/review-items/due?resourceType=LearningContent&page=1&pageSize=10");
+            due!.Items.Single(item => item.ReviewItemId == reviewItemId).Should().Match<DueReviewItemResponse>(item =>
+                item.ResourceTitle == "What does an EF Core tracking query do?"
+                && item.ResourcePreview != null
+                && item.ResourcePreview.Contains("change tracker", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await db.LearningContentReviewCandidates.Where(item => item.Id == candidate.Id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Prompt, candidate.Prompt)
+                    .SetProperty(item => item.Answer, candidate.Answer));
+        }
+    }
+
+    [Fact]
     public async Task AddToReview_ShouldBeBatchIdempotentAndPreventCandidateDuplicates()
     {
         await SeedAsync();
@@ -500,8 +577,8 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var route = "/api/v1/review/from-learning-content/aspnet-core-service-lifetimes";
         var requests = new[]
         {
-            new CreateLearningContentReviewsRequest(["singleton-lifetime"], Guid.NewGuid()),
-            new CreateLearningContentReviewsRequest(["singleton-lifetime"], Guid.NewGuid())
+            new CreateLearningContentReviewsRequest(["lifetime-selection"], Guid.NewGuid()),
+            new CreateLearningContentReviewsRequest(["lifetime-selection"], Guid.NewGuid())
         };
 
         var responses = await Task.WhenAll(requests.Select(request => client.PostAsJsonAsync(route, request)));

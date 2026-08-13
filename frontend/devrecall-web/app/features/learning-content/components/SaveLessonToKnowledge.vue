@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, reactive, ref } from 'vue'
 import type { KnowledgeTagOption, KnowledgeTopic, KnowledgeTopicTree } from '~/features/knowledge/knowledge.types'
 import { queryKeys } from '~/query/query-keys'
 import { normalizeApiError } from '~/utils/normalize-api-error'
@@ -15,11 +16,11 @@ const pending = ref(false)
 const result = ref<SavedLessonKnowledge | null>(null)
 const errors = ref<Record<string, string[]>>({})
 const formError = ref('')
-const initial = ref(buildLessonKnowledgeDraft(props.lesson, crypto.randomUUID()))
+const initial = ref(buildLessonKnowledgeDraft(props.lesson, ''))
 const form = reactive({ ...initial.value })
-const { data: topicTree, refresh: refreshTopics } = await useAsyncData<KnowledgeTopicTree>(queryKeys.knowledgeTopics,
+const { data: topicTree, refresh: refreshTopics } = useAsyncData<KnowledgeTopicTree>(queryKeys.knowledgeTopics,
   () => api.get('/knowledge/topics/tree'), { server: false, immediate: false })
-const { data: tagOptions, refresh: refreshTags } = await useAsyncData<KnowledgeTagOption[]>(queryKeys.knowledgeTags(),
+const { data: tagOptions, refresh: refreshTags } = useAsyncData<KnowledgeTagOption[]>(queryKeys.knowledgeTags(),
   () => api.get('/knowledge/tags', { take: 20 }), { server: false, immediate: false, default: () => [] })
 
 function flattenTopics(items: KnowledgeTopic[], depth = 0): { label: string; value: string | null }[] {
@@ -29,6 +30,13 @@ function flattenTopics(items: KnowledgeTopic[], depth = 0): { label: string; val
 const topics = computed(() => [{ label: 'Uncategorized', value: null }, ...flattenTopics(topicTree.value?.items ?? [])])
 const tags = computed(() => (tagOptions.value ?? []).map(tag => ({ label: tag.name, value: tag.id })))
 const dirty = computed(() => !result.value && JSON.stringify(form) !== JSON.stringify(initial.value))
+const optionsLoaded = ref(false)
+
+async function loadOptions() {
+  if (optionsLoaded.value) return
+  await Promise.all([refreshTopics(), refreshTags()])
+  optionsLoaded.value = true
+}
 
 function begin() {
   initial.value = buildLessonKnowledgeDraft(props.lesson, crypto.randomUUID())
@@ -37,7 +45,7 @@ function begin() {
   formError.value = ''
   result.value = null
   open.value = true
-  void Promise.all([refreshTopics(), refreshTags()])
+  void loadOptions()
 }
 
 async function close() {
@@ -70,7 +78,7 @@ async function save() {
 
 <template>
   <UButton icon="i-lucide-bookmark-plus" @click="begin">Save to Knowledge</UButton>
-  <UModal :open="open" :dismissible="false" title="Keep what matters" description="Turn the lesson's key takeaways into a personal note." :ui="{ content: 'sm:max-w-2xl' }">
+  <UModal :open="open" :dismissible="false" title="Save your notes" description="Keep ideas you want to revisit, connect, or expand later." :ui="{ content: 'sm:max-w-2xl' }" @update:open="value => { if (!value) void close() }">
     <template #body>
       <div v-if="result" class="space-y-5 py-2 text-center" aria-live="polite">
         <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-success/10 text-success"><UIcon name="i-lucide-circle-check" class="size-6" /></div>
@@ -78,13 +86,14 @@ async function save() {
         <div class="flex flex-col-reverse justify-center gap-2 sm:flex-row"><UButton color="neutral" variant="outline" @click="open = false">Done</UButton><UButton :to="`/app/knowledge/${result.id}`">View note</UButton></div>
       </div>
       <form v-else class="space-y-5" @submit.prevent="save">
+        <div class="rounded-lg border border-default bg-elevated/40 px-3 py-2 text-sm text-muted"><span class="font-medium text-default">From lesson:</span> {{ lesson.title }}</div>
         <UFormField label="Title" required :error="errors.title?.[0]"><UInput v-model="form.title" autofocus class="w-full" maxlength="200" /></UFormField>
-        <UFormField label="Note" hint="Started from this lesson's key takeaways" :error="errors.content?.[0]"><UTextarea v-model="form.content" :rows="10" class="w-full font-mono text-sm" /></UFormField>
+        <UFormField label="Note" hint="Started from this lesson's key takeaways" :error="errors.content?.[0]"><UTextarea v-model="form.content" :rows="10" class="w-full font-mono text-sm" placeholder="Write down the ideas you want to keep from this lesson..." /></UFormField>
         <div class="grid gap-4 sm:grid-cols-2">
           <UFormField label="Topic" :error="errors.topicId?.[0]"><USelect v-model="form.topicId" :items="topics" value-key="value" class="w-full" /></UFormField>
           <UFormField label="Tags" hint="Optional" :error="errors.tagIds?.[0]"><USelect v-model="form.tagIds" multiple :items="tags" value-key="value" class="w-full" placeholder="Select existing tags" /></UFormField>
         </div>
-        <UAlert v-if="formError" color="error" variant="subtle" title="The note wasn't saved" :description="`${formError} Your lesson completion is unchanged.`" />
+        <UAlert v-if="formError" color="error" variant="subtle" title="We couldn't save this note" :description="`${formError} Your draft is still here, and your lesson remains completed.`" />
         <div class="flex flex-col-reverse justify-end gap-2 border-t border-default pt-4 sm:flex-row"><UButton type="button" color="neutral" variant="ghost" :disabled="pending" @click="close">Cancel</UButton><UButton type="submit" :loading="pending" :disabled="pending">Save note</UButton></div>
       </form>
     </template>
