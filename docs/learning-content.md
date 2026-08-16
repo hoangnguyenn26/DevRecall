@@ -106,11 +106,13 @@ Development content is created only through the explicit command:
 dotnet run --project src/DevRecall.Api -- --seed-learning-content
 ```
 
-The command is guarded to the Development environment and is idempotent by stable slug. Existing lessons are skipped rather than overwritten. It currently creates three usable lessons:
+The command is guarded to the Development environment and is idempotent by stable slug. Existing lessons are skipped rather than overwritten. It currently creates five usable lessons in the .NET Backend Starter track:
 
 - Dependency Injection Fundamentals;
 - ASP.NET Core Service Lifetimes;
-- EF Core Tracking vs No Tracking.
+- EF Core Tracking vs No Tracking;
+- ASP.NET Core Middleware Pipeline;
+- async/await Fundamentals.
 
 Content is never seeded automatically during normal API startup.
 
