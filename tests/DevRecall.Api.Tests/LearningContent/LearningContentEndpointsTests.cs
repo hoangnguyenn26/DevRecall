@@ -30,16 +30,16 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         using var client = await CreateAuthenticatedClientAsync("list");
 
         var firstPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
-            "/api/v1/learning-content?page=1&pageSize=2");
+            "/api/v1/learning-content?page=1&pageSize=3");
         var secondPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
-            "/api/v1/learning-content?page=2&pageSize=2");
+            "/api/v1/learning-content?page=2&pageSize=3");
         var thirdPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
-            "/api/v1/learning-content?page=3&pageSize=2");
+            "/api/v1/learning-content?page=3&pageSize=3");
 
-        firstPage!.TotalCount.Should().Be(5);
-        firstPage.Items.Should().HaveCount(2);
-        secondPage!.Items.Should().HaveCount(2);
-        thirdPage!.Items.Should().ContainSingle();
+        firstPage!.TotalCount.Should().Be(8);
+        firstPage.Items.Should().HaveCount(3);
+        secondPage!.Items.Should().HaveCount(3);
+        thirdPage!.Items.Should().HaveCount(2);
         firstPage.Items.Select(item => item.Slug).Should().NotIntersectWith(
             secondPage.Items.Select(item => item.Slug));
         secondPage.Items.Select(item => item.Slug).Should().NotIntersectWith(
@@ -58,13 +58,18 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var difficulty = await GetPageAsync(client, "difficulty=Beginner");
         var pipelineTopic = await GetPageAsync(client, "topic=request-pipeline");
         var asyncTopic = await GetPageAsync(client, "topic=asynchronous-programming");
+        var transactionsTopic = await GetPageAsync(client, "topic=transactions");
+        var concurrencyTopic = await GetPageAsync(client, "topic=concurrency");
 
-        technology.Items.Should().ContainSingle(item => item.Slug == "ef-core-tracking-vs-no-tracking");
+        technology.Items.Select(item => item.Slug).Should().BeEquivalentTo(
+            ["ef-core-tracking-vs-no-tracking", "ef-core-transactions", "ef-core-optimistic-concurrency"]);
         topic.Items.Should().HaveCount(2);
         difficulty.Items.Select(item => item.Slug).Should().BeEquivalentTo(
             ["dependency-injection-fundamentals", "async-await-fundamentals"]);
         pipelineTopic.Items.Should().ContainSingle(item => item.Slug == "aspnet-core-middleware-pipeline");
         asyncTopic.Items.Should().ContainSingle(item => item.Slug == "async-await-fundamentals");
+        transactionsTopic.Items.Should().ContainSingle(item => item.Slug == "ef-core-transactions");
+        concurrencyTopic.Items.Should().ContainSingle(item => item.Slug == "ef-core-optimistic-concurrency");
     }
 
     [Fact]
@@ -183,8 +188,8 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         await firstUser.PostAsJsonAsync(
             "/api/v1/learning-content/ef-core-tracking-vs-no-tracking/progress/start", new { });
 
-        var firstPage = await GetPageAsync(firstUser, "technology=EfCore");
-        var secondPage = await GetPageAsync(secondUser, "technology=EfCore");
+        var firstPage = await GetPageAsync(firstUser, "topic=change-tracking");
+        var secondPage = await GetPageAsync(secondUser, "topic=change-tracking");
         firstPage.Items.Single().ProgressStatus.Should().Be("InProgress");
         secondPage.Items.Single().ProgressStatus.Should().Be("NotStarted");
     }
