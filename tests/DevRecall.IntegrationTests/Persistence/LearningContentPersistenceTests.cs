@@ -26,7 +26,7 @@ public sealed class LearningContentPersistenceTests(PostgreSqlFixture fixture)
     }
 
     [Fact]
-    public async Task Seeder_ShouldCreateThreePublishedLessonsIdempotently()
+    public async Task Seeder_ShouldCreateFivePublishedLessonsIdempotently()
     {
         await using var context = fixture.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync();
@@ -35,11 +35,12 @@ public sealed class LearningContentPersistenceTests(PostgreSqlFixture fixture)
         var first = await seeder.SeedAsync();
         var second = await seeder.SeedAsync();
 
-        first.Should().Be(3);
+        first.Should().Be(5);
         second.Should().Be(0);
-        (await context.LearningContents.CountAsync()).Should().Be(3);
-        (await context.ContentTopics.CountAsync()).Should().Be(2);
-        (await context.LearningContentSections.CountAsync()).Should().BeGreaterThanOrEqualTo(10);
+        (await context.LearningContents.CountAsync()).Should().Be(5);
+        (await context.ContentTopics.CountAsync()).Should().Be(4);
+        (await context.LearningContentSections.CountAsync()).Should().BeGreaterThanOrEqualTo(20);
+        (await context.LearningContentReviewCandidates.CountAsync()).Should().BeGreaterThanOrEqualTo(14);
     }
 
     [Fact]

@@ -33,12 +33,17 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
             "/api/v1/learning-content?page=1&pageSize=2");
         var secondPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
             "/api/v1/learning-content?page=2&pageSize=2");
+        var thirdPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
+            "/api/v1/learning-content?page=3&pageSize=2");
 
-        firstPage!.TotalCount.Should().Be(3);
+        firstPage!.TotalCount.Should().Be(5);
         firstPage.Items.Should().HaveCount(2);
-        secondPage!.Items.Should().ContainSingle();
+        secondPage!.Items.Should().HaveCount(2);
+        thirdPage!.Items.Should().ContainSingle();
         firstPage.Items.Select(item => item.Slug).Should().NotIntersectWith(
             secondPage.Items.Select(item => item.Slug));
+        secondPage.Items.Select(item => item.Slug).Should().NotIntersectWith(
+            thirdPage.Items.Select(item => item.Slug));
         firstPage.Items.Should().OnlyContain(item => item.ContentType == "Lesson");
     }
 
@@ -51,10 +56,15 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var technology = await GetPageAsync(client, "technology=EfCore");
         var topic = await GetPageAsync(client, "topic=dependency-injection");
         var difficulty = await GetPageAsync(client, "difficulty=Beginner");
+        var pipelineTopic = await GetPageAsync(client, "topic=request-pipeline");
+        var asyncTopic = await GetPageAsync(client, "topic=asynchronous-programming");
 
         technology.Items.Should().ContainSingle(item => item.Slug == "ef-core-tracking-vs-no-tracking");
         topic.Items.Should().HaveCount(2);
-        difficulty.Items.Should().ContainSingle(item => item.Slug == "dependency-injection-fundamentals");
+        difficulty.Items.Select(item => item.Slug).Should().BeEquivalentTo(
+            ["dependency-injection-fundamentals", "async-await-fundamentals"]);
+        pipelineTopic.Items.Should().ContainSingle(item => item.Slug == "aspnet-core-middleware-pipeline");
+        asyncTopic.Items.Should().ContainSingle(item => item.Slug == "async-await-fundamentals");
     }
 
     [Fact]
