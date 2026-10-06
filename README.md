@@ -32,6 +32,12 @@ It is intentionally local-first and backend-focused. AI evaluation, cloud synchr
 - Quick Capture for Knowledge, Interview Questions, and DSA Problems
 - Lightweight navigation indicators and targeted data refresh after learning mutations
 
+### Learning content and discovery
+
+- Focused lessons with explicit Start/Complete actions and canonical completion evidence
+- User-selected Knowledge notes and snapshot Review cards from completed lessons
+- [Discover](./docs/discover.md) with deterministic, explainable goal/technology ranking and no automatic enrollment or persisted recommendation scores
+
 ### Knowledge management
 
 - Hierarchical knowledge tree with move, reorder, and archive behavior

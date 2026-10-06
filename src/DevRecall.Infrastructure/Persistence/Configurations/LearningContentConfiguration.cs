@@ -35,6 +35,9 @@ internal sealed class LearningContentConfiguration : IEntityTypeConfiguration<Le
             .HasDatabaseName("ix_learning_contents_status_published_at_utc");
         builder.HasMany(item => item.Technologies).WithOne()
             .HasForeignKey(item => item.LearningContentId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(item => item.Goals).WithOne()
+            .HasForeignKey(item => item.LearningContentId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(item => item.Goals).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.HasMany(item => item.Topics).WithOne()
             .HasForeignKey(item => item.LearningContentId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(item => item.Objectives).WithOne()
@@ -48,6 +51,17 @@ internal sealed class LearningContentConfiguration : IEntityTypeConfiguration<Le
         builder.Navigation(item => item.Objectives).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(item => item.Sections).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(item => item.ReviewCandidates).UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class LearningContentGoalConfiguration : IEntityTypeConfiguration<LearningContentGoal>
+{
+    public void Configure(EntityTypeBuilder<LearningContentGoal> builder)
+    {
+        builder.ToTable("learning_content_goals", table =>
+            table.HasCheckConstraint("ck_learning_content_goals_value", "goal BETWEEN 1 AND 6"));
+        builder.HasKey(item => new { item.LearningContentId, item.Goal });
+        builder.Property(item => item.Goal).HasConversion<int>();
     }
 }
 

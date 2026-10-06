@@ -8,6 +8,7 @@ import AddLessonToReview from '~/features/learning-content/components/AddLessonT
 import AddLessonToStudyPlan from '~/features/learning-content/components/AddLessonToStudyPlan.vue'
 import { useStudySessionApi } from '~/features/study-sessions/study-session.api'
 import { markReviewCandidatesAdded } from '~/features/learning-content/lesson-review'
+import { lessonReturnTo, lessonReturnLabel } from '~/features/learning-content/lesson-return'
 import { normalizeApiError, type NormalizedApiError } from '~/utils/normalize-api-error'
 
 definePageMeta({ layout: 'app' })
@@ -17,10 +18,8 @@ const api = useLearningContentApi()
 const lessonQuery = useApiQuery<LearningContentDetail>(
   learningContentKeys.detail(slug.value), () => api.detail(slug.value))
 const lesson = computed(() => lessonQuery.data.value)
-const returnTo = computed(() => {
-  const value = typeof route.query.returnTo === 'string' ? route.query.returnTo : '/app/learn'
-  return value === '/app/learn' || value.startsWith('/app/learn?') ? value : '/app/learn'
-})
+const returnTo = computed(() => lessonReturnTo(route.query.returnTo))
+const returnLabel = computed(() => lessonReturnLabel(returnTo.value))
 const technologies = computed(() => visibleTags(lesson.value?.technologies ?? []))
 const topics = computed(() => visibleTags(lesson.value?.topics ?? []))
 const mutationPending = ref(false)
@@ -83,11 +82,11 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
 
 <template>
   <main class="lesson-page">
-    <UButton :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" icon="i-lucide-arrow-left" color="neutral" variant="ghost">{{ sessionId ? 'Back to Study Session' : 'Back to Learn' }}</UButton>
+    <UButton :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" icon="i-lucide-arrow-left" color="neutral" variant="ghost">{{ sessionId ? 'Back to Study Session' : returnLabel }}</UButton>
     <CoreLoadingState v-if="lessonQuery.isPending.value" label="Loading lesson" />
     <section v-else-if="lessonQuery.error.value?.status === 404" class="lesson-state">
       <CoreEmptyState title="Lesson not found" description="It may have been removed or is no longer available." icon="i-lucide-book-x">
-        <UButton :to="returnTo">Back to Learn</UButton>
+        <UButton :to="returnTo">{{ returnLabel }}</UButton>
       </CoreEmptyState>
     </section>
     <CoreErrorState v-else-if="lessonQuery.error.value" title="We couldn't load this lesson" description="The app remains available. Retry this lesson when you're ready." :error="lessonQuery.error.value" @retry="lessonQuery.refresh" />
@@ -146,9 +145,9 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
           <article><UIcon name="i-lucide-notebook-pen" /><div><h3>Save your notes</h3><p>Keep ideas you want to revisit, connect, or expand later.</p></div><SaveLessonToKnowledge :lesson="lesson" /></article>
           <article v-if="lesson.reviewCandidates.length"><UIcon name="i-lucide-refresh-cw" /><div><h3>Remember key concepts</h3><p>Choose the ideas you'd like DevRecall to help you recall later.</p></div><AddLessonToReview :slug="lesson.slug" :candidates="lesson.reviewCandidates" @added="markCandidatesInReview" /></article>
         </div>
-        <UButton class="post-action-back" :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" color="neutral" variant="outline" icon="i-lucide-arrow-left">{{ sessionId ? 'Back to Study Session' : 'Back to Learn' }}</UButton>
+        <UButton class="post-action-back" :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" color="neutral" variant="outline" icon="i-lucide-arrow-left">{{ sessionId ? 'Back to Study Session' : returnLabel }}</UButton>
       </section>
-      <footer v-if="lesson.progress.status !== 'Completed'"><UButton :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" icon="i-lucide-arrow-left" color="neutral" variant="outline">{{ sessionId ? 'Back to Study Session' : 'Back to Learn' }}</UButton></footer>
+      <footer v-if="lesson.progress.status !== 'Completed'"><UButton :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" icon="i-lucide-arrow-left" color="neutral" variant="outline">{{ sessionId ? 'Back to Study Session' : returnLabel }}</UButton></footer>
     </article>
   </main>
 </template>

@@ -24,6 +24,108 @@ namespace DevRecall.Api.Tests.LearningContent;
 public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
 {
     [Fact]
+    public async Task Discover_ShouldBeAuthenticatedReadOnlyAndExcludeOnlyTheCurrentUsersProgress()
+    {
+        await SeedAsync();
+        using var anonymous = factory.CreateClient();
+        (await anonymous.GetAsync("/api/v1/discover")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        using var client = await CreateAuthenticatedClientAsync("discover");
+        var missing = await client.GetFromJsonAsync<DevRecall.Application.Discover.DiscoverResult>("/api/v1/discover");
+        missing!.ProfileConfigured.Should().BeFalse();
+        missing.BasedOnGoals.Should().BeEmpty();
+        missing.Recommended.Should().BeEmpty();
+        using var configured = await client.PutAsJsonAsync("/api/v1/learning-profile", new
+        {
+            targetRole = "BackendDeveloper", experienceLevel = "Junior", availableMinutesPerDay = 15,
+            technologies = new[] { new { name = "AspNetCore", isPrimary = true } },
+            goals = new List<string> { "ImproveBackendFundamentals", "PrepareForInterviews" }, expectedVersion = (int?)null
+        });
+        configured.EnsureSuccessStatusCode();
+        var first = await client.GetFromJsonAsync<DevRecall.Application.Discover.DiscoverResult>("/api/v1/discover");
+        first!.BasedOnGoals.Should().HaveCount(3);
+        first.Recommended.Should().HaveCount(4);
+        first.Recommended.Select(item => item.Slug).Should().NotIntersectWith(first.BasedOnGoals.Select(item => item.Slug));
+        first.BasedOnGoals.Select(item => item.Slug).Should().OnlyHaveUniqueItems();
+        first.BasedOnGoals.Should().OnlyContain(item => item.Reasons.Count >= 1 && item.Reasons.Count <= 2);
+        first.BasedOnWeakTopics.Should().BeEmpty();
+        var slug = first.Recommended[0].Slug;
+        (await client.PostAsync($"/api/v1/learning-content/{slug}/progress/start", null)).EnsureSuccessStatusCode();
+        var second = await client.GetFromJsonAsync<DevRecall.Application.Discover.DiscoverResult>("/api/v1/discover");
+        second!.BasedOnGoals.Should().NotContain(item => item.Slug == slug);
+        second.Recommended.Should().NotContain(item => item.Slug == slug);
+        using var other = await CreateAuthenticatedClientAsync("discover-other");
+        (await other.PutAsJsonAsync("/api/v1/learning-profile", new
+        {
+            targetRole = "BackendDeveloper", experienceLevel = "Junior", availableMinutesPerDay = 15,
+            technologies = new[] { new { name = "AspNetCore", isPrimary = true } },
+            goals = new List<string> { "ImproveBackendFundamentals" }, expectedVersion = (int?)null
+        })).EnsureSuccessStatusCode();
+        var otherResult = await other.GetFromJsonAsync<DevRecall.Application.Discover.DiscoverResult>("/api/v1/discover");
+        otherResult!.Recommended.Concat(otherResult.BasedOnGoals).Should().Contain(item => item.Slug == slug);
+        otherResult.BasedOnGoals.Should().OnlyContain(item => item.Reasons.Count == 1);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        var progressCount = await db.LearningContentProgresses.CountAsync();
+        var evidenceCount = await db.LearningContentCompletionEvidence.CountAsync();
+        var repeated = await client.GetFromJsonAsync<DevRecall.Application.Discover.DiscoverResult>("/api/v1/discover");
+        repeated!.Should().BeEquivalentTo(second, options => options.WithStrictOrdering());
+        (await db.LearningContentProgresses.CountAsync()).Should().Be(progressCount);
+        (await db.LearningContentCompletionEvidence.CountAsync()).Should().Be(evidenceCount);
+    }
+
+    [Fact]
+    public async Task Discover_ShouldNotUseDifficultyOrTimeAsEligibilityAndShouldAllowNoGoalMatches()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("discover-unmatched");
+        (await client.PutAsJsonAsync("/api/v1/learning-profile", new
+        {
+            targetRole = "FrontendDeveloper", experienceLevel = "Beginner", availableMinutesPerDay = 15,
+            technologies = new[] { new { name = "Vue", isPrimary = true } },
+            goals = new List<string> { "ImproveDsa" }, expectedVersion = (int?)null
+        })).EnsureSuccessStatusCode();
+        var result = await client.GetFromJsonAsync<DevRecall.Application.Discover.DiscoverResult>("/api/v1/discover");
+        result!.ProfileConfigured.Should().BeTrue();
+        result.BasedOnGoals.Should().BeEmpty();
+        result.Recommended.Should().BeEmpty();
+        result.BasedOnWeakTopics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DiscoverRanking_ShouldUseExactTechnologySignalsWithoutExposingScoresAndRefreshAfterProfileChange()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("ranking");
+        (await client.PutAsJsonAsync("/api/v1/learning-profile", new
+        {
+            targetRole = "BackendDeveloper", experienceLevel = "Junior", availableMinutesPerDay = 30,
+            technologies = new[] { new { name = "EfCore", isPrimary = true } },
+            goals = new List<string> { "ImproveDsa" }, expectedVersion = (int?)null
+        })).EnsureSuccessStatusCode();
+        var first = await client.GetFromJsonAsync<DevRecall.Contracts.Discover.DiscoverResponse>("/api/v1/discover");
+        first!.Recommended.Should().HaveCount(3);
+        first.Recommended.Should().OnlyContain(item => item.Technologies.Any(technology => technology.Value == "EfCore"));
+        first.Recommended.Should().OnlyContain(item => item.Reasons[0].Type == "PrimaryTechnologyMatch"
+            && item.Reasons[0].Value == "EfCore" && item.Reasons.Count <= 2);
+        var json = await client.GetStringAsync("/api/v1/discover");
+        json.Should().NotContain("\"score\"").And.NotContain("\"breakdown\"").And.NotContain("\"sections\"");
+        // Opening the reader is read-only and leaves both ordering and eligibility unchanged.
+        (await client.GetAsync($"/api/v1/learning-content/{first.Recommended[0].Slug}")).EnsureSuccessStatusCode();
+        (await client.GetStringAsync("/api/v1/discover")).Should().Be(json);
+        (await client.PostAsJsonAsync($"/api/v1/learning-content/{first.Recommended[0].Slug}/progress/complete",
+            new { expectedVersion = (int?)null })).EnsureSuccessStatusCode();
+        var completed = await client.GetFromJsonAsync<DevRecall.Contracts.Discover.DiscoverResponse>("/api/v1/discover");
+        completed!.Recommended.Should().HaveCount(2).And.NotContain(item => item.Slug == first.Recommended[0].Slug);
+        (await client.PutAsJsonAsync("/api/v1/learning-profile", new
+        {
+            targetRole = "BackendDeveloper", experienceLevel = "Junior", availableMinutesPerDay = 30,
+            technologies = new[] { new { name = "Java", isPrimary = true } },
+            goals = new List<string> { "ImproveDsa" }, expectedVersion = 1
+        })).EnsureSuccessStatusCode();
+        var changed = await client.GetFromJsonAsync<DevRecall.Contracts.Discover.DiscoverResponse>("/api/v1/discover");
+        changed!.Recommended.Should().BeEmpty();
+    }
+    [Fact]
     public async Task List_ShouldReturnPublishedSummariesWithDeterministicPaging()
     {
         await SeedAsync();

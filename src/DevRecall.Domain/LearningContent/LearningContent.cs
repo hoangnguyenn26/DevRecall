@@ -16,6 +16,7 @@ public sealed class LearningContent
     private readonly List<LearningObjective> _objectives = [];
     private readonly List<LearningContentSection> _sections = [];
     private readonly List<LearningReviewCandidate> _reviewCandidates = [];
+    private readonly List<LearningContentGoal> _goals = [];
     private LearningContent() { }
 
     public Guid Id { get; private set; }
@@ -38,6 +39,21 @@ public sealed class LearningContent
     public IReadOnlyCollection<LearningObjective> Objectives => _objectives.AsReadOnly();
     public IReadOnlyCollection<LearningContentSection> Sections => _sections.AsReadOnly();
     public IReadOnlyCollection<LearningReviewCandidate> ReviewCandidates => _reviewCandidates.AsReadOnly();
+    public IReadOnlyCollection<LearningContentGoal> Goals => _goals.AsReadOnly();
+
+    public void SetGoals(IReadOnlyCollection<LearningProfileGoal> goals, DateTimeOffset currentUtc)
+    {
+        ArgumentNullException.ThrowIfNull(goals);
+        EnsureUtc(currentUtc);
+        if (goals.Count > 3 || goals.Any(goal => !Enum.IsDefined(goal)) || goals.Distinct().Count() != goals.Count)
+            throw new ArgumentException("Choose at most three unique, supported goals.", nameof(goals));
+        if (_goals.Select(item => item.Goal).Order().SequenceEqual(goals.Order())) return;
+        _goals.RemoveAll(item => !goals.Contains(item.Goal));
+        _goals.AddRange(goals.Where(goal => _goals.All(item => item.Goal != goal))
+            .Select(goal => new LearningContentGoal(Id, goal)));
+        UpdatedAtUtc = currentUtc;
+        Version = checked(Version + 1);
+    }
 
     public static LearningContent CreateDraft(Guid id, string slug, string title, string summary,
         LearningContentType contentType, ContentDifficulty difficulty, int estimatedMinutes,

@@ -32,6 +32,8 @@
 
 Open `http://localhost:3000` and sign in as `demo@devrecall.local` with the password supplied above.
 
+For Windows storage on another drive, set `POSTGRES_DATA_PATH=D:/DevRecall-data/postgres` in the ignored `deploy/.env` before starting PostgreSQL. This binds database data to D:, but does not move Docker Desktop images or build cache. Move those separately using Docker Desktop's disk image location setting. Deleting containers does not restore a deleted database volume; reapply migrations and explicitly seed a fresh database.
+
 The command is transactional and idempotent: running it again reports that the demo user already exists and makes no changes. It refuses to run outside `Development`. Dates are generated relative to the seed time so review queues and analytics remain meaningful.
 
 ## Recommended demo journey

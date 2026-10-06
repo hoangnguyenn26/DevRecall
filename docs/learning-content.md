@@ -233,9 +233,9 @@ and that the evidence was created no earlier than the Session start.
 
 ## Future boundaries
 
-Future matching may compare Learning Profile signals with content Technology, Topic, Difficulty, and Estimated Minutes. No matching or ranking algorithm exists yet.
+Discover now ranks exact canonical goal/technology matches using a backend-owned deterministic policy; difficulty and time are soft adjustments, not relevance signals. See [Discover foundation](discover.md). Weakness integration remains deferred until there is a trustworthy taxonomy mapping.
 
-The following remain out of scope: Discover, automatic or AI-generated Review cards, section progress,
+The following remain out of scope: automatic or AI-generated Review cards, section progress,
 timers, saved scroll position, relearning sessions, authoring APIs, content providers, crawlers, AI,
 attachments, and public lesson SEO.
 
@@ -243,6 +243,5 @@ attachments, and public lesson SEO.
 
 The Week 5 validation and product decision are recorded in
 [`v2-week5-validation.md`](v2-week5-validation.md). The core Learn → Complete → Knowledge / Review loop is
-ready for continued dogfooding, but Discover remains paused until lesson choice becomes a demonstrated
-bottleneck. In the lesson-to-Knowledge dialog, Title and Note form the default workflow; optional Topic
+ready for continued dogfooding. That checkpoint originally paused Discover; the subsequent Week 6 Day 1–2 request explicitly superseded the pause and enabled the bounded goal-matching foundation. In the lesson-to-Knowledge dialog, Title and Note form the default workflow; optional Topic
 and Tags live under Additional details and load only when the user asks for them.

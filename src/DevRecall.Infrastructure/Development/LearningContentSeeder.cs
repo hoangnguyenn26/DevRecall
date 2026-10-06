@@ -37,7 +37,7 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
         var additions = samples.Where(item => !existingSlugs.Contains(item.Slug)).ToArray();
         dbContext.LearningContents.AddRange(additions);
         var sampleBySlug = samples.ToDictionary(item => item.Slug);
-        var existingContents = await dbContext.LearningContents.Include(item => item.ReviewCandidates)
+        var existingContents = await dbContext.LearningContents.AsSplitQuery().Include(item => item.ReviewCandidates).Include(item => item.Goals)
             .Where(item => existingSlugs.Contains(item.Slug)).ToListAsync(cancellationToken);
         foreach (var content in existingContents.Where(item => item.ReviewCandidates.Count == 0
             && sampleBySlug.ContainsKey(item.Slug)))
@@ -47,6 +47,13 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
                 LearningReviewCandidate.Create(Guid.NewGuid(), content.Id, candidate.Position,
                     candidate.Key, candidate.Prompt, candidate.Answer)));
         }
+        foreach (var content in existingContents.Where(item => item.Goals.Count == 0 && sampleBySlug.ContainsKey(item.Slug)))
+            content.SetGoals(sampleBySlug[content.Slug].Goals.Select(item => item.Goal).ToArray(), now);
+        // Upgrade only the original seed's broad goal pair, without overwriting custom tags.
+        foreach (var content in existingContents.Where(item => sampleBySlug.ContainsKey(item.Slug)
+            && item.Goals.Count == 2 && item.Goals.Any(goal => goal.Goal == LearningProfileGoal.ImproveBackendFundamentals)
+            && item.Goals.Any(goal => goal.Goal == LearningProfileGoal.PrepareForInterviews)))
+            content.SetGoals(sampleBySlug[content.Slug].Goals.Select(item => item.Goal).ToArray(), now);
         if (dbContext.ChangeTracker.HasChanges()) await dbContext.SaveChangesAsync(cancellationToken);
         return additions.Length;
     }
@@ -229,6 +236,9 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
             sections.Select(value => new LearningContentSectionInput(value.Type, value.Heading, value.Body)).ToArray(),
             publishedAtUtc.AddMinutes(-1), reviewCandidates.Select(value =>
                 new LearningReviewCandidateInput(value.Key, value.Prompt, value.Answer)).ToArray());
+        var appliedLesson = slug is "aspnet-core-middleware-pipeline" or "aspnet-core-cancellation-tokens" or "ef-core-transactions";
+        content.SetGoals([LearningProfileGoal.ImproveBackendFundamentals,
+            appliedLesson ? LearningProfileGoal.BuildProjects : LearningProfileGoal.PrepareForInterviews], publishedAtUtc);
         content.Publish(publishedAtUtc);
         return content;
     }

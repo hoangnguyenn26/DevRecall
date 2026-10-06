@@ -3,6 +3,7 @@ using System;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DevRecall.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DevRecallDbContext))]
-    partial class DevRecallDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261006163449_AddLearningContentGoals")]
+    partial class AddLearningContentGoals
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

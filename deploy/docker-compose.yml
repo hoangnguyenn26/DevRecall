@@ -14,7 +14,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
 
     volumes:
-      - devrecall_postgres_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_PATH:-devrecall_postgres_data}:/var/lib/postgresql/data
 
     healthcheck:
       test:

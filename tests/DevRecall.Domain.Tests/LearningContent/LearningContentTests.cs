@@ -116,6 +116,24 @@ public sealed class LearningContentTests
         publishAgain.Should().Throw<InvalidOperationException>();
     }
 
+    [Fact]
+    public void Goals_ShouldBeCanonicalUniqueBoundedAndIdempotent()
+    {
+        var content = CreateDraft();
+        content.SetGoals([LearningProfileGoal.PrepareForInterviews, LearningProfileGoal.ImproveBackendFundamentals], Now);
+        var version = content.Version;
+        content.SetGoals([LearningProfileGoal.ImproveBackendFundamentals, LearningProfileGoal.PrepareForInterviews], Now);
+        content.Version.Should().Be(version);
+        content.Goals.Should().HaveCount(2);
+        var duplicate = () => content.SetGoals([LearningProfileGoal.ImproveDsa, LearningProfileGoal.ImproveDsa], Now);
+        duplicate.Should().Throw<ArgumentException>();
+        var unknown = () => content.SetGoals([(LearningProfileGoal)99], Now);
+        unknown.Should().Throw<ArgumentException>();
+        var excessive = () => content.SetGoals(Enum.GetValues<LearningProfileGoal>().Take(4).ToArray(), Now);
+        excessive.Should().Throw<ArgumentException>();
+        content.Goals.Should().HaveCount(2);
+    }
+
     private static LearningContentAggregate CreateDraft(int estimatedMinutes = 15,
         LearningContentType contentType = LearningContentType.Lesson,
         ContentSourceType sourceType = ContentSourceType.Internal, string? sourceUrl = null,

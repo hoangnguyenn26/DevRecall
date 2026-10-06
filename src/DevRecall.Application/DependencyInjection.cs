@@ -122,6 +122,7 @@ public static class DependencyInjection
         services.AddScoped<LearningProfileHandler>();
         services.AddScoped<GetCurrentLearningProfileSignalsHandler>();
         services.AddScoped<GetPublishedLearningContentHandler>();
+        services.AddScoped<DevRecall.Application.Discover.GetDiscoverHandler>();
         services.AddScoped<GetPublishedLearningContentDetailHandler>();
         services.AddScoped<GetContinueLearningContentHandler>();
         services.AddScoped<GetLearningContentHistoryHandler>();

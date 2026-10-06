@@ -110,6 +110,7 @@ public static class DependencyInjection
         services.AddScoped<ILearningProfileRepository, LearningProfileRepository>();
         services.AddScoped<ILearningProfileReader, LearningProfileReader>();
         services.AddScoped<ILearningContentReader, LearningContentReader>();
+        services.AddScoped<DevRecall.Application.Discover.IDiscoverReader, DevRecall.Infrastructure.Discover.DiscoverReader>();
         services.AddScoped<ILearningContentProgressRepository, LearningContentProgressRepository>();
         services.AddScoped<IDailyActivityReader, DailyActivityReader>();
         services.AddScoped<IDsaPerformanceReader, DsaPerformanceReader>();

@@ -41,6 +41,8 @@ public sealed class LearningContentPersistenceTests(PostgreSqlFixture fixture)
         (await context.ContentTopics.CountAsync()).Should().Be(6);
         (await context.LearningContentSections.CountAsync()).Should().BeGreaterThanOrEqualTo(35);
         (await context.LearningContentReviewCandidates.CountAsync()).Should().BeGreaterThanOrEqualTo(23);
+        (await context.Set<LearningContentGoal>().CountAsync()).Should().Be(16);
+        (await context.Set<LearningContentGoal>().CountAsync(item => item.Goal == DevRecall.Domain.LearningProfiles.LearningProfileGoal.PrepareForInterviews)).Should().Be(5);
     }
 
     [Fact]
