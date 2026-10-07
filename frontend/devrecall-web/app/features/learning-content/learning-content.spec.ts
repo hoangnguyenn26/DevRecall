@@ -29,7 +29,7 @@ describe('Learn catalog and reader', () => {
   })
 
   it.each([
-    ['NotStarted', 'Start lesson'], ['InProgress', 'Continue'], ['Completed', 'Read again'],
+    ['NotStarted', 'Open lesson'], ['InProgress', 'Continue'], ['Completed', 'Read again'],
   ] as const)('renders %s catalog state as %s', (progressStatus, label) => {
     const wrapper = mount(LearningContentCard, {
       props: { item: { ...card, progressStatus }, returnTo: '/app/learn' },
@@ -59,7 +59,7 @@ describe('Learn catalog and reader', () => {
         UButton: { props: ['to'], template: '<a :data-to="JSON.stringify(to)"><slot /></a>' },
       } },
     })
-    expect(wrapper.text()).toContain('Start lesson')
+    expect(wrapper.text()).toContain('Open lesson')
     expect(wrapper.text()).toContain('15 min')
     expect(wrapper.text()).not.toContain('Published')
     expect(wrapper.html()).toContain('returnTo')

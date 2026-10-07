@@ -49,6 +49,28 @@ The Docker Release API build succeeded and the updated API is healthy. Explicit 
 
 The existing Markdown parser successfully processed all ten sections across Configuration/Options and API Error Handling, including C# and JSON code fences. This was a parser smoke, not visual browser QA or real timed learner dogfooding. Real curriculum dogfooding and qualitative friction assessment remain the next checkpoint.
 
+## Curriculum dogfood checkpoint
+
+**What worked:** An isolated local QA account used a Junior Backend Developer profile, .NET primary with C#/ASP.NET Core/EF Core focus, backend/interview goals and a 30-minute allowance. Starting from Discover (not source order), initial choices were Auth/Authz, async/await, DI and Options. Completing Auth/Authz replaced it with another relevant lesson; completing Options made API Errors and Concurrency more prominent. Reasons matched declared goals/focus, with no irrelevant padding or weakness claims.
+
+**Learning flow:** Browser-read Auth/Authz, Options and async/await. Opening did not Start; explicit Start and Complete worked. Auth/Authz's takeaway made a useful short Knowledge draft, saved as an independent note. Two deliberately selected concepts entered normal Review. Later in the same walkthrough, without reopening the source, prompts were standalone and answers concise. Good scheduled two days; Again scheduled one. The source CTA appeared after rating. A started-but-uncompleted async lesson was prominent in Continue Learning; History showed exactly two completed lessons in chronological order. No additional navigation system was justified.
+
+**Content issues:** P1 semantic inconsistency in async: summary/comment implied unconditional thread release even though the body qualified incomplete tasks; one paragraph promised “the next lesson” without a learning path. Shortened the summary and clarified incomplete-task behavior/cancellation as a related concept. No estimates were changed from a rapid agent walkthrough: these are editorial allowances, not measured human study time.
+
+**Navigation issues:** P1 Browse action said “Start lesson” although it only opens the reader; changed to “Open lesson”. Continue and Read again remain unchanged. P2: repeated goal reasons are unsurprising for this single foundation vertical; existing technology/topic chips already make cards distinguishable. Keep flat catalog plus existing filters. No new chips, groups, search or primary-topic domain property.
+
+**Gaps:** No observed Critical gap blocked this flow. REST foundations are Useful, not a quota-driven addition. Caching, background jobs, observability, formal sequencing and feedback remain Later. Options and API Errors already exist, so neither was re-authored as a duplicate.
+
+**Decision:** Curriculum **Ready for the internal-foundation checkpoint**; navigation **Sufficient**; Discover **Useful** for this persona. The next bottleneck is broader reference depth and repeated human use, not another scoring mechanism. Day 7 can evaluate Option A (stop internal expansion, consider curated external resources); no external ingestion was implemented here.
+
+This was an agent-operated product/interaction dogfood, not proof of human learning or next-day retention. The Good/Again inputs intentionally exercised scheduling outcomes; they are not measured recall ability. True delayed cold recall and timing remain user validation. The disposable account/data are retained locally for reproducibility, separate from the demo user's data; no credentials are committed.
+
+The async polish upgrades either the exact original eight-lesson text or the exact prior authored-batch text, never an editor's different wording. IDs/slugs, candidate keys/IDs, completion/evidence, saved notes and Review snapshots remain independent. A source text revision does not reopen a Completed lesson.
+
+**Verification:** Existing learning-content component/Markdown suite: 13 passed; targeted PostgreSQL seed preservation regression: 1 passed; ESLint for the two touched frontend files passed. Docker API/web production builds succeeded and both services are healthy. Live checksums preserved progress/evidence, Knowledge notes, Review items/source snapshots and all lesson/candidate identities across the polish seed. Two seed runs created zero lessons; the repeated run preserved full lesson/section checksums, including versions. Browser re-check confirmed Open lesson, the shorter async summary and unchanged In progress state. API container replacement required QA re-login; learning data remained intact.
+
+Reference for the async clarification: [C# asynchronous programming](https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/). No new test matrix, API contract, schema, ranking policy or lesson was added.
+
 ## Historical baseline — before the authored batch
 
 Scope: one small vertical, currently eight Published lessons. Target is 8–12 useful lessons, not a quota. Clusters below are editorial thinking aids, not entities, persisted ordering or prerequisite rules.

@@ -7,7 +7,7 @@ namespace DevRecall.Infrastructure.Development;
 public sealed partial class LearningContentSeeder
 {
     // Samples retains the previous authored text as the bounded upgrade baseline, not as another catalog.
-    private static List<LearningContentAggregate> CurriculumSamples(DateTimeOffset now)
+    private static List<LearningContentAggregate> CurriculumSamples(DateTimeOffset now, bool includeDogfoodPolish = true)
     {
         var lessons = Samples(now).ToList();
         var bySlug = lessons.ToDictionary(item => item.Slug);
@@ -167,6 +167,19 @@ public sealed partial class LearningContentSeeder
             [("expected-vs-unexpected-error", "How do expected API errors differ from unexpected failures?", "Expected errors represent known outcomes such as invalid input or a stale edit, with intentional client actions. Unexpected failures need a safe generic server-error response and diagnostics."),
              ("safe-api-errors", "Why should an API avoid returning raw exception details to clients?", "They can expose stack traces, internal structure or sensitive data. A safe error contract and correlation ID support clients without leaking those details."),
              ("stable-error-codes", "Why are stable machine-readable error codes useful alongside HTTP status codes?", "Status codes classify broad outcomes, while stable application codes distinguish actionable causes without requiring clients to parse changing human messages.")], now));
+        if (includeDogfoodPolish)
+        {
+            var lesson = bySlug["async-await-fundamentals"];
+            var sections = SectionInputs(lesson);
+            sections[2] = sections[2] with { BodyMarkdown = sections[2].BodyMarkdown.Replace(
+                "// await releases the request thread while the database call is in flight.",
+                "// If the task is incomplete, await suspends without blocking the request thread.", StringComparison.Ordinal) };
+            sections[3] = sections[3] with { BodyMarkdown =
+                "Using `.Result` or `.Wait()` to wait for incomplete asynchronous work blocks the calling thread. Under load, many blocked request threads can exhaust thread-pool capacity and increase latency. Await composes that work without holding a thread during the wait. The example also forwards the caller's `CancellationToken` to the repository so a supported operation can stop when cancellation is requested. Cancellation is a related concept, not a required next step or a guarantee that every operation stops immediately." };
+            lesson.ReviseLessonText(lesson.Title,
+                "Compose asynchronous operations without blocking request threads, and distinguish await from background-thread execution.",
+                ObjectiveInputs(lesson), sections, CandidateInputs(lesson), now);
+        }
         return lessons;
     }
 

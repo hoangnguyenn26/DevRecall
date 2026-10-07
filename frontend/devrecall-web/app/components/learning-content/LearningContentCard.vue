@@ -11,7 +11,7 @@ const target = computed(() => props.item.contentType === 'Lesson'
   : `/app/learn/${props.item.slug}`)
 const actionLabel = computed(() => props.item.contentType !== 'Lesson' ? 'Open resource'
   : props.item.progressStatus === 'Completed' ? 'Read again'
-    : props.item.progressStatus === 'InProgress' ? 'Continue' : 'Start lesson')
+    : props.item.progressStatus === 'InProgress' ? 'Continue' : 'Open lesson')
 </script>
 
 <template>

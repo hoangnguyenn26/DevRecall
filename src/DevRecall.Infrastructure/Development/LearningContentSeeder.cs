@@ -37,6 +37,7 @@ public sealed partial class LearningContentSeeder(DevRecallDbContext dbContext)
         var existingSlugs = await dbContext.LearningContents.AsNoTracking()
             .Select(item => item.Slug).ToListAsync(cancellationToken);
         var legacyBySlug = Samples(now).ToDictionary(item => item.Slug);
+        var previousCurriculumBySlug = CurriculumSamples(now, includeDogfoodPolish: false).ToDictionary(item => item.Slug);
         var samples = CurriculumSamples(now);
         var additions = samples.Where(item => !existingSlugs.Contains(item.Slug)).ToArray();
         dbContext.LearningContents.AddRange(additions);
@@ -87,7 +88,8 @@ public sealed partial class LearningContentSeeder(DevRecallDbContext dbContext)
         {
             var legacy = legacyBySlug[content.Slug];
             var sample = sampleBySlug[content.Slug];
-            if (!SameLessonText(content, legacy)) continue; // Preserve an editor's custom content.
+            if (!SameLessonText(content, legacy) && !SameLessonText(content, previousCurriculumBySlug[content.Slug]))
+                continue; // Preserve an editor's custom content; upgrade only known editorial baselines.
             CopyLessonText(sample, content, now);
             if (content.Slug == "aspnet-core-cancellation-tokens"
                 && content.Technologies.Select(item => item.Technology).Order().SequenceEqual(legacy.Technologies.Select(item => item.Technology).Order()))
