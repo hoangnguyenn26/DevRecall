@@ -8,8 +8,7 @@ const api = useApi()
 const query = useApiQuery<DiscoverResult>(discoverKeys.current, () => api.get('/discover'))
 const sections = computed(() => [
   { id: 'recommended', title: 'Recommended for you', description: 'Lessons matching your current learning focus.', items: query.data.value?.recommended ?? [] },
-  { id: 'weak', title: 'Strengthen weak areas', description: 'Lessons connected to your existing learning evidence.', items: query.data.value?.basedOnWeakTopics ?? [] },
-  { id: 'goals', title: 'Based on your goals', description: 'Matches your declared goals. Shown by publication date, not ranked by fit.', items: query.data.value?.basedOnGoals ?? [] },
+  { id: 'resources', title: 'Trusted resources for your topics', description: 'Curated external sources for deeper learning, not lessons to complete.', items: query.data.value?.trustedResources ?? [] },
 ].filter(section => section.items.length))
 </script>
 
@@ -19,19 +18,19 @@ const sections = computed(() => [
     <div v-if="query.isPending.value" class="lesson-grid" aria-label="Loading learning suggestions" aria-busy="true">
       <UCard v-for="index in 4" :key="index"><div class="skeleton"><USkeleton class="h-5 w-24" /><USkeleton class="h-6 w-3/4" /><USkeleton class="h-20 w-full" /><USkeleton class="h-9 w-28" /></div></UCard>
     </div>
-    <CoreErrorState v-else-if="query.error.value" title="We couldn't load Discover" description="You can still explore the full lesson catalog." :error="query.error.value" @retry="query.refresh" />
+    <CoreErrorState v-else-if="query.error.value" title="We couldn't load Discover" description="You can still explore all learning content." :error="query.error.value" @retry="query.refresh" />
     <template v-else-if="query.data.value">
       <section v-for="section in sections" :key="section.id" :aria-labelledby="`discover-${section.id}`">
         <h2 :id="`discover-${section.id}`">{{ section.title }}</h2><p class="section-description">{{ section.description }}</p>
-        <div class="lesson-grid"><DiscoverCard v-for="item in section.items" :key="item.slug" :item="item" /></div>
+        <div class="lesson-grid"><DiscoverCard v-for="item in section.items" :key="item.slug" :item="item" :resource="section.id === 'resources'" /></div>
       </section>
       <section v-if="!query.data.value.profileConfigured" class="setup" aria-labelledby="discover-setup">
         <h2 id="discover-setup">Personalize your learning</h2><p>Add your technologies and goals to get more relevant suggestions. You can explore lessons without a profile.</p>
         <UButton to="/app/settings/learning-profile" color="neutral" variant="outline">Set up learning profile</UButton>
       </section>
-      <CoreEmptyState v-if="query.data.value.profileConfigured && !sections.length" title="No matching lessons right now" description="You can still explore the full learning catalog." />
+      <CoreEmptyState v-if="query.data.value.profileConfigured && !sections.length" title="No matching learning suggestions right now" description="You can still explore the full learning catalog." />
     </template>
-    <section class="explore" aria-labelledby="discover-explore"><div><h2 id="discover-explore">Explore all lessons</h2><p>Choose something beyond your current goals, or continue a lesson you've started.</p></div><UButton to="/app/learn" color="neutral" variant="outline" trailing-icon="i-lucide-arrow-right">Browse lessons</UButton></section>
+    <section class="explore" aria-labelledby="discover-explore"><div><h2 id="discover-explore">Explore all learning content</h2><p>Browse lessons and trusted resources, or continue a lesson you've started.</p></div><UButton to="/app/learn" color="neutral" variant="outline" trailing-icon="i-lucide-arrow-right">Browse all learning content</UButton></section>
   </div>
 </template>
 

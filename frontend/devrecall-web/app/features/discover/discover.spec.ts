@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { computed, ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import DiscoverCard from './DiscoverCard.vue'
-import { discoverReasons, invalidateDiscover, type DiscoverLesson } from './discover'
+import { discoverReasons, invalidateDiscover, type DiscoverLesson, type DiscoverResource } from './discover'
 import { useLearningContentProgressSync } from '~/composables/useLearningContentProgressSync'
 import { useLearningProfileApi } from '../learning-profile/learning-profile.api'
 import { lessonReturnTo, lessonReturnLabel } from '../learning-content/lesson-return'
@@ -14,7 +14,7 @@ const item: DiscoverLesson = {
   reasons: [{ type: 'GoalMatch', goal: { value: 'PrepareForInterviews', label: 'Prepare for technical interviews' } }],
 }
 describe('Discover foundation', () => {
-  function mountPage(result: { profileConfigured: boolean; recommended?: DiscoverLesson[]; basedOnGoals: DiscoverLesson[]; basedOnWeakTopics: DiscoverLesson[] } | null, pending = false, error: object | null = null) {
+  function mountPage(result: { profileConfigured: boolean; recommended?: DiscoverLesson[]; trustedResources?: DiscoverResource[]; basedOnGoals: DiscoverLesson[]; basedOnWeakTopics: DiscoverLesson[] } | null, pending = false, error: object | null = null) {
     const refresh = vi.fn<() => void>()
     vi.stubGlobal('definePageMeta', vi.fn<() => void>())
     vi.stubGlobal('useSeoMeta', vi.fn<() => void>())
@@ -38,16 +38,35 @@ describe('Discover foundation', () => {
   })
   it('does not make completion claims for an empty goal match', () => {
     const { wrapper } = mountPage({ profileConfigured: true, basedOnGoals: [], basedOnWeakTopics: [] })
-    expect(wrapper.text()).toContain('No matching lessons right now')
+    expect(wrapper.text()).toContain('No matching learning suggestions right now')
     expect(wrapper.text()).toContain('full learning catalog')
     expect(wrapper.text()).not.toContain('Update learning profile')
     expect(wrapper.find('a[href="/app/learn"]').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('completed all')
   })
-  it('renders only nonempty sections', () => {
+  it('hides duplicated secondary sections and empty resources', () => {
     const { wrapper } = mountPage({ profileConfigured: true, basedOnGoals: [item], basedOnWeakTopics: [] })
-    expect(wrapper.text()).toContain('Based on your goals')
+    expect(wrapper.text()).not.toContain('Based on your goals')
     expect(wrapper.text()).not.toContain('Strengthen weak areas')
+    expect(wrapper.text()).not.toContain('Trusted resources for your topics')
+  })
+  it('keeps resources available without lesson suggestions and uses navigation only', () => {
+    const resource: DiscoverResource = { ...item, slug: 'concurrency-docs', resourceKind: 'Documentation', sourceName: 'Microsoft Learn' }
+    const page = mountPage({ profileConfigured: true, recommended: [], basedOnGoals: [], basedOnWeakTopics: [], trustedResources: [resource] }).wrapper
+    expect(page.text()).toContain('Trusted resources for your topics')
+    expect(page.text()).not.toContain('No matching learning suggestions')
+    const card = mount(DiscoverCard, { props: { item: resource, resource: true }, global: { stubs: {
+      UBadge: { template: '<span><slot /></span>' }, UButton: { props: ['to'], template: '<a :data-to="JSON.stringify(to)"><slot /></a>' },
+    } } })
+    expect(card.text()).toContain('Documentation · Microsoft Learn')
+    expect(card.text()).toContain('~15 min')
+    expect(card.text()).toContain('Why this resource')
+    expect(card.text()).toContain('Open resource')
+    expect(card.text()).not.toContain('Not started')
+    expect(card.find('a').attributes('data-to')).toContain('/app/learn/concurrency-docs')
+    expect(card.find('a').attributes('data-to')).toContain('/app/discover')
+    expect(discoverReasons({ ...resource, reasons: [{ type: 'TimeFit', availableMinutes: 15 }, { type: 'WeakTopicMatch', label: 'Concurrency' }] }, true))
+      .toEqual(['Related to a weak topic: Concurrency'])
   })
   it('renders backend-ranked recommendations in order without inventing scores', () => {
     const { wrapper } = mountPage({ profileConfigured: false,

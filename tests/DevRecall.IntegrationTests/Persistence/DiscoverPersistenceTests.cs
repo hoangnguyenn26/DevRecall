@@ -74,9 +74,19 @@ public sealed class DiscoverPersistenceTests(PostgreSqlFixture fixture, ITestOut
         items.Should().NotContain(item => seeded.Select(value => value.Slug).Contains(item.Slug));
         items.Should().NotContain(item => item.Slug == drafts[0].Slug || item.Slug == drafts[1].Slug || item.Slug == drafts[3].Slug);
         items.Select(item => item.Slug).Should().OnlyHaveUniqueItems();
+        inputs.Resources.Should().Contain(item => item.Metadata.Slug == drafts[3].Slug);
+        inputs.Resources.Should().OnlyContain(item => item.ResourceKind == ExternalResourceKind.Documentation);
+        ResourceRecommendationPolicy.Build(inputs).Should().HaveCount(4);
         db.ChangeTracker.Entries().Should().BeEmpty();
         (await db.LearningContentProgresses.CountAsync()).Should().Be(3);
         (await db.LearningContentCompletionEvidence.CountAsync()).Should().Be(1);
+        var resource = await db.LearningContents.SingleAsync(item => item.Id == drafts[3].Id);
+        resource.Archive(now);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        var archived = await reader.GetAsync(userId, CancellationToken.None);
+        archived.Resources.Should().NotContain(item => item.Metadata.Id == resource.Id);
+        LearningRecommendationPolicy.Build(archived).Should().BeEquivalentTo(result, options => options.WithStrictOrdering());
     }
 
     [Fact]

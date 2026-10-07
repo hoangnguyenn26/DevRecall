@@ -28,7 +28,7 @@ Resources have `progressStatus: null` on lists and `progress: null` on detail. D
 
 Detail GET and external link opening are navigation only. There is **no Start, Complete, progress row, completion evidence, Continue entry, History entry, Active Day or StudyMinutes** from resource opening. There is no outbound-click/impression tracking or new resource state machine.
 
-Direct Start/Complete API calls reject resources with `409 LEARNING_CONTENT_LESSON_REQUIRED`. Lesson-to-Knowledge and lesson-to-Review source lookups exclude resources; Study Plan lesson source/options also exclude them. Thus hiding UI actions is not the only boundary. No Knowledge, Review or Study Plan integration is enabled for resources yet. Discover still ranks Lessons only; resource recommendation integration is deferred to the next requested days.
+Direct Start/Complete API calls reject resources with `409 LEARNING_CONTENT_LESSON_REQUIRED`. Lesson-to-Knowledge and lesson-to-Review source lookups exclude resources; Study Plan lesson source/options also exclude them. Thus hiding UI actions is not the only boundary. No Knowledge, Review or Study Plan integration is enabled for resources yet. Discover now projects a separate, read-only `trustedResources` array; see [resource ranking and intent separation](discover.md#trusted-external-resources). It does not change these boundaries.
 
 ## Initial manual curation
 
@@ -46,7 +46,7 @@ Stable IDs use existing seed suffixes 201–205, distinct from lessons 101–111
 
 ## Deferred scope
 
-Public access is not permission to redistribute. No full article/HTML/Markdown copying, scraping, crawler, OpenGraph preview, iframe, logos, provider API/sync jobs, AI summaries or automatic tag extraction. Broader external engagement, study evidence, personal notes, saved/read states and recommendation presentation require separate product decisions.
+Public access is not permission to redistribute. No full article/HTML/Markdown copying, scraping, crawler, OpenGraph preview, iframe, logos, provider API/sync jobs, AI summaries or automatic tag extraction. Broader external engagement, study evidence, personal notes and saved/read states require separate product decisions.
 
 ## Foundation verification
 
@@ -55,3 +55,9 @@ Scoped checks passed: 18 LearningContent Domain cases, 20 API smoke cases (catal
 API and Nuxt production images built successfully and all three Docker services are healthy. The existing Nitro dependency unused-import warning remains; no dependency upgrade was made. The explicit live migration applied, then seeding added exactly five resources. Repeat seed added zero and preserved complete content-row/candidate-row checksums. Existing lesson identity/version checksum, three progress rows and two completion-evidence rows were unchanged. Authenticated same-origin production API smoke confirmed two EF Core resources under combined filters, null progress, Documentation kind, empty sections and canonical goals.
 
 The existing Discover fixture now chooses lesson-only progress sources and expects its bounded four-plus-three output for the 11-lesson catalog, rather than the old eight-lesson cardinality. Its unpublished/external exclusion and owner-state assertions remain intact. Discover weights and eligibility policy were not changed.
+
+## Discover integration verification
+
+Scoped checks passed: 14 Discover application cases, 14 Discover frontend cases, four API smoke cases and one PostgreSQL reader case. The existing API scenario additionally completes all EF-focused lessons and confirms the two EF resources remain; changing to an unrelated technology/goal clears both pools. The reader verifies published external eligibility, archive exclusion, unchanged lesson results, no tracking and no progress/evidence writes. No full suite or browser check was run.
+
+Type-check, touched-file ESLint/oxlint and API/Nuxt production builds passed. The pre-existing Nitro unused-import warning remains. Rebuilt API/web containers and PostgreSQL are healthy. Authenticated production smoke returned four lessons plus four resources for the existing broad .NET/backend profile, verified resource detail has null progress, repeated results are stable and global progress/evidence counts remain 3/2. These are technical/synthetic checks, not a claim that a human found the sources useful after reading them. The planned next dogfood checkpoint should decide whether curation feels complementary; no bookmark, tracking or study integration is inferred from this release.

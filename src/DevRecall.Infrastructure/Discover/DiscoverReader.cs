@@ -41,9 +41,29 @@ internal sealed class DiscoverReader(DevRecallDbContext dbContext) : IDiscoverRe
                     dbContext.ContentTopics.Where(topic => topic.Id == link.TopicId).Select(topic => topic.Slug).First(),
                     dbContext.ContentTopics.Where(topic => topic.Id == link.TopicId).Select(topic => topic.Name).First())).ToArray()
             }).ToListAsync(cancellationToken);
-        // No trustworthy global Content Topic ↔ user Weak Topic mapping exists yet.
+        var resources = await dbContext.LearningContents.AsNoTracking().AsSplitQuery()
+            .Where(item => item.Status == ContentStatus.Published && item.ContentType == LearningContentType.ExternalResource
+                && (item.Goals.Any(goal => goals.Contains(goal.Goal))
+                    || item.Technologies.Any(value => technologies.Contains(value.Technology))))
+            .OrderByDescending(item => item.PublishedAtUtc).ThenBy(item => item.Id).Take(ResourceRecommendationPolicy.CandidateLimit)
+            .Select(item => new
+            {
+                item.Id, item.Slug, item.Title, item.Summary, item.Difficulty, item.EstimatedMinutes, item.PublishedAtUtc,
+                item.ResourceKind, item.SourceName,
+                Goals = item.Goals.Select(goal => goal.Goal).ToArray(),
+                Technologies = item.Technologies.Select(value => value.Technology).ToArray(),
+                Topics = item.Topics.Select(link => new DiscoverTopic(link.TopicId,
+                    dbContext.ContentTopics.Where(topic => topic.Id == link.TopicId).Select(topic => topic.Slug).First(),
+                    dbContext.ContentTopics.Where(topic => topic.Id == link.TopicId).Select(topic => topic.Name).First())).ToArray()
+            }).ToListAsync(cancellationToken);
+        // No trustworthy global Content Topic ↔ user Weak Topic mapping exists yet. Resources have no progress gate.
         return new(signals, [], lessons.Select(item => new DiscoverCandidate(item.Id, item.Slug, item.Title, item.Summary,
             item.Difficulty, item.EstimatedMinutes, item.PublishedAtUtc!.Value, item.Technologies,
-            item.Goals, item.Topics)).ToArray());
+            item.Goals, item.Topics)).ToArray())
+        {
+            Resources = resources.Select(item => new DiscoverResourceCandidate(new DiscoverCandidate(item.Id, item.Slug,
+                item.Title, item.Summary, item.Difficulty, item.EstimatedMinutes, item.PublishedAtUtc!.Value,
+                item.Technologies, item.Goals, item.Topics), item.ResourceKind!.Value, item.SourceName)).ToArray()
+        };
     }
 }

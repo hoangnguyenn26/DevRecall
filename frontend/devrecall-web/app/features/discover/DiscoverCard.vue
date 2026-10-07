@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { discoverReasons, type DiscoverLesson } from './discover'
-import { difficultyColor } from '../learning-content/learning-content.meta'
-defineProps<{ item: DiscoverLesson }>()
+import { discoverReasons, type DiscoverLesson, type DiscoverResource } from './discover'
+import { difficultyColor, resourceKindLabel } from '../learning-content/learning-content.meta'
+defineProps<{ item: DiscoverLesson | DiscoverResource; resource?: boolean }>()
 </script>
 
 <template>
   <article class="discover-card">
     <h3>{{ item.title }}</h3>
+    <div v-if="resource && 'sourceName' in item" class="card-meta">{{ resourceKindLabel(item.resourceKind) }} · {{ item.sourceName }}</div>
     <p>{{ item.summary }}</p>
-    <div class="card-meta"><UBadge :color="difficultyColor(item.difficulty)" variant="subtle">{{ item.difficulty }}</UBadge><span>{{ item.estimatedMinutes }} min</span></div>
+    <div class="card-meta"><UBadge :color="difficultyColor(item.difficulty)" variant="subtle">{{ item.difficulty }}</UBadge><span>{{ resource ? '~' : '' }}{{ item.estimatedMinutes }} min</span></div>
     <div class="tags"><span v-for="technology in item.technologies.slice(0, 3)" :key="technology.value">{{ technology.label }}</span><span v-for="topic in item.topics.slice(0, 2)" :key="topic.slug">{{ topic.name }}</span></div>
-    <div class="reason"><h4>Why this lesson</h4><ul><li v-for="reason in discoverReasons(item)" :key="reason">{{ reason }}</li></ul></div>
-    <UButton :to="{ path: `/app/learn/${item.slug}`, query: { returnTo: '/app/discover' } }" trailing-icon="i-lucide-arrow-right" variant="soft">Open lesson</UButton>
+    <div class="reason"><h4>{{ resource ? 'Why this resource' : 'Why this lesson' }}</h4><ul><li v-for="reason in discoverReasons(item, resource)" :key="reason">{{ reason }}</li></ul></div>
+    <UButton :to="{ path: `/app/learn/${item.slug}`, query: { returnTo: '/app/discover' } }" trailing-icon="i-lucide-arrow-right" variant="soft">{{ resource ? 'Open resource' : 'Open lesson' }}</UButton>
   </article>
 </template>
 

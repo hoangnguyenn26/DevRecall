@@ -78,6 +78,7 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         missing!.ProfileConfigured.Should().BeFalse();
         missing.BasedOnGoals.Should().BeEmpty();
         missing.Recommended.Should().BeEmpty();
+        missing.TrustedResources.Should().BeEmpty();
         using var configured = await client.PutAsJsonAsync("/api/v1/learning-profile", new
         {
             targetRole = "BackendDeveloper", experienceLevel = "Junior", availableMinutesPerDay = 15,
@@ -133,6 +134,7 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         result.BasedOnGoals.Should().BeEmpty();
         result.Recommended.Should().BeEmpty();
         result.BasedOnWeakTopics.Should().BeEmpty();
+        result.TrustedResources.Should().BeEmpty();
     }
 
     [Fact]
@@ -148,11 +150,15 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         })).EnsureSuccessStatusCode();
         var first = await client.GetFromJsonAsync<DevRecall.Contracts.Discover.DiscoverResponse>("/api/v1/discover");
         first!.Recommended.Should().HaveCount(3);
+        first.TrustedResources.Should().HaveCount(2).And.OnlyContain(item => item.SourceName == "Microsoft Learn"
+            && item.ResourceKind == "Documentation" && item.Reasons.Count == 1 && item.Reasons[0].Type == "PrimaryTechnologyMatch");
         first.Recommended.Should().OnlyContain(item => item.Technologies.Any(technology => technology.Value == "EfCore"));
         first.Recommended.Should().OnlyContain(item => item.Reasons[0].Type == "PrimaryTechnologyMatch"
             && item.Reasons[0].Value == "EfCore" && item.Reasons.Count <= 2);
         var json = await client.GetStringAsync("/api/v1/discover");
-        json.Should().NotContain("\"score\"").And.NotContain("\"breakdown\"").And.NotContain("\"sections\"");
+        json.Should().NotContain("\"score\"").And.NotContain("\"breakdown\"").And.NotContain("\"sections\"").And.NotContain("\"sourceUrl\"");
+        foreach (var resource in first.TrustedResources)
+            (await client.GetAsync($"/api/v1/learning-content/{resource.Slug}")).EnsureSuccessStatusCode();
         // Opening the reader is read-only and leaves both ordering and eligibility unchanged.
         (await client.GetAsync($"/api/v1/learning-content/{first.Recommended[0].Slug}")).EnsureSuccessStatusCode();
         (await client.GetStringAsync("/api/v1/discover")).Should().Be(json);
@@ -160,6 +166,13 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
             new { expectedVersion = (int?)null })).EnsureSuccessStatusCode();
         var completed = await client.GetFromJsonAsync<DevRecall.Contracts.Discover.DiscoverResponse>("/api/v1/discover");
         completed!.Recommended.Should().HaveCount(2).And.NotContain(item => item.Slug == first.Recommended[0].Slug);
+        completed.TrustedResources.Should().BeEquivalentTo(first.TrustedResources, options => options.WithStrictOrdering());
+        foreach (var lesson in completed.Recommended)
+            (await client.PostAsJsonAsync($"/api/v1/learning-content/{lesson.Slug}/progress/complete",
+                new { expectedVersion = (int?)null })).EnsureSuccessStatusCode();
+        var exhausted = await client.GetFromJsonAsync<DevRecall.Contracts.Discover.DiscoverResponse>("/api/v1/discover");
+        exhausted!.Recommended.Should().BeEmpty();
+        exhausted.TrustedResources.Should().BeEquivalentTo(first.TrustedResources, options => options.WithStrictOrdering());
         (await client.PutAsJsonAsync("/api/v1/learning-profile", new
         {
             targetRole = "BackendDeveloper", experienceLevel = "Junior", availableMinutesPerDay = 30,
@@ -168,6 +181,7 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         })).EnsureSuccessStatusCode();
         var changed = await client.GetFromJsonAsync<DevRecall.Contracts.Discover.DiscoverResponse>("/api/v1/discover");
         changed!.Recommended.Should().BeEmpty();
+        changed.TrustedResources.Should().BeEmpty();
     }
     [Fact]
     public async Task List_ShouldReturnPublishedSummariesWithDeterministicPaging()

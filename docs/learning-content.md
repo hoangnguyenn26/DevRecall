@@ -245,7 +245,7 @@ and that the evidence was created no earlier than the Session start.
 
 ## Future boundaries
 
-Discover now ranks exact canonical goal/technology matches using a backend-owned deterministic policy; difficulty and time are soft adjustments, not relevance signals. See [Discover foundation](discover.md). Weakness integration remains deferred until there is a trustworthy taxonomy mapping.
+Discover ranks internal lessons and curated external resources in separate bounded sections using exact canonical goal/technology matches; difficulty and time are soft adjustments, not relevance signals. Resources have no progress exclusion or completion semantics. Lesson ranking remains unchanged. See [Discover foundation](discover.md). Weakness integration remains deferred until there is a trustworthy taxonomy mapping.
 
 The following remain out of scope: automatic or AI-generated Review cards, section progress,
 timers, saved scroll position, relearning sessions, authoring APIs, content providers, crawlers, AI,

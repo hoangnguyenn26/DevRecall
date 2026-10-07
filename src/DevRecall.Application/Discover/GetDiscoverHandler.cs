@@ -11,7 +11,10 @@ public sealed record DiscoverLesson(string Slug, string Title, string Summary, s
     int EstimatedMinutes, IReadOnlyList<LearningContentTechnologyItem> Technologies,
     IReadOnlyList<LearningContentTopicItem> Topics, IReadOnlyList<DiscoverReason> Reasons);
 public sealed record DiscoverResult(bool ProfileConfigured, IReadOnlyList<DiscoverLesson> BasedOnGoals,
-    IReadOnlyList<DiscoverLesson> BasedOnWeakTopics, IReadOnlyList<DiscoverLesson> Recommended);
+    IReadOnlyList<DiscoverLesson> BasedOnWeakTopics, IReadOnlyList<DiscoverLesson> Recommended)
+{
+    public IReadOnlyList<DiscoverResource> TrustedResources { get; init; } = [];
+}
 public interface IDiscoverReader
 {
     Task<DiscoverInputs> GetAsync(Guid userId, CancellationToken cancellationToken);
@@ -22,6 +25,7 @@ public sealed class GetDiscoverHandler(IDiscoverReader reader, ICurrentUser curr
     {
         if (!currentUser.IsAuthenticated || currentUser.UserId is null)
             throw new UnauthorizedException("IDENTITY_UNAUTHENTICATED", "Authentication is required.");
-        return LearningRecommendationPolicy.Build(await reader.GetAsync(currentUser.UserId.Value, cancellationToken));
+        var inputs = await reader.GetAsync(currentUser.UserId.Value, cancellationToken);
+        return LearningRecommendationPolicy.Build(inputs) with { TrustedResources = ResourceRecommendationPolicy.Build(inputs) };
     }
 }

@@ -12,7 +12,10 @@ public sealed record DiscoverCandidate(Guid Id, string Slug, string Title, strin
     IReadOnlyList<DiscoverTopic> Topics);
 // Observed topics must already be explicitly mapped to canonical Content Topic IDs.
 public sealed record DiscoverInputs(LearningProfileSignals Declared, IReadOnlyList<DiscoverTopic> WeakTopics,
-    IReadOnlyList<DiscoverCandidate> Candidates);
+    IReadOnlyList<DiscoverCandidate> Candidates)
+{
+    public IReadOnlyList<DiscoverResourceCandidate> Resources { get; init; } = [];
+}
 public sealed record LearningRecommendationScore(int WeakTopic, int Goal, int Technology,
     int Difficulty, int Time, bool HasSemanticMatch, IReadOnlyList<DiscoverReason> Reasons)
 {
