@@ -11,6 +11,33 @@ public sealed class LearningContentTests
     private static readonly Guid TopicId = Guid.Parse("20000000-0000-0000-0000-000000000001");
 
     [Fact]
+    public void EditorialRevision_ShouldPreserveIdentitiesValidateBeforeMutationAndBeIdempotent()
+    {
+        var content = CreateDraft(reviewCandidates: [new("concept", "Original prompt", "Original answer")]);
+        content.Publish(Now);
+        var ids = content.Sections.Select(item => item.Id).ToArray();
+        var candidateId = content.ReviewCandidates.Single().Id;
+        var objectives = content.Objectives.Select(item => new LearningObjectiveInput(item.Text)).ToArray();
+        var sections = content.Sections.Select(item => new LearningContentSectionInput(item.SectionType, item.Heading, item.BodyMarkdown)).ToArray();
+        var invalid = () => content.ReviseLessonText("New title", content.Summary, objectives, sections,
+            [new("concept", "Updated prompt", "")], Now);
+        invalid.Should().Throw<ArgumentException>();
+        content.Title.Should().NotBe("New title");
+        var candidates = new LearningReviewCandidateInput[] { new("concept", "Updated prompt", "Updated answer") };
+        content.ReviseLessonText("New title", content.Summary, objectives, sections, candidates, Now);
+        var version = content.Version;
+        content.ReviseLessonText("New title", content.Summary, objectives, sections, candidates, Now.AddMinutes(1));
+        content.Version.Should().Be(version);
+        content.Sections.Select(item => item.Id).Should().Equal(ids);
+        content.ReviewCandidates.Single().Id.Should().Be(candidateId);
+        content.Status.Should().Be(ContentStatus.Published);
+        content.PublishedAtUtc.Should().Be(Now);
+        var changedConcept = () => content.ReviseLessonText(content.Title, content.Summary, objectives, sections,
+            [new("different-concept", "Prompt", "Answer")], Now);
+        changedConcept.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
     public void CreateDraft_ShouldNormalizePositionsAndPreserveMarkdown()
     {
         var content = CreateDraft();

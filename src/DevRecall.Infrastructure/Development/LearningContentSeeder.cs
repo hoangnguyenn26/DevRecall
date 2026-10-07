@@ -6,7 +6,7 @@ using LearningContentAggregate = DevRecall.Domain.LearningContent.LearningConten
 
 namespace DevRecall.Infrastructure.Development;
 
-public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
+public sealed partial class LearningContentSeeder(DevRecallDbContext dbContext)
 {
     public static void EnsureDevelopmentEnvironment(bool isDevelopment)
     {
@@ -24,7 +24,10 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
             (Id(3), "request-pipeline", "Request Pipeline"),
             (Id(4), "asynchronous-programming", "Asynchronous Programming"),
             (Id(5), "transactions", "Transactions"),
-            (Id(6), "concurrency", "Concurrency")
+            (Id(6), "concurrency", "Concurrency"),
+            (Id(7), "configuration", "Configuration"),
+            (Id(8), "access-control", "Access Control"),
+            (Id(9), "api-error-contracts", "API Error Contracts")
         };
         var existingTopicSlugs = await dbContext.ContentTopics.AsNoTracking()
             .Select(item => item.Slug).ToListAsync(cancellationToken);
@@ -33,12 +36,13 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
 
         var existingSlugs = await dbContext.LearningContents.AsNoTracking()
             .Select(item => item.Slug).ToListAsync(cancellationToken);
-        var samples = Samples(now);
+        var legacyBySlug = Samples(now).ToDictionary(item => item.Slug);
+        var samples = CurriculumSamples(now);
         var additions = samples.Where(item => !existingSlugs.Contains(item.Slug)).ToArray();
         dbContext.LearningContents.AddRange(additions);
         var sampleBySlug = samples.ToDictionary(item => item.Slug);
         var existingContents = await dbContext.LearningContents.AsSplitQuery().Include(item => item.ReviewCandidates)
-            .Include(item => item.Goals).Include(item => item.Technologies)
+            .Include(item => item.Goals).Include(item => item.Technologies).Include(item => item.Objectives).Include(item => item.Sections)
             .Where(item => existingSlugs.Contains(item.Slug)).ToListAsync(cancellationToken);
         foreach (var content in existingContents.Where(item => item.ReviewCandidates.Count == 0
             && sampleBySlug.ContainsKey(item.Slug)))
@@ -76,6 +80,20 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
                 technologies = sample.Technologies.Select(item => item.Technology).ToArray();
             content.UpdateLearningMetadata(technologies, content.Difficulty,
                 content.EstimatedMinutes == oldMinutes ? sample.EstimatedMinutes : content.EstimatedMinutes, now);
+        }
+        foreach (var content in existingContents.Where(item => legacyBySlug.TryGetValue(item.Slug, out var legacy)
+            && item.Id == legacy.Id && item.Status == ContentStatus.Published
+            && item.SourceType == ContentSourceType.Internal && item.SourceName == "DevRecall"))
+        {
+            var legacy = legacyBySlug[content.Slug];
+            var sample = sampleBySlug[content.Slug];
+            if (!SameLessonText(content, legacy)) continue; // Preserve an editor's custom content.
+            CopyLessonText(sample, content, now);
+            if (content.Slug == "aspnet-core-cancellation-tokens"
+                && content.Technologies.Select(item => item.Technology).Order().SequenceEqual(legacy.Technologies.Select(item => item.Technology).Order()))
+                content.UpdateLearningMetadata(sample.Technologies.Select(item => item.Technology).ToArray(), content.Difficulty, content.EstimatedMinutes, now);
+            if (content.Goals.Select(item => item.Goal).Order().SequenceEqual(legacy.Goals.Select(item => item.Goal).Order()))
+                content.SetGoals(sample.Goals.Select(item => item.Goal).ToArray(), now);
         }
         if (dbContext.ChangeTracker.HasChanges()) await dbContext.SaveChangesAsync(cancellationToken);
         return additions.Length;
@@ -259,7 +277,8 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
             sections.Select(value => new LearningContentSectionInput(value.Type, value.Heading, value.Body)).ToArray(),
             publishedAtUtc.AddMinutes(-1), reviewCandidates.Select(value =>
                 new LearningReviewCandidateInput(value.Key, value.Prompt, value.Answer)).ToArray());
-        var appliedLesson = slug is "aspnet-core-middleware-pipeline" or "aspnet-core-cancellation-tokens" or "ef-core-transactions";
+        var appliedLesson = slug is "aspnet-core-middleware-pipeline" or "aspnet-core-cancellation-tokens" or "ef-core-transactions"
+            or "aspnet-core-configuration-options" or "api-error-handling";
         content.SetGoals([LearningProfileGoal.ImproveBackendFundamentals,
             appliedLesson ? LearningProfileGoal.BuildProjects : LearningProfileGoal.PrepareForInterviews], publishedAtUtc);
         content.Publish(publishedAtUtc);

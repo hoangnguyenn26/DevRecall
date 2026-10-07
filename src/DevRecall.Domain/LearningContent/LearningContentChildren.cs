@@ -42,6 +42,7 @@ public sealed class LearningObjective
     public Guid LearningContentId { get; private set; }
     public int Position { get; private set; }
     public string Text { get; private set; } = null!;
+    internal void Revise(string text) => Text = text;
 }
 
 public sealed class LearningContentSection
@@ -63,6 +64,12 @@ public sealed class LearningContentSection
     public LearningContentSectionType SectionType { get; private set; }
     public string? Heading { get; private set; }
     public string BodyMarkdown { get; private set; } = null!;
+    internal void Revise(LearningContentSectionType type, string? heading, string body)
+    {
+        SectionType = type;
+        Heading = heading;
+        BodyMarkdown = body;
+    }
 }
 
 public sealed class LearningReviewCandidate
@@ -84,6 +91,11 @@ public sealed class LearningReviewCandidate
     public string Key { get; private set; } = null!;
     public string Prompt { get; private set; } = null!;
     public string Answer { get; private set; } = null!;
+    internal void Revise(string prompt, string answer)
+    {
+        Prompt = prompt;
+        Answer = answer;
+    }
 
     public static LearningReviewCandidate Create(Guid id, Guid learningContentId, int position,
         string key, string prompt, string answer)

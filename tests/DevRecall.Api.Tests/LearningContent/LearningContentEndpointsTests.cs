@@ -138,10 +138,13 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var thirdPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
             "/api/v1/learning-content?page=3&pageSize=3");
 
-        firstPage!.TotalCount.Should().Be(8);
+        firstPage!.TotalCount.Should().Be(11);
         firstPage.Items.Should().HaveCount(3);
         secondPage!.Items.Should().HaveCount(3);
-        thirdPage!.Items.Should().HaveCount(2);
+        thirdPage!.Items.Should().HaveCount(3);
+        var fourthPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
+            "/api/v1/learning-content?page=4&pageSize=3");
+        fourthPage!.Items.Should().HaveCount(2);
         firstPage.Items.Select(item => item.Slug).Should().NotIntersectWith(
             secondPage.Items.Select(item => item.Slug));
         secondPage.Items.Select(item => item.Slug).Should().NotIntersectWith(
@@ -167,9 +170,10 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
             ["ef-core-tracking-vs-no-tracking", "ef-core-transactions", "ef-core-optimistic-concurrency"]);
         topic.Items.Should().HaveCount(2);
         difficulty.Items.Select(item => item.Slug).Should().BeEquivalentTo(
-            ["dependency-injection-fundamentals", "async-await-fundamentals"]);
+            ["dependency-injection-fundamentals", "async-await-fundamentals", "authentication-vs-authorization"]);
         pipelineTopic.Items.Should().ContainSingle(item => item.Slug == "aspnet-core-middleware-pipeline");
-        asyncTopic.Items.Should().ContainSingle(item => item.Slug == "async-await-fundamentals");
+        asyncTopic.Items.Select(item => item.Slug).Should().BeEquivalentTo(
+            ["async-await-fundamentals", "aspnet-core-cancellation-tokens"]);
         transactionsTopic.Items.Should().ContainSingle(item => item.Slug == "ef-core-transactions");
         concurrencyTopic.Items.Should().ContainSingle(item => item.Slug == "ef-core-optimistic-concurrency");
     }
@@ -727,9 +731,7 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
             var due = await client.GetFromJsonAsync<PagedResponse<DueReviewItemResponse>>(
                 "/api/v1/review-items/due?resourceType=LearningContent&page=1&pageSize=10");
             due!.Items.Single(item => item.ReviewItemId == reviewItemId).Should().Match<DueReviewItemResponse>(item =>
-                item.ResourceTitle == "What does an EF Core tracking query do?"
-                && item.ResourcePreview != null
-                && item.ResourcePreview.Contains("change tracker", StringComparison.Ordinal));
+                item.ResourceTitle == candidate.Prompt && item.ResourcePreview == candidate.Answer);
         }
         finally
         {

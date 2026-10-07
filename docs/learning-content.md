@@ -19,6 +19,8 @@ Editorial standards and the current .NET foundation inventory are maintained in
 [Content authoring](content-authoring.md) and [Content curriculum](content-curriculum.md).
 The explicit development seed normalizes known legacy metadata in place; it does not replace
 lesson rows or rewrite user-owned progress, completion evidence or Review snapshots.
+The current curriculum contains 11 internal lessons; its bounded editorial upgrade also improves
+unchanged legacy lesson text in place while retaining section/candidate identities. Customized text is skipped.
 
 A `LearningContent` aggregate owns metadata, technologies, topic links, objectives, sections, lifecycle, version, and timestamps. Objectives and sections use zero-based canonical positions assigned by the aggregate; arbitrary client positions are not trusted.
 
@@ -111,16 +113,19 @@ Development content is created only through the explicit command:
 dotnet run --project src/DevRecall.Api -- --seed-learning-content
 ```
 
-The command is guarded to the Development environment and is idempotent by stable slug. Existing lessons are skipped rather than overwritten. It currently creates eight usable lessons in the .NET Backend Starter track:
+The command is guarded to the Development environment and is idempotent by stable slug. Known unchanged legacy seed text receives the bounded editorial upgrade described in the curriculum; customized lesson text is skipped. It currently supplies eleven lessons in .NET Backend Foundations:
 
 - Dependency Injection Fundamentals;
 - ASP.NET Core Service Lifetimes;
 - EF Core Tracking vs No Tracking;
 - ASP.NET Core Middleware Pipeline;
 - async/await Fundamentals;
-- CancellationToken in ASP.NET Core;
+- CancellationToken Fundamentals (existing slug retained);
 - EF Core Transactions;
-- Optimistic Concurrency in EF Core.
+- Optimistic Concurrency Fundamentals (existing slug retained);
+- Configuration and Options in ASP.NET Core;
+- Authentication vs Authorization;
+- API Error Handling.
 
 Content is never seeded automatically during normal API startup.
 

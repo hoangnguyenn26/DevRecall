@@ -41,6 +41,46 @@ public sealed class LearningContent
     public IReadOnlyCollection<LearningReviewCandidate> ReviewCandidates => _reviewCandidates.AsReadOnly();
     public IReadOnlyCollection<LearningContentGoal> Goals => _goals.AsReadOnly();
 
+    // Editorial revisions retain child identities and candidate concepts; they never synchronize user snapshots.
+    public void ReviseLessonText(string title, string summary, IReadOnlyList<LearningObjectiveInput> objectives,
+        IReadOnlyList<LearningContentSectionInput> sections, IReadOnlyList<LearningReviewCandidateInput> candidates,
+        DateTimeOffset currentUtc)
+    {
+        EnsureUtc(currentUtc);
+        if (ContentType != LearningContentType.Lesson) throw new InvalidOperationException("Only lessons have editorial text.");
+        ValidateCollections(_technologies.Select(item => item.Technology).ToArray(),
+            _topics.Select(item => item.TopicId).ToArray(), objectives, sections, candidates);
+        var orderedObjectives = _objectives.OrderBy(item => item.Position).ToArray();
+        var orderedSections = _sections.OrderBy(item => item.Position).ToArray();
+        var orderedCandidates = _reviewCandidates.OrderBy(item => item.Position).ToArray();
+        if (objectives.Count != orderedObjectives.Length || sections.Count != orderedSections.Length
+            || !candidates.Select(item => item.Key).SequenceEqual(orderedCandidates.Select(item => item.Key)))
+            throw new ArgumentException("Text revisions must preserve section/objective positions and candidate keys.");
+        var normalizedTitle = LearningContentText.NormalizeRequired(title, nameof(title), 200, 3);
+        var normalizedSummary = LearningContentText.NormalizeRequired(summary, nameof(summary), 500);
+        var normalizedObjectives = objectives.Select(item => LearningContentText.NormalizeRequired(item.Text, "objective", 300)).ToArray();
+        var normalizedSections = sections.Select(item => new LearningContentSectionInput(item.SectionType,
+            LearningContentText.NormalizeOptional(item.Heading, "heading", 200),
+            LearningContentText.NormalizeRequired(item.BodyMarkdown, "bodyMarkdown", MaximumSectionBodyLength))).ToArray();
+        var normalizedCandidates = candidates.Select(item => new LearningReviewCandidateInput(item.Key,
+            LearningContentText.NormalizeRequired(item.Prompt, "prompt", 500),
+            LearningContentText.NormalizeRequired(item.Answer, "answer", 2_000))).ToArray();
+        if (Title == normalizedTitle && Summary == normalizedSummary
+            && orderedObjectives.Select(item => item.Text).SequenceEqual(normalizedObjectives)
+            && orderedSections.Select(item => new LearningContentSectionInput(item.SectionType, item.Heading, item.BodyMarkdown)).SequenceEqual(normalizedSections)
+            && orderedCandidates.Select(item => new LearningReviewCandidateInput(item.Key, item.Prompt, item.Answer)).SequenceEqual(normalizedCandidates)) return;
+        var nextVersion = checked(Version + 1);
+        Title = normalizedTitle;
+        Summary = normalizedSummary;
+        for (var index = 0; index < orderedObjectives.Length; index++) orderedObjectives[index].Revise(normalizedObjectives[index]);
+        for (var index = 0; index < orderedSections.Length; index++)
+            orderedSections[index].Revise(normalizedSections[index].SectionType, normalizedSections[index].Heading, normalizedSections[index].BodyMarkdown);
+        for (var index = 0; index < orderedCandidates.Length; index++)
+            orderedCandidates[index].Revise(normalizedCandidates[index].Prompt, normalizedCandidates[index].Answer);
+        UpdatedAtUtc = currentUtc;
+        Version = nextVersion;
+    }
+
     public void UpdateLearningMetadata(IReadOnlyCollection<Technology> technologies, ContentDifficulty difficulty,
         int estimatedMinutes, DateTimeOffset currentUtc)
     {
