@@ -11,7 +11,8 @@ public sealed record LearningContentReviewCandidateItem(
 public sealed record PublishedLearningContentListItem(
     string Slug, string Title, string Summary, string ContentType, string Difficulty,
     int EstimatedMinutes, IReadOnlyList<LearningContentTechnologyItem> Technologies,
-    IReadOnlyList<LearningContentTopicItem> Topics, string ProgressStatus);
+    IReadOnlyList<LearningContentTopicItem> Topics, string? ProgressStatus,
+    string? ResourceKind = null, string? SourceName = null);
 
 public sealed record PublishedLearningContentDetail(
     Guid Id, string Slug, string Title, string Summary, string ContentType, string Difficulty,
@@ -21,7 +22,7 @@ public sealed record PublishedLearningContentDetail(
     IReadOnlyList<LearningContentSectionItem> Sections,
     IReadOnlyList<LearningContentReviewCandidateItem> ReviewCandidates,
     LearningContentSourceItem Source, DateTimeOffset PublishedAtUtc,
-    LearningContentProgressItem Progress);
+    LearningContentProgressItem? Progress, string? ResourceKind = null, IReadOnlyList<string>? Goals = null);
 
 public sealed record PublishedLearningContentPage(
     IReadOnlyList<PublishedLearningContentListItem> Items, int TotalCount);
@@ -38,7 +39,7 @@ public interface ILearningContentReader
 {
     Task<PublishedLearningContentPage> GetPublishedAsync(Guid userId, string? technology,
         string? topicSlug, string? difficulty, int skip, int take,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken, string? contentType = null);
     Task<PublishedLearningContentDetail?> GetPublishedBySlugAsync(Guid userId, string slug,
         CancellationToken cancellationToken);
     Task<IReadOnlyList<ContinueLearningContentItem>> GetInProgressAsync(Guid userId, int take,

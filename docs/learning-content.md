@@ -4,14 +4,14 @@
 
 Learning Content is the global catalog of material that DevRecall offers users to learn. It is separate from user-owned Knowledge: Learning Content is platform content; Knowledge is what an individual user explicitly saves and organizes.
 
-This foundation stores and serves lessons. It does not infer reading progress, automatically create Knowledge notes, automatically schedule Reviews, or generate Recommendations.
+This foundation stores and serves lessons plus manually curated external-resource metadata. It does not infer reading progress, automatically create Knowledge notes or automatically schedule Reviews. Discover remains a separate read projection.
 
 ## Content types
 
-The stable content types are `Lesson` and `ExternalResource`. Week 2 supplies internal lessons and prepares the provenance invariant for future external resources without implementing external ingestion.
+The stable content types are `Lesson` and `ExternalResource`. The catalog supplies 11 internal lessons and five manually curated references, without external ingestion. See [External resources](external-resources.md) for the type-aware contract and no-evidence boundary.
 
 - A published `Lesson` requires at least one topic, objective, and section.
-- An `ExternalResource` uses external provenance, requires a safe HTTP/HTTPS URL, and may have no sections.
+- An `ExternalResource` uses external provenance, requires a safe HTTP/HTTPS URL and ResourceKind, and has no lesson objectives, sections or candidates. It has null progress and no completion lifecycle.
 
 ## Lesson structure
 
@@ -65,8 +65,8 @@ All endpoints require authentication and expose global content rather than user-
 
 | Method | Route | Behavior |
 | --- | --- | --- |
-| `GET` | `/api/v1/learning-content` | Bounded published catalog with optional `technology`, `topic`, and `difficulty` filters. |
-| `GET` | `/api/v1/learning-content/{slug}` | Published lesson detail including objectives, sections, and provenance. |
+| `GET` | `/api/v1/learning-content` | Bounded published catalog with optional `contentType`, `technology`, `topic`, and `difficulty` filters. |
+| `GET` | `/api/v1/learning-content/{slug}` | Published lesson body or external-resource metadata/provenance, according to contentType. |
 | `POST` | `/api/v1/knowledge/from-learning-content/{slug}` | Explicitly saves an editable personal Knowledge note with immutable lesson provenance. |
 | `GET` | `/api/v1/study-plans/learning-content/{slug}/options` | Lists editable plans and existing lesson membership in one bounded projection. |
 | `POST` | `/api/v1/study-plans/{planId}/learning-content/{slug}` | Ensures a published, unfinished lesson is present in an owned Draft plan. |
@@ -127,11 +127,13 @@ The command is guarded to the Development environment and is idempotent by stabl
 - Authentication vs Authorization;
 - API Error Handling.
 
+The same command supplies five metadata-only Microsoft Learn resources described in
+[External resources](external-resources.md). Existing resource metadata is not resynchronized.
 Content is never seeded automatically during normal API startup.
 
 ## Learn experience
 
-Authenticated users browse published lessons at `/app/learn` and read an individual lesson at `/app/learn/{slug}`. Technology and difficulty filters are URL-driven, use AND semantics, and reset pagination to page one when changed. Browser history therefore retains filter and page context.
+Authenticated users browse published content at `/app/learn` and open detail at `/app/learn/{slug}`. All / Lessons / Resources, technology and difficulty filters are URL-driven, use AND semantics, and reset pagination to page one when changed. Browser history retains filter and page context. External detail is a reference view with a safe new-tab source link, not a lesson reader; no Start, Complete or post-lesson actions are shown.
 
 The catalog is learning-oriented rather than an administration table. Cards expose title, summary, difficulty, estimated time, progress state, and a small number of meaningful technology/topic tags. The reader keeps the normal application shell but bounds the reading column, distinguishes explanation, large code example, and key-takeaway sections, and provides no editing controls or fake percentage progress.
 

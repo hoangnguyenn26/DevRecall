@@ -44,14 +44,17 @@ public sealed class DiscoverPersistenceTests(PostgreSqlFixture fixture, ITestOut
             index == 3 ? LearningContentType.ExternalResource : LearningContentType.Lesson,
             ContentDifficulty.Advanced, 90, index == 3 ? ContentSourceType.External : ContentSourceType.Internal,
             "Test", index == 3 ? "https://example.com" : null, [Technology.DotNet], [topicId],
-            [new("Understand eligibility.")], [new(LearningContentSectionType.Explanation, null, "Lesson body")], now)).ToArray();
+            index == 3 ? [] : [new("Understand eligibility.")],
+            index == 3 ? [] : [new(LearningContentSectionType.Explanation, null, "Lesson body")], now,
+            resourceKind: index == 3 ? ExternalResourceKind.Documentation : null)).ToArray();
         foreach (var item in drafts) item.SetGoals([LearningProfileGoal.ImproveBackendFundamentals], now);
         drafts[1].Publish(now);
         drafts[1].Archive(now);
         drafts[2].Publish(now); // Advanced, 90-minute content remains eligible for a Beginner / 15-min profile.
         drafts[3].Publish(now);
         db.LearningContents.AddRange(drafts);
-        var seeded = await db.LearningContents.OrderByDescending(item => item.PublishedAtUtc).Take(3).ToArrayAsync();
+        var seeded = await db.LearningContents.Where(item => item.ContentType == LearningContentType.Lesson)
+            .OrderByDescending(item => item.PublishedAtUtc).Take(3).ToArrayAsync();
         db.LearningContentProgresses.AddRange(
             LearningContentProgress.Start(Guid.NewGuid(), userId, seeded[0].Id, now),
             LearningContentProgress.CompleteDirectly(Guid.NewGuid(), userId, seeded[1].Id, now),
@@ -65,7 +68,7 @@ public sealed class DiscoverPersistenceTests(PostgreSqlFixture fixture, ITestOut
         var result = LearningRecommendationPolicy.Build(inputs);
         var items = result.Recommended.Concat(result.BasedOnGoals).ToArray();
         result.ProfileConfigured.Should().BeTrue();
-        items.Should().HaveCount(6);
+        items.Should().HaveCount(7); // Four recommended and three goal choices from the expanded internal catalog.
         result.Recommended.Should().HaveCount(4);
         items.Should().Contain(item => item.Slug == drafts[2].Slug && item.EstimatedMinutes == 90);
         items.Should().NotContain(item => seeded.Select(value => value.Slug).Contains(item.Slug));

@@ -10,7 +10,8 @@ internal sealed class LearningContentPlanSourceReader(DevRecallDbContext dbConte
 {
     public async Task<LearningContentPlanSource?> FindPublishedAsync(Guid userId, string slug,
         CancellationToken cancellationToken) => await dbContext.LearningContents.AsNoTracking()
-        .Where(item => item.Slug == slug && item.Status == ContentStatus.Published)
+        .Where(item => item.Slug == slug && item.Status == ContentStatus.Published
+            && item.ContentType == LearningContentType.Lesson)
         .Select(item => new LearningContentPlanSource(item.Id, item.Title, item.EstimatedMinutes,
             dbContext.LearningContentProgresses.Any(progress => progress.UserId == userId
                 && progress.LearningContentId == item.Id
@@ -21,7 +22,8 @@ internal sealed class LearningContentPlanSourceReader(DevRecallDbContext dbConte
         string slug, CancellationToken cancellationToken)
     {
         var lessonId = await dbContext.LearningContents.AsNoTracking()
-            .Where(item => item.Slug == slug && item.Status == ContentStatus.Published)
+            .Where(item => item.Slug == slug && item.Status == ContentStatus.Published
+                && item.ContentType == LearningContentType.Lesson)
             .Select(item => (Guid?)item.Id).SingleOrDefaultAsync(cancellationToken);
         if (lessonId is null) return [];
         return await dbContext.StudyPlans.AsNoTracking()

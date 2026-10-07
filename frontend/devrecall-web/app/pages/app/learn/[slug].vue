@@ -2,7 +2,7 @@
 import { useLearningContentApi } from '~/features/learning-content/learning-content.api'
 import { learningContentKeys } from '~/features/learning-content/learning-content.query-keys'
 import type { LearningContentDetail } from '~/features/learning-content/learning-content.types'
-import { difficultyColor, visibleTags } from '~/features/learning-content/learning-content.meta'
+import { difficultyColor, visibleTags, resourceKindLabel, safeResourceUrl } from '~/features/learning-content/learning-content.meta'
 import SaveLessonToKnowledge from '~/features/learning-content/components/SaveLessonToKnowledge.vue'
 import AddLessonToReview from '~/features/learning-content/components/AddLessonToReview.vue'
 import AddLessonToStudyPlan from '~/features/learning-content/components/AddLessonToStudyPlan.vue'
@@ -18,6 +18,7 @@ const api = useLearningContentApi()
 const lessonQuery = useApiQuery<LearningContentDetail>(
   learningContentKeys.detail(slug.value), () => api.detail(slug.value))
 const lesson = computed(() => lessonQuery.data.value)
+const resourceUrl = computed(() => safeResourceUrl(lesson.value?.source.url ?? null))
 const returnTo = computed(() => lessonReturnTo(route.query.returnTo))
 const returnLabel = computed(() => lessonReturnLabel(returnTo.value))
 const technologies = computed(() => visibleTags(lesson.value?.technologies ?? []))
@@ -52,7 +53,7 @@ async function retrySessionAttachment() {
 }
 
 async function mutate(action: 'start' | 'complete') {
-  if (!lesson.value || mutationPending.value) return
+  if (!lesson.value?.progress || lesson.value.contentType !== 'Lesson' || mutationPending.value) return
   mutationPending.value = true
   mutationError.value = null
   try {
@@ -90,7 +91,23 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
       </CoreEmptyState>
     </section>
     <CoreErrorState v-else-if="lessonQuery.error.value" title="We couldn't load this lesson" description="The app remains available. Retry this lesson when you're ready." :error="lessonQuery.error.value" @retry="lessonQuery.refresh" />
-    <article v-else-if="lesson" class="lesson">
+    <article v-else-if="lesson?.contentType === 'ExternalResource'" class="lesson">
+      <header class="lesson-header">
+        <p class="section-kicker">{{ resourceKindLabel(lesson.resourceKind) }} · {{ lesson.source.name }}</p>
+        <h1>{{ lesson.title }}</h1>
+        <p class="summary">{{ lesson.summary }}</p>
+        <div class="primary-meta"><UBadge :color="difficultyColor(lesson.difficulty)" variant="subtle">{{ lesson.difficulty }}</UBadge><span>~{{ lesson.estimatedMinutes }} min reading estimate</span></div>
+        <div class="tags" aria-label="Resource topics and technologies"><span v-for="item in technologies.visible" :key="item.value">{{ item.label }}</span><span v-for="item in topics.visible" :key="item.slug">{{ item.name }}</span></div>
+      </header>
+      <section class="lesson-section">
+        <h2>About this resource</h2>
+        <p>This is a curated reference hosted by {{ lesson.source.name }}, not a DevRecall lesson. The reading estimate is for planning only.</p>
+        <UButton v-if="resourceUrl" :to="resourceUrl" target="_blank" rel="noopener noreferrer" trailing-icon="i-lucide-external-link">Read on {{ lesson.source.name }}</UButton>
+        <p v-else>This source link is unavailable.</p>
+        <p class="calm-status">You'll leave DevRecall in a new tab. Opening this resource does not record progress, completion or study time.</p>
+      </section>
+    </article>
+    <article v-else-if="lesson?.contentType === 'Lesson' && lesson.progress" class="lesson">
       <header class="lesson-header">
         <UAlert v-if="sessionId" color="primary" variant="subtle" title="Studying in a Study Session" description="Complete the lesson to attach fresh learning evidence to the current session item." />
         <div class="primary-meta"><UBadge :color="difficultyColor(lesson.difficulty)" variant="subtle">{{ lesson.difficulty }}</UBadge><span><UIcon name="i-lucide-clock-3" /> {{ lesson.estimatedMinutes }} min</span></div>

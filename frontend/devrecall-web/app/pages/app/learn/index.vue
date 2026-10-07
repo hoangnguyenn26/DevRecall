@@ -27,6 +27,12 @@ const difficulty = computed({
   get: () => filters.value.difficulty ?? '',
   set: value => updateFilters(withFilter(filters.value, 'difficulty', value)),
 })
+const contentType = computed({
+  get: () => filters.value.contentType ?? '',
+  set: value => updateFilters(withFilter(filters.value, 'contentType', value)),
+})
+const emptyTitle = computed(() => filters.value.contentType === 'ExternalResource' ? 'No resources match these filters'
+  : filters.value.contentType === 'Lesson' ? 'No lessons match these filters' : 'No learning content matches these filters')
 
 function updateFilters(value: typeof filters.value) {
   return router.push({ path: '/app/learn', query: queryFromFilters(value) })
@@ -65,7 +71,7 @@ onBeforeUnmount(() => requestController?.abort())
 
 <template>
   <div class="learn-page">
-    <CorePageHeader title="Learn" description="Build stronger engineering fundamentals with focused, practical lessons.">
+    <CorePageHeader title="Learn" description="Explore focused lessons and trusted learning resources.">
       <UButton to="/app/learn/history" label="Learning history" icon="i-lucide-history" color="neutral" variant="outline" />
     </CorePageHeader>
     <section v-if="continueQuery.data.value?.length" class="continue-section" aria-labelledby="continue-learning-title">
@@ -79,8 +85,9 @@ onBeforeUnmount(() => requestController?.abort())
         </article>
       </div>
     </section>
-    <div class="browse-heading"><div><h2>Browse lessons</h2><p>Explore the complete published catalog.</p></div></div>
-    <section class="filter-bar" aria-label="Filter lessons">
+    <div class="browse-heading"><div><h2>Browse learning content</h2><p>Explore the complete published catalog.</p></div></div>
+    <section class="filter-bar" aria-label="Filter learning content">
+      <label>Content<select v-model="contentType"><option value="">All</option><option value="Lesson">Lessons</option><option value="ExternalResource">Resources</option></select></label>
       <label>Technology<select v-model="technology"><option value="">All technologies</option><option v-for="item in learningContentTechnologies" :key="item[0]" :value="item[0]">{{ item[1] }}</option></select></label>
       <label>Level<select v-model="difficulty"><option value="">All levels</option><option v-for="item in learningContentDifficulties" :key="item" :value="item">{{ item }}</option></select></label>
     </section>
@@ -89,7 +96,7 @@ onBeforeUnmount(() => requestController?.abort())
       <UCard v-for="index in 3" :key="index"><div class="skeleton-card"><USkeleton class="h-5 w-24" /><USkeleton class="h-6 w-3/4" /><USkeleton class="h-16 w-full" /><USkeleton class="h-9 w-28" /></div></UCard>
     </div>
     <CoreErrorState v-else-if="error" title="We couldn't load learning content" description="Your filters are preserved. Try the request again." :error="error" @retry="load" />
-    <CoreEmptyState v-else-if="!page?.items.length" title="No lessons match these filters" description="Try another technology or level.">
+    <CoreEmptyState v-else-if="!page?.items.length" :title="emptyTitle" description="Try another technology or level, or browse all learning content.">
       <UButton to="/app/learn" variant="soft">Clear filters</UButton>
     </CoreEmptyState>
     <div v-else class="catalog-grid">

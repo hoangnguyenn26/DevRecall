@@ -28,7 +28,8 @@ internal sealed class LearningContentReviewRepository(DevRecallDbContext dbConte
 
     public Task<LearningReviewContentSource?> GetPublishedContentAsync(string slug,
         CancellationToken cancellationToken) => dbContext.LearningContents.AsNoTracking()
-        .Where(content => content.Slug == slug && content.Status == ContentStatus.Published)
+        .Where(content => content.Slug == slug && content.Status == ContentStatus.Published
+            && content.ContentType == LearningContentType.Lesson)
         .Select(content => new LearningReviewContentSource(content.Id, content.Title,
             content.ReviewCandidates.OrderBy(candidate => candidate.Position)
                 .Select(candidate => new LearningReviewCandidateSource(candidate.Id, candidate.Key,

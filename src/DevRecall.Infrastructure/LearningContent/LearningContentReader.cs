@@ -11,10 +11,15 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
 {
     public async Task<PublishedLearningContentPage> GetPublishedAsync(Guid userId, string? technology,
         string? topicSlug, string? difficulty, int skip, int take,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string? contentType = null)
     {
         var query = dbContext.LearningContents.AsNoTracking()
             .Where(item => item.Status == ContentStatus.Published);
+        if (contentType is not null)
+        {
+            var parsed = Enum.Parse<LearningContentType>(contentType);
+            query = query.Where(item => item.ContentType == parsed);
+        }
         if (technology is not null)
         {
             var parsed = Enum.Parse<Technology>(technology);
@@ -41,10 +46,12 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                 item.Title,
                 item.Summary,
                 item.ContentType,
+                item.ResourceKind,
+                item.SourceName,
                 item.Difficulty,
                 item.EstimatedMinutes,
                 ProgressStatus = dbContext.LearningContentProgresses.Where(progress =>
-                    progress.UserId == userId && progress.LearningContentId == item.Id)
+                    item.ContentType == LearningContentType.Lesson && progress.UserId == userId && progress.LearningContentId == item.Id)
                     .Select(progress => (LearningProgressStatus?)progress.Status).SingleOrDefault(),
                 Technologies = item.Technologies.OrderBy(value => value.Technology)
                     .Select(value => value.Technology).ToArray(),
@@ -57,7 +64,9 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
             item.Slug, item.Title, item.Summary, item.ContentType.ToString(), item.Difficulty.ToString(),
             item.EstimatedMinutes, item.Technologies.Select(MapTechnology).ToArray(),
             item.TopicIds.Select(id => new LearningContentTopicItem(topics[id].Slug, topics[id].Name))
-                .OrderBy(topic => topic.Name).ToArray(), item.ProgressStatus?.ToString() ?? "NotStarted")).ToArray();
+                .OrderBy(topic => topic.Name).ToArray(), item.ContentType == LearningContentType.Lesson
+                    ? item.ProgressStatus?.ToString() ?? "NotStarted" : null,
+                item.ResourceKind?.ToString(), item.SourceName)).ToArray();
         return new(items, totalCount);
     }
 
@@ -78,9 +87,11 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                 item.SourceType,
                 item.SourceName,
                 item.SourceUrl,
+                item.ResourceKind,
+                Goals = item.Goals.OrderBy(value => value.Goal).Select(value => value.Goal).ToArray(),
                 PublishedAtUtc = item.PublishedAtUtc!.Value,
                 Progress = dbContext.LearningContentProgresses.Where(progress =>
-                    progress.UserId == userId && progress.LearningContentId == item.Id)
+                    item.ContentType == LearningContentType.Lesson && progress.UserId == userId && progress.LearningContentId == item.Id)
                     .Select(progress => new
                     {
                         progress.Status,
@@ -122,9 +133,9 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
             raw.ReviewCandidates.Select(item => new LearningContentReviewCandidateItem(
                 item.Key, item.Prompt, item.Answer, activeCandidateIdSet.Contains(item.Id))).ToArray(),
             new(raw.SourceType.ToString(), raw.SourceName, raw.SourceUrl), raw.PublishedAtUtc,
-            raw.Progress is null ? new("NotStarted", null, null, null) : new(raw.Progress.Status.ToString(),
+            raw.ContentType != LearningContentType.Lesson ? null : raw.Progress is null ? new("NotStarted", null, null, null) : new(raw.Progress.Status.ToString(),
                 raw.Progress.StartedAtUtc, raw.Progress.CompletedAtUtc, raw.Progress.Version,
-                raw.Progress.EvidenceId));
+                raw.Progress.EvidenceId), raw.ResourceKind?.ToString(), raw.Goals.Select(item => item.ToString()).ToArray());
     }
 
     public async Task<IReadOnlyList<ContinueLearningContentItem>> GetInProgressAsync(
@@ -135,6 +146,7 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                where progress.UserId == userId
                    && progress.Status == LearningProgressStatus.InProgress
                    && content.Status == ContentStatus.Published
+                   && content.ContentType == LearningContentType.Lesson
                orderby progress.StartedAtUtc descending, progress.Id
                select new ContinueLearningContentItem(
                    content.Slug, content.Title, content.Summary, content.Difficulty.ToString(),

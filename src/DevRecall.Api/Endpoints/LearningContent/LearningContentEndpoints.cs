@@ -24,7 +24,8 @@ public static class LearningContentEndpoints
             .Produces<LearningContentDetailResponse>().ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status401Unauthorized);
         group.MapPost("/{slug}/progress/start", StartAsync).WithSummary("Starts a published lesson idempotently.")
-            .Produces<LearningContentProgressResponse>().ProducesProblem(StatusCodes.Status404NotFound);
+            .Produces<LearningContentProgressResponse>().ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
         group.MapPost("/{slug}/progress/complete", CompleteAsync).WithSummary("Completes a published lesson explicitly.")
             .Produces<LearningContentProgressResponse>().ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -35,7 +36,7 @@ public static class LearningContentEndpoints
         GetPublishedLearningContentHandler handler, CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(new(request.Technology, request.Topic,
-            request.Difficulty, request.Page ?? 1, request.PageSize ?? 20), cancellationToken);
+            request.Difficulty, request.Page ?? 1, request.PageSize ?? 20, request.ContentType), cancellationToken);
         return Results.Ok(new PagedResponse<LearningContentListItemResponse>(result.Items.Select(Map).ToArray(),
             result.Page, result.PageSize, result.TotalCount, result.TotalPages));
     }
@@ -72,7 +73,8 @@ public static class LearningContentEndpoints
     private static LearningContentListItemResponse Map(PublishedLearningContentListItem item) => new(
         item.Slug, item.Title, item.Summary, item.ContentType, item.Difficulty, item.EstimatedMinutes,
         item.Technologies.Select(value => new LearningContentTechnologyResponse(value.Value, value.Label)).ToArray(),
-        item.Topics.Select(value => new LearningContentTopicResponse(value.Slug, value.Name)).ToArray(), item.ProgressStatus);
+        item.Topics.Select(value => new LearningContentTopicResponse(value.Slug, value.Name)).ToArray(), item.ProgressStatus,
+        item.ResourceKind, item.SourceName);
 
     private static LearningContentDetailResponse Map(PublishedLearningContentDetail item) => new(
         item.Id, item.Slug, item.Title, item.Summary, item.ContentType, item.Difficulty, item.EstimatedMinutes,
@@ -83,7 +85,8 @@ public static class LearningContentEndpoints
             value.Position, value.Type, value.Heading, value.BodyMarkdown)).ToArray(),
         item.ReviewCandidates.Select(value => new LearningContentReviewCandidateResponse(
             value.Key, value.Prompt, value.Answer, value.IsInReview)).ToArray(),
-        new(item.Source.Type, item.Source.Name, item.Source.Url), item.PublishedAtUtc, Map(item.Progress));
+        new(item.Source.Type, item.Source.Name, item.Source.Url), item.PublishedAtUtc,
+        item.Progress is null ? null : Map(item.Progress), item.ResourceKind, item.Goals);
 
     private static LearningContentProgressResponse Map(LearningContentProgressItem item) =>
         new(item.Status, item.StartedAtUtc, item.CompletedAtUtc, item.Version, item.CompletionEvidenceId);

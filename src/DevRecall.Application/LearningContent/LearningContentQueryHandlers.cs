@@ -6,7 +6,7 @@ using DevRecall.Domain.LearningProfiles;
 namespace DevRecall.Application.LearningContent;
 
 public sealed record GetPublishedLearningContentQuery(
-    string? Technology, string? Topic, string? Difficulty, int Page, int PageSize);
+    string? Technology, string? Topic, string? Difficulty, int Page, int PageSize, string? ContentType = null);
 
 public sealed record GetPublishedLearningContentResult(
     IReadOnlyList<PublishedLearningContentListItem> Items, int Page, int PageSize,
@@ -25,6 +25,7 @@ public sealed class GetPublishedLearningContentHandler(
         if (query.PageSize is < 1 or > 50) errors["pageSize"] = ["Page size must be between 1 and 50."];
         var technology = ParseOptional<Technology>(query.Technology, "technology", errors);
         var difficulty = ParseOptional<ContentDifficulty>(query.Difficulty, "difficulty", errors);
+        var contentType = ParseOptional<LearningContentType>(query.ContentType, "contentType", errors);
         var topic = string.IsNullOrWhiteSpace(query.Topic) ? null : query.Topic.Trim().ToLowerInvariant();
         if (topic is not null && (topic.Length > 160 || topic.Any(character =>
             !(char.IsAsciiLetterOrDigit(character) || character == '-'))))
@@ -33,7 +34,7 @@ public sealed class GetPublishedLearningContentHandler(
 
         var page = await reader.GetPublishedAsync(userId, technology?.ToString(), topic,
             difficulty?.ToString(), (query.Page - 1) * query.PageSize, query.PageSize,
-            cancellationToken);
+            cancellationToken, contentType?.ToString());
         var totalPages = page.TotalCount == 0 ? 0
             : (int)Math.Ceiling(page.TotalCount / (double)query.PageSize);
         return new(page.Items, query.Page, query.PageSize, page.TotalCount, totalPages);

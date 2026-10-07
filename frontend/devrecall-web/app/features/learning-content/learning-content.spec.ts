@@ -9,6 +9,7 @@ import { buildLessonKnowledgeDraft } from './lesson-knowledge'
 import { availableReviewCandidates, markReviewCandidatesAdded } from './lesson-review'
 import type { LearningContentDetail } from './learning-content.types'
 import { useLearningContentProgressSync } from '~/composables/useLearningContentProgressSync'
+import { safeResourceUrl } from './learning-content.meta'
 
 const card = {
   slug: 'aspnet-core-service-lifetimes', title: 'ASP.NET Core Service Lifetimes',
@@ -20,6 +21,25 @@ const card = {
 }
 
 describe('Learn catalog and reader', () => {
+  it('distinguishes resource metadata and filters without a progress lifecycle', () => {
+    const filters = filtersFromQuery({ type: 'resource', technology: 'EfCore', difficulty: 'Intermediate', page: '2' })
+    expect(filters.contentType).toBe('ExternalResource')
+    expect(queryFromFilters(filters)).toMatchObject({ type: 'resource', page: '2' })
+    expect(learningContentKeys.list(filters)).not.toBe(learningContentKeys.list({ ...filters, contentType: 'Lesson' }))
+    const wrapper = mount(LearningContentCard, {
+      props: { item: { ...card, contentType: 'ExternalResource', progressStatus: null,
+        resourceKind: 'Documentation', sourceName: 'Microsoft Learn' }, returnTo: '/app/learn?type=resource' },
+      global: { stubs: { UBadge: { template: '<span><slot /></span>' }, UButton: { template: '<a><slot /></a>' } } },
+    })
+    expect(wrapper.text()).toContain('Documentation · Microsoft Learn')
+    expect(wrapper.text()).toContain('~15 min')
+    expect(wrapper.text()).toContain('Open resource')
+    expect(wrapper.text()).not.toContain('Completed')
+    expect(wrapper.text()).not.toContain('Start')
+    expect(safeResourceUrl('javascript:alert(1)')).toBeUndefined()
+    expect(safeResourceUrl('https://user:password@example.com')).toBeUndefined()
+    expect(safeResourceUrl('https://learn.microsoft.com/en-us/ef/core/saving/concurrency')).toContain('https://learn.microsoft.com/')
+  })
   it('normalizes URL filters and omits default query values', () => {
     expect(filtersFromQuery({ technology: 'AspNetCore', difficulty: 'Intermediate', page: '3' }))
       .toEqual({ technology: 'AspNetCore', difficulty: 'Intermediate', page: 3 })

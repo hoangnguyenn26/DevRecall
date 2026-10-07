@@ -9,13 +9,15 @@ export interface LearningContentProgress { status: LearningProgressStatus; start
 export interface LearningContentListItem {
   slug: string; title: string; summary: string; contentType: 'Lesson' | 'ExternalResource'
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced'; estimatedMinutes: number
-  technologies: LearningContentTechnology[]; topics: LearningContentTopic[]; progressStatus: LearningProgressStatus
+  technologies: LearningContentTechnology[]; topics: LearningContentTopic[]; progressStatus: LearningProgressStatus | null
+  resourceKind?: 'Documentation' | 'Guide' | 'Tutorial' | 'Reference' | null; sourceName?: string | null
 }
 export interface LearningContentDetail extends LearningContentListItem {
   id?: string
   objectives: LearningContentObjective[]; sections: LearningContentSection[]
   reviewCandidates: LearningContentReviewCandidate[]
-  source: LearningContentSource; publishedAtUtc: string; progress: LearningContentProgress
+  source: LearningContentSource; publishedAtUtc: string; progress: LearningContentProgress | null
+  goals?: string[]
 }
 export interface LearningContentPage {
   items: LearningContentListItem[]; page: number; pageSize: number; totalCount: number; totalPages: number
@@ -33,7 +35,7 @@ export interface LearningContentHistoryPage {
   items: LearningContentHistoryItem[]; page: number; pageSize: number
   totalCount: number; totalPages: number
 }
-export interface LearningContentFilters { technology?: string; difficulty?: string; page: number }
+export interface LearningContentFilters { technology?: string; difficulty?: string; contentType?: 'Lesson' | 'ExternalResource'; page: number }
 export interface SaveLessonToKnowledgeInput {
   title: string; content: string; topicId: string | null; tagIds: string[]; submissionId: string
 }

@@ -24,6 +24,50 @@ namespace DevRecall.Api.Tests.LearningContent;
 public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
 {
     [Fact]
+    public async Task ExternalResources_ShouldBrowseAsMetadataAndRejectLessonMutationsWithoutEvidence()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("resources");
+        var all = await GetPageAsync(client, "");
+        all.Items.Should().Contain(item => item.ContentType == "Lesson")
+            .And.Contain(item => item.ContentType == "ExternalResource");
+        var resources = await GetPageAsync(client, "contentType=ExternalResource&technology=EfCore&difficulty=Intermediate");
+        resources.Items.Should().HaveCount(2).And.OnlyContain(item => item.ProgressStatus == null
+            && item.ResourceKind == "Documentation" && item.SourceName == "Microsoft Learn");
+        var slug = "ef-core-handling-concurrency-conflicts";
+        var detail = await client.GetFromJsonAsync<LearningContentDetailResponse>($"/api/v1/learning-content/{slug}");
+        detail!.Progress.Should().BeNull();
+        detail.ResourceKind.Should().Be("Documentation");
+        detail.Goals.Should().Contain("ImproveBackendFundamentals");
+        detail.Objectives.Should().BeEmpty();
+        detail.Sections.Should().BeEmpty();
+        detail.ReviewCandidates.Should().BeEmpty();
+        detail.Source.Url.Should().Be("https://learn.microsoft.com/en-us/ef/core/saving/concurrency");
+        (await client.PostAsync($"/api/v1/learning-content/{slug}/progress/start", null)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var complete = await client.PostAsJsonAsync($"/api/v1/learning-content/{slug}/progress/complete", new CompleteLearningContentRequest(null));
+        complete.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await complete.Content.ReadAsStringAsync()).Should().Contain("LEARNING_CONTENT_LESSON_REQUIRED");
+        (await client.PostAsJsonAsync($"/api/v1/knowledge/from-learning-content/{slug}", new
+        {
+            title = "Resource note", content = "Not supported", topicId = (Guid?)null, tagIds = Array.Empty<Guid>(), submissionId = Guid.NewGuid()
+        })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.PostAsJsonAsync($"/api/v1/review/from-learning-content/{slug}", new
+        {
+            candidateKeys = new List<string> { "anything" }, submissionId = Guid.NewGuid()
+        })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var options = await client.GetFromJsonAsync<object[]>($"/api/v1/study-plans/learning-content/{slug}/options");
+        options.Should().BeEmpty();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+        (await db.LearningContentProgresses.CountAsync(item => item.LearningContentId == detail.Id)).Should().Be(0);
+        (await db.LearningContentCompletionEvidence.CountAsync(item => item.LearningContentId == detail.Id)).Should().Be(0);
+        var source = await db.LearningContents.SingleAsync(item => item.Id == detail.Id);
+        source.Archive(DateTimeOffset.UtcNow);
+        await db.SaveChangesAsync();
+        (await client.GetAsync($"/api/v1/learning-content/{slug}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task Discover_ShouldBeAuthenticatedReadOnlyAndExcludeOnlyTheCurrentUsersProgress()
     {
         await SeedAsync();
@@ -132,18 +176,18 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         using var client = await CreateAuthenticatedClientAsync("list");
 
         var firstPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
-            "/api/v1/learning-content?page=1&pageSize=3");
+            "/api/v1/learning-content?contentType=Lesson&page=1&pageSize=3");
         var secondPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
-            "/api/v1/learning-content?page=2&pageSize=3");
+            "/api/v1/learning-content?contentType=Lesson&page=2&pageSize=3");
         var thirdPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
-            "/api/v1/learning-content?page=3&pageSize=3");
+            "/api/v1/learning-content?contentType=Lesson&page=3&pageSize=3");
 
         firstPage!.TotalCount.Should().Be(11);
         firstPage.Items.Should().HaveCount(3);
         secondPage!.Items.Should().HaveCount(3);
         thirdPage!.Items.Should().HaveCount(3);
         var fourthPage = await client.GetFromJsonAsync<PagedResponse<LearningContentListItemResponse>>(
-            "/api/v1/learning-content?page=4&pageSize=3");
+            "/api/v1/learning-content?contentType=Lesson&page=4&pageSize=3");
         fourthPage!.Items.Should().HaveCount(2);
         firstPage.Items.Select(item => item.Slug).Should().NotIntersectWith(
             secondPage.Items.Select(item => item.Slug));
@@ -158,13 +202,13 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         await SeedAsync();
         using var client = await CreateAuthenticatedClientAsync("filters");
 
-        var technology = await GetPageAsync(client, "technology=EfCore");
-        var topic = await GetPageAsync(client, "topic=dependency-injection");
+        var technology = await GetPageAsync(client, "contentType=Lesson&technology=EfCore");
+        var topic = await GetPageAsync(client, "contentType=Lesson&topic=dependency-injection");
         var difficulty = await GetPageAsync(client, "difficulty=Beginner");
-        var pipelineTopic = await GetPageAsync(client, "topic=request-pipeline");
-        var asyncTopic = await GetPageAsync(client, "topic=asynchronous-programming");
+        var pipelineTopic = await GetPageAsync(client, "contentType=Lesson&topic=request-pipeline");
+        var asyncTopic = await GetPageAsync(client, "contentType=Lesson&topic=asynchronous-programming");
         var transactionsTopic = await GetPageAsync(client, "topic=transactions");
-        var concurrencyTopic = await GetPageAsync(client, "topic=concurrency");
+        var concurrencyTopic = await GetPageAsync(client, "contentType=Lesson&topic=concurrency");
 
         technology.Items.Select(item => item.Slug).Should().BeEquivalentTo(
             ["ef-core-tracking-vs-no-tracking", "ef-core-transactions", "ef-core-optimistic-concurrency"]);
@@ -211,6 +255,8 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
 
     [Theory]
     [InlineData("technology=1")]
+    [InlineData("contentType=2")]
+    [InlineData("contentType=Video")]
     [InlineData("difficulty=2")]
     [InlineData("technology=NinjaFramework")]
     [InlineData("page=0")]
@@ -251,7 +297,7 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var firstProgress = await first.Content.ReadFromJsonAsync<LearningContentProgressResponse>();
         var secondProgress = await second.Content.ReadFromJsonAsync<LearningContentProgressResponse>();
 
-        before!.Progress.Status.Should().Be("NotStarted");
+        before!.Progress!.Status.Should().Be("NotStarted");
         secondProgress!.Status.Should().Be(firstProgress!.Status);
         secondProgress.Version.Should().Be(firstProgress.Version);
         secondProgress.StartedAtUtc.Should().BeCloseTo(firstProgress.StartedAtUtc!.Value, TimeSpan.FromMilliseconds(1));

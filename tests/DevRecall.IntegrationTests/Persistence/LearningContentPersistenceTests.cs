@@ -36,14 +36,18 @@ public sealed class LearningContentPersistenceTests(PostgreSqlFixture fixture)
         var first = await seeder.SeedAsync();
         var second = await seeder.SeedAsync();
 
-        first.Should().Be(11);
+        first.Should().Be(16);
         second.Should().Be(0);
-        (await context.LearningContents.CountAsync()).Should().Be(11);
+        (await context.LearningContents.CountAsync()).Should().Be(16);
+        (await context.LearningContents.CountAsync(item => item.ContentType == LearningContentType.Lesson)).Should().Be(11);
+        var resources = await context.LearningContents.Where(item => item.ContentType == LearningContentType.ExternalResource).ToArrayAsync();
+        resources.Should().HaveCount(5).And.OnlyContain(item => item.ResourceKind == ExternalResourceKind.Documentation
+            && item.SourceType == ContentSourceType.External && item.Status == ContentStatus.Published);
         (await context.ContentTopics.CountAsync()).Should().Be(9);
         (await context.LearningContentSections.CountAsync()).Should().BeGreaterThanOrEqualTo(35);
         (await context.LearningContentReviewCandidates.CountAsync()).Should().BeGreaterThanOrEqualTo(23);
-        (await context.Set<LearningContentGoal>().CountAsync()).Should().Be(20);
-        (await context.Set<LearningContentGoal>().CountAsync(item => item.Goal == DevRecall.Domain.LearningProfiles.LearningProfileGoal.PrepareForInterviews)).Should().Be(6);
+        (await context.Set<LearningContentGoal>().CountAsync()).Should().Be(28);
+        (await context.Set<LearningContentGoal>().CountAsync(item => item.Goal == DevRecall.Domain.LearningProfiles.LearningProfileGoal.PrepareForInterviews)).Should().Be(7);
         var di = await context.LearningContents.Include(item => item.Technologies).Include(item => item.ReviewCandidates)
             .SingleAsync(item => item.Slug == "dependency-injection-fundamentals");
         var originalId = di.Id;

@@ -24,6 +24,7 @@ public sealed class LearningContent
     public string Title { get; private set; } = null!;
     public string Summary { get; private set; } = null!;
     public LearningContentType ContentType { get; private set; }
+    public ExternalResourceKind? ResourceKind { get; private set; }
     public ContentDifficulty Difficulty { get; private set; }
     public int EstimatedMinutes { get; private set; }
     public ContentStatus Status { get; private set; }
@@ -123,16 +124,27 @@ public sealed class LearningContent
         IReadOnlyCollection<Technology> technologies, IReadOnlyCollection<Guid> topicIds,
         IReadOnlyCollection<LearningObjectiveInput> objectives,
         IReadOnlyCollection<LearningContentSectionInput> sections, DateTimeOffset currentUtc,
-        IReadOnlyCollection<LearningReviewCandidateInput>? reviewCandidates = null)
+        IReadOnlyCollection<LearningReviewCandidateInput>? reviewCandidates = null,
+        ExternalResourceKind? resourceKind = null)
     {
         if (id == Guid.Empty) throw new ArgumentException("Learning content id cannot be empty.", nameof(id));
         EnsureUtc(currentUtc);
         ValidateEnums(contentType, difficulty, sourceType);
+        ValidateCollections(technologies, topicIds, objectives, sections, reviewCandidates ?? []);
+        if (contentType == LearningContentType.ExternalResource)
+        {
+            if (sourceType != ContentSourceType.External)
+                throw new ArgumentException("External resources require external provenance.", nameof(sourceType));
+            if (resourceKind is null || !Enum.IsDefined(resourceKind.Value))
+                throw new ArgumentException("External resources require a supported resource kind.", nameof(resourceKind));
+            if (objectives.Count != 0 || sections.Count != 0 || (reviewCandidates?.Count ?? 0) != 0)
+                throw new ArgumentException("External resources contain curated metadata, not lesson bodies or candidates.");
+        }
+        else if (sourceType != ContentSourceType.Internal || resourceKind is not null)
+            throw new ArgumentException("Internal lessons cannot have external provenance or a resource kind.");
         if (estimatedMinutes is < 1 or > 480)
             throw new ArgumentOutOfRangeException(nameof(estimatedMinutes), "Estimated minutes must be between 1 and 480.");
         var normalizedSourceUrl = ValidateSource(sourceType, sourceUrl);
-        ValidateCollections(technologies, topicIds, objectives, sections, reviewCandidates ?? []);
-
         var content = new LearningContent
         {
             Id = id,
@@ -140,6 +152,7 @@ public sealed class LearningContent
             Title = LearningContentText.NormalizeRequired(title, nameof(title), 200, 3),
             Summary = LearningContentText.NormalizeRequired(summary, nameof(summary), 500),
             ContentType = contentType,
+            ResourceKind = resourceKind,
             Difficulty = difficulty,
             EstimatedMinutes = estimatedMinutes,
             Status = ContentStatus.Draft,
@@ -166,6 +179,8 @@ public sealed class LearningContent
             throw new InvalidOperationException("A published lesson requires at least one section.");
         if (ContentType == LearningContentType.ExternalResource && SourceType != ContentSourceType.External)
             throw new InvalidOperationException("External resources require external provenance.");
+        if (ContentType == LearningContentType.ExternalResource && ResourceKind is null)
+            throw new InvalidOperationException("External resources require a resource kind.");
         Status = ContentStatus.Published;
         PublishedAtUtc ??= currentUtc;
         UpdatedAtUtc = currentUtc;
@@ -237,6 +252,7 @@ public sealed class LearningContent
             return null;
         }
         if (!Uri.TryCreate(sourceUrl, UriKind.Absolute, out var uri)
+            || uri.AbsoluteUri.Length > 2_048 || string.IsNullOrEmpty(uri.Host) || !string.IsNullOrEmpty(uri.UserInfo)
             || (!uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
                 && !uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("External content requires an HTTP or HTTPS source URL.", nameof(sourceUrl));

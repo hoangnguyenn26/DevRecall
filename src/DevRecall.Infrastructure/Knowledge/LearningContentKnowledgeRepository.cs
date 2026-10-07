@@ -21,7 +21,8 @@ internal sealed class LearningContentKnowledgeRepository(DevRecallDbContext dbCo
 
     public Task<PublishedLearningContentSource?> GetPublishedContentAsync(string slug,
         CancellationToken cancellationToken) => dbContext.LearningContents.AsNoTracking()
-        .Where(content => content.Slug == slug && content.Status == ContentStatus.Published)
+        .Where(content => content.Slug == slug && content.Status == ContentStatus.Published
+            && content.ContentType == LearningContentType.Lesson)
         .Select(content => new PublishedLearningContentSource(content.Id, content.Title))
         .SingleOrDefaultAsync(cancellationToken);
 

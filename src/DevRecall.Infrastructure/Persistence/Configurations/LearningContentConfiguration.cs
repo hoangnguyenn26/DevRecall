@@ -17,6 +17,8 @@ internal sealed class LearningContentConfiguration : IEntityTypeConfiguration<Le
             table.HasCheckConstraint("ck_learning_contents_source_type", "source_type BETWEEN 1 AND 2");
             table.HasCheckConstraint("ck_learning_contents_minutes", "estimated_minutes BETWEEN 1 AND 480");
             table.HasCheckConstraint("ck_learning_contents_version", "version > 0");
+            table.HasCheckConstraint("ck_learning_contents_resource_kind",
+                "(content_type = 1 AND source_type = 1 AND resource_kind IS NULL) OR (content_type = 2 AND source_type = 2 AND resource_kind IS NOT NULL AND resource_kind BETWEEN 1 AND 4)");
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
@@ -25,6 +27,7 @@ internal sealed class LearningContentConfiguration : IEntityTypeConfiguration<Le
         builder.Property(item => item.Title).HasMaxLength(200).IsRequired();
         builder.Property(item => item.Summary).HasMaxLength(500).IsRequired();
         builder.Property(item => item.ContentType).HasConversion<int>();
+        builder.Property(item => item.ResourceKind).HasConversion<int>();
         builder.Property(item => item.Difficulty).HasConversion<int>();
         builder.Property(item => item.Status).HasConversion<int>();
         builder.Property(item => item.SourceType).HasConversion<int>();

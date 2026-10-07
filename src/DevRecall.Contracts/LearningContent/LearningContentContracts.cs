@@ -5,6 +5,7 @@ public sealed class GetLearningContentRequest
     public string? Technology { get; init; }
     public string? Topic { get; init; }
     public string? Difficulty { get; init; }
+    public string? ContentType { get; init; }
     public int? Page { get; init; }
     public int? PageSize { get; init; }
 }
@@ -19,7 +20,8 @@ public sealed record LearningContentReviewCandidateResponse(
 public sealed record LearningContentListItemResponse(string Slug, string Title, string Summary,
     string ContentType, string Difficulty, int EstimatedMinutes,
     IReadOnlyList<LearningContentTechnologyResponse> Technologies,
-    IReadOnlyList<LearningContentTopicResponse> Topics, string ProgressStatus);
+    IReadOnlyList<LearningContentTopicResponse> Topics, string? ProgressStatus,
+    string? ResourceKind = null, string? SourceName = null);
 public sealed record LearningContentProgressResponse(string Status, DateTimeOffset? StartedAtUtc,
     DateTimeOffset? CompletedAtUtc, int? Version, Guid? CompletionEvidenceId);
 public sealed record CompleteLearningContentRequest(int? ExpectedVersion);
@@ -31,7 +33,7 @@ public sealed record LearningContentDetailResponse(Guid Id, string Slug, string 
     IReadOnlyList<LearningContentSectionResponse> Sections,
     IReadOnlyList<LearningContentReviewCandidateResponse> ReviewCandidates,
     LearningContentSourceResponse Source, DateTimeOffset PublishedAtUtc,
-    LearningContentProgressResponse Progress);
+    LearningContentProgressResponse? Progress, string? ResourceKind = null, IReadOnlyList<string>? Goals = null);
 public sealed record ContinueLearningContentResponse(
     string Slug, string Title, string Summary, string Difficulty, int EstimatedMinutes,
     IReadOnlyList<LearningContentTechnologyResponse> Technologies, DateTimeOffset StartedAtUtc);

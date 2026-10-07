@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { LearningContentListItem } from '~/features/learning-content/learning-content.types'
-import { difficultyColor, visibleTags } from '~/features/learning-content/learning-content.meta'
+import { difficultyColor, visibleTags, resourceKindLabel } from '~/features/learning-content/learning-content.meta'
 
 const props = defineProps<{ item: LearningContentListItem; returnTo: string }>()
 const technologies = computed(() => visibleTags(props.item.technologies))
 const topics = computed(() => visibleTags(props.item.topics))
-const target = computed(() => props.item.contentType === 'Lesson'
-  ? { path: `/app/learn/${props.item.slug}`, query: { returnTo: props.returnTo } }
-  : `/app/learn/${props.item.slug}`)
+const target = computed(() => ({ path: `/app/learn/${props.item.slug}`, query: { returnTo: props.returnTo } }))
 const actionLabel = computed(() => props.item.contentType !== 'Lesson' ? 'Open resource'
   : props.item.progressStatus === 'Completed' ? 'Read again'
     : props.item.progressStatus === 'InProgress' ? 'Continue' : 'Open lesson')
@@ -16,9 +14,10 @@ const actionLabel = computed(() => props.item.contentType !== 'Lesson' ? 'Open r
 
 <template>
   <article class="content-card">
-    <div class="card-meta"><div><UBadge :color="difficultyColor(item.difficulty)" variant="subtle">{{ item.difficulty }}</UBadge><UBadge v-if="item.progressStatus !== 'NotStarted'" color="primary" variant="subtle">{{ item.progressStatus === 'InProgress' ? 'In progress' : 'Completed' }}</UBadge></div><span>{{ item.estimatedMinutes }} min</span></div>
+    <div v-if="item.contentType === 'ExternalResource'" class="resource-label">{{ resourceKindLabel(item.resourceKind) }} · {{ item.sourceName }}</div>
+    <div class="card-meta"><div><UBadge :color="difficultyColor(item.difficulty)" variant="subtle">{{ item.difficulty }}</UBadge><UBadge v-if="item.contentType === 'Lesson' && item.progressStatus && item.progressStatus !== 'NotStarted'" color="primary" variant="subtle">{{ item.progressStatus === 'InProgress' ? 'In progress' : 'Completed' }}</UBadge></div><span>{{ item.contentType === 'ExternalResource' ? '~' : '' }}{{ item.estimatedMinutes }} min</span></div>
     <div><h2>{{ item.title }}</h2><p>{{ item.summary }}</p></div>
-    <div class="tags" aria-label="Lesson metadata">
+    <div class="tags" aria-label="Learning content metadata">
       <span v-for="technology in technologies.visible" :key="technology.value">{{ technology.label }}</span>
       <span v-for="topic in topics.visible" :key="topic.slug">{{ topic.name }}</span>
       <span v-if="technologies.hiddenCount + topics.hiddenCount">+{{ technologies.hiddenCount + topics.hiddenCount }}</span>

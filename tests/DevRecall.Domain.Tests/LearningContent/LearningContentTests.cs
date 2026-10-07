@@ -187,6 +187,26 @@ public sealed class LearningContentTests
         content.Technologies.Should().BeEmpty();
     }
 
+    [Fact]
+    public void ExternalResource_ShouldPublishMetadataOnlyAndRejectLessonSemantics()
+    {
+        var resource = CreateDraft(contentType: LearningContentType.ExternalResource,
+            sourceType: ContentSourceType.External, sourceUrl: "https://learn.microsoft.com/en-us/ef/core/saving/concurrency",
+            objectives: [], sections: []);
+        resource.Publish(Now);
+        resource.ResourceKind.Should().Be(ExternalResourceKind.Documentation);
+        resource.Objectives.Should().BeEmpty();
+        resource.Sections.Should().BeEmpty();
+        resource.Archive(Now.AddMinutes(1));
+        resource.Publish(Now.AddMinutes(2));
+        resource.PublishedAtUtc.Should().Be(Now);
+        var withBody = () => CreateDraft(contentType: LearningContentType.ExternalResource,
+            sourceType: ContentSourceType.External, sourceUrl: "https://example.com");
+        var internalSource = () => CreateDraft(contentType: LearningContentType.ExternalResource, objectives: [], sections: []);
+        withBody.Should().Throw<ArgumentException>();
+        internalSource.Should().Throw<ArgumentException>();
+    }
+
     private static LearningContentAggregate CreateDraft(int estimatedMinutes = 15,
         LearningContentType contentType = LearningContentType.Lesson,
         ContentSourceType sourceType = ContentSourceType.Internal, string? sourceUrl = null,
@@ -202,5 +222,5 @@ public sealed class LearningContentTests
             [new("Explain service lifetimes."), new("Choose an appropriate lifetime.")], sections ??
             [new(LearningContentSectionType.Explanation, "Why lifetime matters", "A lifetime controls reuse."),
              new(LearningContentSectionType.CodeExample, "Registration", "```csharp\nservices.AddScoped<IService, Service>();\n```")],
-            Now, reviewCandidates);
+            Now, reviewCandidates, contentType == LearningContentType.ExternalResource ? ExternalResourceKind.Documentation : null);
 }

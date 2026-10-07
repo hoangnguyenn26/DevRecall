@@ -38,10 +38,11 @@ public sealed partial class LearningContentSeeder(DevRecallDbContext dbContext)
             .Select(item => item.Slug).ToListAsync(cancellationToken);
         var legacyBySlug = Samples(now).ToDictionary(item => item.Slug);
         var previousCurriculumBySlug = CurriculumSamples(now, includeDogfoodPolish: false).ToDictionary(item => item.Slug);
-        var samples = CurriculumSamples(now);
+        var samples = CurriculumSamples(now).Concat(ExternalResources(now)).ToArray();
         var additions = samples.Where(item => !existingSlugs.Contains(item.Slug)).ToArray();
         dbContext.LearningContents.AddRange(additions);
-        var sampleBySlug = samples.ToDictionary(item => item.Slug);
+        // Existing external records are curator-owned metadata: insert missing slugs only, never resynchronize them.
+        var sampleBySlug = samples.Where(item => item.ContentType == LearningContentType.Lesson).ToDictionary(item => item.Slug);
         var existingContents = await dbContext.LearningContents.AsSplitQuery().Include(item => item.ReviewCandidates)
             .Include(item => item.Goals).Include(item => item.Technologies).Include(item => item.Objectives).Include(item => item.Sections)
             .Where(item => existingSlugs.Contains(item.Slug)).ToListAsync(cancellationToken);

@@ -182,7 +182,7 @@ if (args.Contains("--seed-learning-content", StringComparer.OrdinalIgnoreCase))
     await using var scope = app.Services.CreateAsyncScope();
     var seeder = scope.ServiceProvider.GetRequiredService<LearningContentSeeder>();
     var created = await seeder.SeedAsync();
-    Console.WriteLine($"Learning Content seed complete. Created {created} lesson(s).");
+    Console.WriteLine($"Learning Content seed complete. Created {created} content item(s).");
     return;
 }
 

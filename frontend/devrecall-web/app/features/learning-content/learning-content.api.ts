@@ -4,7 +4,7 @@ export function useLearningContentApi() {
   const api = useApi()
   return {
     list: (filters: LearningContentFilters, signal?: AbortSignal) => api.get<LearningContentPage>(
-      '/learning-content', { technology: filters.technology, difficulty: filters.difficulty,
+      '/learning-content', { technology: filters.technology, difficulty: filters.difficulty, contentType: filters.contentType,
         page: filters.page, pageSize: 12 }, signal),
     continueLearning: (signal?: AbortSignal) => api.get<ContinueLearningContentItem[]>(
       '/learning-content/continue', undefined, signal),

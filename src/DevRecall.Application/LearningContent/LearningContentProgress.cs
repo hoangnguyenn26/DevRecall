@@ -31,6 +31,7 @@ public sealed class StartLearningContentHandler(ILearningContentProgressReposito
         var userId = RequireUser(currentUser);
         var content = await repository.GetPublishedContentAsync(NormalizeSlug(slug), cancellationToken)
             ?? throw NotFound();
+        EnsureLesson(content);
         var progress = await repository.GetAsync(userId, content.Id, cancellationToken);
         var evidence = await repository.GetCompletionEvidenceAsync(userId, content.Id, cancellationToken);
         EnsureConsistent(progress, evidence);
@@ -54,6 +55,11 @@ public sealed class StartLearningContentHandler(ILearningContentProgressReposito
         ? id : throw new UnauthorizedException("IDENTITY_UNAUTHENTICATED", "Authentication is required.");
     internal static string NormalizeSlug(string slug) => string.IsNullOrWhiteSpace(slug) ? "" : slug.Trim().ToLowerInvariant();
     internal static NotFoundException NotFound() => new("LEARNING_CONTENT_NOT_FOUND", "Learning content was not found.");
+    internal static void EnsureLesson(LearningContentAggregate content)
+    {
+        if (content.ContentType != LearningContentType.Lesson)
+            throw new ConflictException("LEARNING_CONTENT_LESSON_REQUIRED", "External resources are navigation only and cannot record lesson progress.");
+    }
     internal static void EnsureConsistent(LearningContentProgress? progress,
         LearningContentCompletionEvidence? evidence)
     {
@@ -75,6 +81,7 @@ public sealed class CompleteLearningContentHandler(ILearningContentProgressRepos
         var userId = StartLearningContentHandler.RequireUser(currentUser);
         var content = await repository.GetPublishedContentAsync(StartLearningContentHandler.NormalizeSlug(slug), cancellationToken)
             ?? throw StartLearningContentHandler.NotFound();
+        StartLearningContentHandler.EnsureLesson(content);
         var progress = await repository.GetAsync(userId, content.Id, cancellationToken);
         var existingEvidence = await repository.GetCompletionEvidenceAsync(
             userId, content.Id, cancellationToken);
