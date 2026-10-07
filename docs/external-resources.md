@@ -90,7 +90,7 @@ These are editorial assessments, not proof of learner satisfaction, retention or
 - **P2 (fixed):** Shared loading/not-found/error copy incorrectly called external content a lesson. Use neutral learning-content wording. Resource detail now explicitly frames its existing curator summary as **Why this resource**; source remains visible above the title and in **Read on Microsoft Learn**.
 - **Later:** Bookmark, planned reading and personal Knowledge notes are distinct needs, not defects. No recurring user need for any of them has been established. Feedback was requested rather than invented.
 
-### Interaction decision
+### Days 5–6 provisional interaction decision
 
 **Selected for now: current resource interaction is sufficient; keep Open-only.** Keep the trusted-resource section, with its value provisional pending real-user reading. No resource state, bookmark domain, analytics, completion, History, Study Plan or Knowledge shortcut is added. Returning to Discover or Browse is a valid end to the flow; persistent resource visibility is not itself a bug.
 
@@ -99,3 +99,13 @@ If the user repeatedly reports “I want to study this later,” Study Plan inte
 **Still pending before product closure:** human 10-second scan/visual navigation assessment, actual external-tab interaction, useful-depth verdict after reading, realistic reading-time feedback and the desired post-resource action. Do not mark those as dogfooded merely because API/component checks pass. Day 7 should use that feedback to confirm closure or identify a specific remaining bottleneck.
 
 Validation stayed lightweight: 28 existing Discover/Learn component cases passed (one resource-card assertion extended, no new suite), frontend type-check and touched-file ESLint/oxlint passed. No backend implementation or schema changed, so no full backend regression was rerun. Live navigation smoke covered five Browse resources and four Discover resources; progress/evidence/weakness row fingerprints and Analytics Overview remained identical. Safe internal return routes and the unchanged new-tab/`noopener noreferrer` source anchor were inspected in code; browser behavior is explicitly pending.
+
+## Day 7 final decision — discovery phase closed
+
+The Day 7 product plan explicitly supersedes the provisional interaction decision above: **close Curated External Resource Discovery for the current five-resource catalog; manual curation remains sufficient; select minimal External Resource → Study Plan integration as the next phase.** This is a product/editorial checkpoint, not a claim of measured learner satisfaction or mastery. Human reading-time and longer-term usefulness feedback remain open quality inputs, not reasons to add tracking.
+
+Resources remain Open-only today. Resource Open ≠ Completion ≠ Active Day; EstimatedMinutes ≠ StudyMinutes. No resource progress, Learning History, Weak Topic improvement, Knowledge/Review generation, bookmark state, provider ingestion or external completion entity is introduced. Archive broken, outdated, superseded, low-quality or no-longer-suitable resources without hard deleting stable identities; Archived/Draft remain excluded from catalog/Discover and normal detail returns 404.
+
+Next phase must represent **future study intent**, not indefinite URL storage. StudySessionItem Completed ≠ ExternalResource Completed. Explicitly finishing a planned task must not create LearningContentCompleted evidence or increase LessonsCompleted. Existing session activity/actual-duration rules may apply once, through Study, never a second resource activity or a conversion of estimated reading minutes. Bookmarking, crawlers, provider interfaces/sync and AI enrichment stay deferred. No Week 9 implementation is authorized by this checkpoint itself.
+
+See [Week 8 validation](v2-week8-validation.md) for the limited browser smoke, remaining outbound-tab observation limitation and checkpoint evidence.

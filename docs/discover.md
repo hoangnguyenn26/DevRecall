@@ -92,3 +92,9 @@ Ranking uses capped semantic relevance (weak 40, goal 30, primary technology 20 
 The UI now displays **Recommended for you**, **Trusted resources for your topics**, and **Browse all learning content**. Legacy weak/goal arrays remain in the API for compatibility but duplicate secondary UI sections are hidden. Empty resources hide; resource-only results are valid when internal lessons are exhausted. Cards show kind/source, approximate `~N min`, **Why this resource** and **Open resource**. Navigation goes to `/app/learn/{slug}?returnTo=/app/discover`, then the existing safe, new-tab source CTA. No mutation or tracking occurs on either navigation.
 
 Resources may remain visible across repeated visits and after completing matching lessons. This is intentional for the small curated pool, not implied progression or personalized reading-history tracking. No ResourceSeen, bookmark/history, Study Plan, Knowledge or Review integration is added. Improving curation/metadata is preferred over changing weights if recommendations feel like extra links.
+
+## Week 8 closure
+
+Curated External Resource Discovery is closed for the current manually reviewed catalog. Internal lessons answer “What should I learn next?”; trusted resources answer “What reliable material can help me go deeper?” Separate candidate pools, semantic relevance and no-padding remain the contract. Resource Open creates no completion evidence, Active Day or StudyMinutes; resources never become NotStarted through a null-progress fallback.
+
+The Day 7 plan selects **minimal External Resource → Study Plan integration** next, not bookmarking or ingestion. It is future study intent and has not been implemented here. Finishing a future StudySessionItem must not complete the external resource, increase LessonsCompleted or duplicate existing Study activity/duration. See [Week 8 checkpoint](v2-week8-validation.md).
