@@ -51,7 +51,8 @@ describe('Discover foundation', () => {
     expect(wrapper.text()).not.toContain('Trusted resources for your topics')
   })
   it('keeps resources available without lesson suggestions and uses navigation only', () => {
-    const resource: DiscoverResource = { ...item, slug: 'concurrency-docs', resourceKind: 'Documentation', sourceName: 'Microsoft Learn' }
+    const resource: DiscoverResource = { ...item, slug: 'concurrency-docs', resourceKind: 'Documentation', sourceName: 'Microsoft Learn',
+      technologies: [{ value: 'EfCore', label: 'EF Core' }], topics: [{ slug: 'concurrency', name: 'Concurrency' }] }
     const page = mountPage({ profileConfigured: true, recommended: [], basedOnGoals: [], basedOnWeakTopics: [], trustedResources: [resource] }).wrapper
     expect(page.text()).toContain('Trusted resources for your topics')
     expect(page.text()).not.toContain('No matching learning suggestions')
@@ -63,6 +64,7 @@ describe('Discover foundation', () => {
     expect(card.text()).toContain('Why this resource')
     expect(card.text()).toContain('Open resource')
     expect(card.text()).not.toContain('Not started')
+    expect(card.find('.tags').exists()).toBe(false) // Context remains on detail, not a metadata wall on the card.
     expect(card.find('a').attributes('data-to')).toContain('/app/learn/concurrency-docs')
     expect(card.find('a').attributes('data-to')).toContain('/app/discover')
     expect(discoverReasons({ ...resource, reasons: [{ type: 'TimeFit', availableMinutes: 15 }, { type: 'WeakTopicMatch', label: 'Concurrency' }] }, true))

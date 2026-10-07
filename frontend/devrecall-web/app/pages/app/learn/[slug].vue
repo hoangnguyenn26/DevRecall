@@ -84,23 +84,23 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
 <template>
   <main class="lesson-page">
     <UButton :to="sessionId ? `/app/study-sessions/${sessionId}` : returnTo" icon="i-lucide-arrow-left" color="neutral" variant="ghost">{{ sessionId ? 'Back to Study Session' : returnLabel }}</UButton>
-    <CoreLoadingState v-if="lessonQuery.isPending.value" label="Loading lesson" />
+    <CoreLoadingState v-if="lessonQuery.isPending.value" label="Loading learning content" />
     <section v-else-if="lessonQuery.error.value?.status === 404" class="lesson-state">
-      <CoreEmptyState title="Lesson not found" description="It may have been removed or is no longer available." icon="i-lucide-book-x">
+      <CoreEmptyState title="Learning content not found" description="It may have been removed or is no longer available." icon="i-lucide-book-x">
         <UButton :to="returnTo">{{ returnLabel }}</UButton>
       </CoreEmptyState>
     </section>
-    <CoreErrorState v-else-if="lessonQuery.error.value" title="We couldn't load this lesson" description="The app remains available. Retry this lesson when you're ready." :error="lessonQuery.error.value" @retry="lessonQuery.refresh" />
+    <CoreErrorState v-else-if="lessonQuery.error.value" title="We couldn't load this learning content" description="The app remains available. Retry when you're ready." :error="lessonQuery.error.value" @retry="lessonQuery.refresh" />
     <article v-else-if="lesson?.contentType === 'ExternalResource'" class="lesson">
       <header class="lesson-header">
         <p class="section-kicker">{{ resourceKindLabel(lesson.resourceKind) }} · {{ lesson.source.name }}</p>
         <h1>{{ lesson.title }}</h1>
-        <p class="summary">{{ lesson.summary }}</p>
         <div class="primary-meta"><UBadge :color="difficultyColor(lesson.difficulty)" variant="subtle">{{ lesson.difficulty }}</UBadge><span>~{{ lesson.estimatedMinutes }} min reading estimate</span></div>
         <div class="tags" aria-label="Resource topics and technologies"><span v-for="item in technologies.visible" :key="item.value">{{ item.label }}</span><span v-for="item in topics.visible" :key="item.slug">{{ item.name }}</span></div>
       </header>
       <section class="lesson-section">
-        <h2>About this resource</h2>
+        <h2>Why this resource</h2>
+        <p class="summary">{{ lesson.summary }}</p>
         <p>This is a curated reference hosted by {{ lesson.source.name }}, not a DevRecall lesson. The reading estimate is for planning only.</p>
         <UButton v-if="resourceUrl" :to="resourceUrl" target="_blank" rel="noopener noreferrer" trailing-icon="i-lucide-external-link">Read on {{ lesson.source.name }}</UButton>
         <p v-else>This source link is unavailable.</p>

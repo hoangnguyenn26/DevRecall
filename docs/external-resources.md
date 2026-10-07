@@ -61,3 +61,41 @@ The existing Discover fixture now chooses lesson-only progress sources and expec
 Scoped checks passed: 14 Discover application cases, 14 Discover frontend cases, four API smoke cases and one PostgreSQL reader case. The existing API scenario additionally completes all EF-focused lessons and confirms the two EF resources remain; changing to an unrelated technology/goal clears both pools. The reader verifies published external eligibility, archive exclusion, unchanged lesson results, no tracking and no progress/evidence writes. No full suite or browser check was run.
 
 Type-check, touched-file ESLint/oxlint and API/Nuxt production builds passed. The pre-existing Nitro unused-import warning remains. Rebuilt API/web containers and PostgreSQL are healthy. Authenticated production smoke returned four lessons plus four resources for the existing broad .NET/backend profile, verified resource detail has null progress, repeated results are stable and global progress/evidence counts remain 3/2. These are technical/synthetic checks, not a claim that a human found the sources useful after reading them. The planned next dogfood checkpoint should decide whether curation feels complementary; no bookmark, tracking or study integration is inferred from this release.
+
+## Curation acceptance bar
+
+Before publishing, answer: **Why is this resource in DevRecall instead of asking the learner to search the web?** Publish only when it has a trustworthy source, a specific destination, useful depth beyond the internal lesson, conservative primary-value tags, a useful original summary and a manually checked stable URL. Prefer a concept-specific page to a documentation home. Archive unsuitable destinations; do not retain them to fill four cards.
+
+Summaries should explain coverage, value and when to use the source in one or two sentences, not reproduce the article or become a mini-lesson. Existing summaries already meet this bar sufficiently; they were kept rather than rewritten for cosmetic churn. Intermediate difficulty remains appropriate for sources assuming framework context. Approximate minutes mean a focused pass through relevant sections, not a guaranteed exhaustive reading of every example/link. Especially DI and cancellation require selective reading; human timing remains unvalidated.
+
+## Days 5–6 editorial and semantics checkpoint
+
+The existing dogfood account/profile was left unchanged. Starting from live Discover returned middleware, DI, cancellation and tracking resources with truthful backend-goal/.NET reasons. Detail was then inspected through the same-origin API; source pages were read with the research tool and compared with the internal lessons. Concurrency was also evaluated through Browse because the independent top-four pool need not expose every relevant resource at once. No weights, authority points or taxonomy mappings were changed to make results look better.
+
+| Resource | Complementary value / editorial assessment |
+| --- | --- |
+| [Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-10.0) | Internal lesson teaches nesting/order; source adds branching and framework ordering/reference examples. Keep; focus on relevant sections rather than every middleware option. |
+| [Dependency injection](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-10.0) | Internal DI/lifetimes establish the mental model; source provides concrete framework usage and registration guidance. There is intentional introductory overlap, but implementation depth justifies keeping it. |
+| [Cancellation](https://learn.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads) | Internal lesson prioritizes request/token propagation; source extends observation mechanisms and token-source coordination. Intermediate, targeted reading; legacy thread examples are not a recommended application architecture. |
+| [Tracking](https://learn.microsoft.com/en-us/ef/core/querying/tracking) | Adds identity-resolution and projection nuances beyond the internal read/update decision. Specific destination and 15-minute focused allowance remain reasonable editorial judgments. |
+| [Concurrency](https://learn.microsoft.com/en-us/ef/core/saving/concurrency) | Internal lesson explains lost updates/expected versions; source adds provider-specific versus application-managed tokens and conflict-resolution details. SQL Server rowversion examples must not be mistaken for a PostgreSQL default. |
+
+These are editorial assessments, not proof of learner satisfaction, retention or a timed reading session. All five sources stay Published; no weak portal-style destination or clearly unrelated record was found to justify archiving. The research extractor exposed version/access notices alongside readable article content on Microsoft Learn; this does not establish a broken link or actual browser access failure. Destination/version presentation should still be checked in the requested Day 7 browser review.
+
+### Findings and fixes
+
+- **P0:** No evidence mutation found in the exercised read path. Live resource catalog/detail reads preserved full-row fingerprints of progress, completion evidence and Weak Topic profiles; Analytics Overview was identical before/after. Outbound CTA remains a plain checked URL/new-tab anchor, not an API mutation. Browser clicking was not exercised during these implementation days.
+- **P1:** No demonstrated curation/value defect requiring removal or metadata changes. Subjective usefulness remains a human dogfood question, not a technically passed gate.
+- **P2 (fixed):** Discover resource cards duplicated technology/topic chips alongside reasons. Hide these chips for resources only; retain kind/source, difficulty/approximate time and semantic reasons. Detail retains the fuller context.
+- **P2 (fixed):** Shared loading/not-found/error copy incorrectly called external content a lesson. Use neutral learning-content wording. Resource detail now explicitly frames its existing curator summary as **Why this resource**; source remains visible above the title and in **Read on Microsoft Learn**.
+- **Later:** Bookmark, planned reading and personal Knowledge notes are distinct needs, not defects. No recurring user need for any of them has been established. Feedback was requested rather than invented.
+
+### Interaction decision
+
+**Selected for now: current resource interaction is sufficient; keep Open-only.** Keep the trusted-resource section, with its value provisional pending real-user reading. No resource state, bookmark domain, analytics, completion, History, Study Plan or Knowledge shortcut is added. Returning to Discover or Browse is a valid end to the flow; persistent resource visibility is not itself a bug.
+
+If the user repeatedly reports “I want to study this later,” Study Plan integration is the next design candidate, not an authorized implementation. It must preserve **StudySessionItem completed ≠ ExternalResource completed**: explicit task completion may record the existing study-task fact, never LearningContent completion evidence or LessonsCompleted. Occasional link revisiting alone does not establish this need. Manual Knowledge creation remains available for personal understanding, not as disguised bookmarking.
+
+**Still pending before product closure:** human 10-second scan/visual navigation assessment, actual external-tab interaction, useful-depth verdict after reading, realistic reading-time feedback and the desired post-resource action. Do not mark those as dogfooded merely because API/component checks pass. Day 7 should use that feedback to confirm closure or identify a specific remaining bottleneck.
+
+Validation stayed lightweight: 28 existing Discover/Learn component cases passed (one resource-card assertion extended, no new suite), frontend type-check and touched-file ESLint/oxlint passed. No backend implementation or schema changed, so no full backend regression was rerun. Live navigation smoke covered five Browse resources and four Discover resources; progress/evidence/weakness row fingerprints and Analytics Overview remained identical. Safe internal return routes and the unchanged new-tab/`noopener noreferrer` source anchor were inspected in code; browser behavior is explicitly pending.
