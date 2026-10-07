@@ -104,6 +104,8 @@ useSeoMeta({ title: () => lesson.value?.title ?? 'Lesson' })
         <p>This is a curated reference hosted by {{ lesson.source.name }}, not a DevRecall lesson. The reading estimate is for planning only.</p>
         <UButton v-if="resourceUrl" :to="resourceUrl" target="_blank" rel="noopener noreferrer" trailing-icon="i-lucide-external-link">Read on {{ lesson.source.name }}</UButton>
         <p v-else>This source link is unavailable.</p>
+        <AddLessonToStudyPlan :slug="lesson.slug" :completed="false" content-type="ExternalResource" />
+        <p class="muted">Plan a study task for later. Opening this source does not complete the task or record lesson progress.</p>
         <p class="calm-status">You'll leave DevRecall in a new tab. Opening this resource does not record progress, completion or study time.</p>
       </section>
     </article>

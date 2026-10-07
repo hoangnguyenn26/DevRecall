@@ -2,6 +2,7 @@
 import type { StudyPlanDetail } from '../study-plan.types'
 import { getStudyPlanStatusMeta, studyPlanResourceMeta } from '../study-plan.meta'
 import { formatMinutes } from '~/utils/format'
+import { resourceKindLabel } from '~/features/learning-content/learning-content.meta'
 
 defineProps<{ detail: StudyPlanDetail }>()
 const emit = defineEmits<{ edit: []; start: [] }>()
@@ -54,7 +55,8 @@ const emit = defineEmits<{ edit: []; start: [] }>()
         <span>{{ item.plannedDurationMinutes }} min</span>
         <UButton
           v-if="item.resourceType === 'LearningContent' && item.isResourceAvailable && item.resourceKey"
-          :to="`/app/learn/${item.resourceKey}`" label="Open lesson" color="neutral" variant="ghost" />
+          :to="`/app/learn/${item.resourceKey}`" :label="item.contentType === 'ExternalResource' ? 'Open resource' : 'Open lesson'" color="neutral" variant="ghost" />
+        <p v-if="item.contentType === 'ExternalResource'">{{ resourceKindLabel(item.resourceKind) }} · {{ item.sourceName }}</p>
       </li>
     </ol>
     <CoreEmptyState

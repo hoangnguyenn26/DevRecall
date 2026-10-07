@@ -85,7 +85,9 @@ internal sealed class StudyResourceSummaryReader(DevRecallDbContext dbContext)
             results.AddRange(await dbContext.LearningContents.AsNoTracking()
                 .Where(item => lessonIds.Contains(item.Id))
                 .Select(item => new StudyResourceSummary(StudyResourceType.LearningContent,
-                    item.Id, item.Title, item.Summary, item.Slug)).ToListAsync(cancellationToken));
+                    item.Id, item.Title, item.Summary, item.Slug, item.ContentType.ToString(), item.SourceName,
+                    item.ResourceKind == null ? null : item.ResourceKind.ToString(),
+                    item.Status == Domain.LearningContent.ContentStatus.Published)).ToListAsync(cancellationToken));
         }
 
         return results;

@@ -24,7 +24,8 @@ public sealed record StudyPlanDetailItem(
     Guid ItemId, Guid? SourceRecommendationId, string SourceType,
     string ResourceType, Guid ResourceId, string ResourceTitle,
     string? ResourcePreview, bool IsResourceAvailable,
-    int PlannedDurationMinutes, int Position, string? ResourceKey = null);
+    int PlannedDurationMinutes, int Position, string? ResourceKey = null, string? ContentType = null,
+    string? SourceName = null, string? ResourceKind = null);
 
 public sealed record GetStudyPlanDetailResult(
     Guid StudyPlanId, string Title, string Status,
@@ -88,7 +89,8 @@ public sealed class GetStudyPlanDetailHandler(
                     item.ResourceId,
                     resource?.Title ?? "Unavailable resource",
                     resource?.Preview, resource?.IsAvailable ?? false,
-                    item.PlannedDurationMinutes, item.Position, resource?.PublicKey);
+                    item.PlannedDurationMinutes, item.Position, resource?.PublicKey,
+                    resource?.ContentType, resource?.SourceName, resource?.ResourceKind);
             }).ToArray();
         return new(
             plan.StudyPlanId, plan.Title, plan.Status.ToString(), items.Length,

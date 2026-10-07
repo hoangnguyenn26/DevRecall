@@ -109,3 +109,35 @@ Resources remain Open-only today. Resource Open ≠ Completion ≠ Active Day; E
 Next phase must represent **future study intent**, not indefinite URL storage. StudySessionItem Completed ≠ ExternalResource Completed. Explicitly finishing a planned task must not create LearningContentCompleted evidence or increase LessonsCompleted. Existing session activity/actual-duration rules may apply once, through Study, never a second resource activity or a conversion of estimated reading minutes. Bookmarking, crawlers, provider interfaces/sync and AI enrichment stay deferred. No Week 9 implementation is authorized by this checkpoint itself.
 
 See [Week 8 validation](v2-week8-validation.md) for the limited browser smoke, remaining outbound-tab observation limitation and checkpoint evidence.
+
+## Study planning integration
+
+The Week 9 implementation supersedes the Open-only interaction boundary above, without introducing
+external-resource completion. Resource detail retains **Read on Microsoft Learn** as primary and
+offers **Add to Study Plan** as secondary future study intent. Discover remains Open-only.
+The existing Draft-plan picker, LearningContent resource type, expectedVersion and submission IDs
+are reused; there is no bookmark table, global Planned/Read status or schema migration.
+
+| Action | Meaning | Learning evidence |
+| --- | --- | --- |
+| Add to owned Draft plan | Future study intent, deduplicated within that plan | None |
+| Convert/Start | Existing Study Session orchestration and snapshots | None |
+| Open resource/source | Read-only navigation, external source in a new tab | None |
+| Mark study task complete | Explicit completion of one owned Session task | No lesson/resource completion evidence |
+
+Lesson tasks still require fresh canonical lesson evidence; this is not a generic manual completion
+escape hatch. Archived sources disable open/finish for pending tasks but retain historical context.
+Existing Study activity and actual-duration semantics apply once, not a separate resource activity;
+EstimatedMinutes are planning hints only. Resource task completion does not affect Discover eligibility,
+Learning History, LessonsCompleted or Weak Topics. See [Study Experience](study-experience.md).
+
+### Scoped implementation verification
+
+PostgreSQL-backed API smoke covers plan options, owned Draft additions/deduplication, conversion,
+read-only detail navigation, explicit task finish, cross-user rejection, unchanged lesson counters,
+archive-safe history/replay and rejection of pending archived tasks. The same scenario verifies that
+a Lesson session item still rejects manual completion without evidence. The existing external-resource
+Start/Complete/Knowledge/Review rejection smoke and two existing plan-handler cases also passed.
+Frontend checks covered 19 relevant Learn/plan/session cases, type-check and touched-file lint.
+No full suite or browser dogfood was run; actual source reading/navigation UX remains for the requested
+checkpoint. No production data was reseeded or migrated.

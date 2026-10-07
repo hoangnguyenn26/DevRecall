@@ -1,5 +1,6 @@
 using DevRecall.Application.Study.Items.Complete;
 using DevRecall.Domain.Study;
+using DevRecall.Domain.LearningContent;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,13 +9,21 @@ namespace DevRecall.Infrastructure.Study;
 internal sealed class StudySessionEvidenceValidator(DevRecallDbContext dbContext)
     : IStudySessionEvidenceValidator
 {
-    public Task<bool> IsValidAsync(
+    public async Task<bool> IsValidAsync(
         Guid userId, StudyResourceType resourceType, Guid resourceId,
-        Guid? evidenceId, DateTimeOffset? sessionStartedAtUtc, CancellationToken cancellationToken) =>
-        resourceType == StudyResourceType.LearningContent && (evidenceId is null || sessionStartedAtUtc is null)
-        ? Task.FromResult(false)
-        : evidenceId is null ? Task.FromResult(true)
-        : resourceType switch
+        Guid? evidenceId, DateTimeOffset? sessionStartedAtUtc, CancellationToken cancellationToken)
+    {
+        if (resourceType == StudyResourceType.LearningContent)
+        {
+            var content = await dbContext.LearningContents.AsNoTracking().Where(item => item.Id == resourceId)
+                .Select(item => new { item.ContentType, item.Status }).SingleOrDefaultAsync(cancellationToken);
+            if (content is null) return false;
+            if (content.ContentType == LearningContentType.ExternalResource)
+                return content.Status == ContentStatus.Published && sessionStartedAtUtc is not null && evidenceId is null;
+            if (evidenceId is null || sessionStartedAtUtc is null) return false;
+        }
+        if (evidenceId is null) return true;
+        return await (resourceType switch
         {
             StudyResourceType.KnowledgeNode => Task.FromResult(false),
             StudyResourceType.InterviewQuestion when evidenceId is not null =>
@@ -35,5 +44,6 @@ internal sealed class StudySessionEvidenceValidator(DevRecallDbContext dbContext
                         && evidence.CompletedAtUtc >= sessionStartedAtUtc.Value,
                     cancellationToken),
             _ => Task.FromResult(false)
-        };
+        });
+    }
 }

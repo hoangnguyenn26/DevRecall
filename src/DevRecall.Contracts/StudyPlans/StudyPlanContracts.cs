@@ -27,7 +27,7 @@ public sealed record StudyPlanItemResponse(
     bool IsResourceAvailable,
     int PlannedDurationMinutes,
     int Position,
-    string? ResourceKey = null);
+    string? ResourceKey = null, string? ContentType = null, string? SourceName = null, string? ResourceKind = null);
 
 public sealed class GetStudyPlansRequest
 {

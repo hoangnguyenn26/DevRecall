@@ -148,7 +148,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', shortcut))
             <strong>{{ item.resourceTitle }}</strong
             ><span
               ><UIcon :name="studyPlanResourceMeta[item.resourceType].icon" />
-              {{ studyPlanResourceMeta[item.resourceType].label }}</span
+              {{ item.contentType === 'ExternalResource' ? `External resource · ${item.sourceName}` : studyPlanResourceMeta[item.resourceType].label }}</span
             >
           </div>
           <UFormField :label="`Planned minutes for ${item.resourceTitle}`"

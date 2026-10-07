@@ -43,7 +43,8 @@ public sealed class CompleteStudySessionItemHandler(
             ?? throw new NotFoundException(
                 StudySessionErrors.ItemNotFound.Code,
                 StudySessionErrors.ItemNotFound.Message);
-        if (!await evidenceValidator.IsValidAsync(
+        var alreadyCompleted = item.Status == StudySessionItemStatus.Completed && item.CompletionSubmissionId == command.SubmissionId;
+        if (!alreadyCompleted && !await evidenceValidator.IsValidAsync(
             userId, item.ResourceType, item.ResourceId,
             command.EvidenceId, session.StartedAtUtc, cancellationToken))
         {

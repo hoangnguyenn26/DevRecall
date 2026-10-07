@@ -3,6 +3,9 @@ export interface StudySessionItem {
   resourceType: 'KnowledgeNode' | 'InterviewQuestion' | 'DsaProblem' | string
   resourceId: string
   resourceKey?: string
+  contentType?: 'Lesson' | 'ExternalResource'
+  sourceName?: string
+  resourceKind?: string
   resourceTitle: string
   resourcePreview?: string
   isResourceAvailable: boolean

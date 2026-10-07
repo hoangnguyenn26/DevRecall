@@ -255,5 +255,5 @@ public static class StudyPlanEndpoints
             item.ItemId, item.SourceRecommendationId, item.SourceType,
             item.ResourceType, item.ResourceId, item.ResourceTitle,
             item.ResourcePreview, item.IsResourceAvailable,
-            item.PlannedDurationMinutes, item.Position, item.ResourceKey);
+            item.PlannedDurationMinutes, item.Position, item.ResourceKey, item.ContentType, item.SourceName, item.ResourceKind);
 }

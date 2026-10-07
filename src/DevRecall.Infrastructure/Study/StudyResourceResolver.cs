@@ -29,7 +29,7 @@ internal sealed class StudyResourceResolver(
         if (resourceType == StudyResourceType.LearningContent)
         {
             var lesson = await dbContext.LearningContents.AsNoTracking()
-                .Where(item => item.Id == resourceId && item.ContentType == LearningContentType.Lesson)
+                .Where(item => item.Id == resourceId)
                 .Select(item => new { item.Id, item.Title, item.Summary, item.Status })
                 .SingleOrDefaultAsync(cancellationToken);
             return lesson is null ? null : new StudyResourceResolution(resourceType, lesson.Id,

@@ -3,7 +3,8 @@ import type { StudyPlanListItem } from '~/features/study-plans/study-plan.types'
 import { useStudyPlanApi } from '~/features/study-plans/study-plan.api'
 import { normalizeApiError } from '~/utils/normalize-api-error'
 
-const props = defineProps<{ slug: string; completed: boolean }>()
+const props = defineProps<{ slug: string; completed: boolean; contentType?: 'Lesson' | 'ExternalResource' }>()
+const contentLabel = computed(() => props.contentType === 'ExternalResource' ? 'resource' : 'lesson')
 const api = useStudyPlanApi()
 const open = ref(false)
 const loading = ref(false)
@@ -35,14 +36,14 @@ async function add() {
   try {
     result.value = await api.addLearningContent(plan.studyPlanId, props.slug,
       plan.version, submissionId.value)
-  } catch (cause) { error.value = normalizeApiError(cause).detail ?? 'The lesson could not be added.' }
+  } catch (cause) { error.value = normalizeApiError(cause).detail ?? `The ${contentLabel.value} could not be added.` }
   finally { loading.value = false }
 }
 </script>
 
 <template>
   <UButton icon="i-lucide-calendar-plus" color="neutral" variant="outline" @click="show">Add to Study Plan</UButton>
-  <UModal v-model:open="open" title="Add to Study Plan" description="Choose where you'd like to study this lesson.">
+  <UModal v-model:open="open" title="Add to Study Plan" :description="`Choose where you'd like to study this ${contentLabel}.`">
     <template #body>
       <div class="plan-dialog">
         <UAlert v-if="completed" color="neutral" variant="subtle" title="Already completed" description="Use Review or Read again to revisit this lesson." />
@@ -51,14 +52,15 @@ async function add() {
           <UAlert color="success" variant="subtle" :title="result.added ? `Added to ${result.planTitle}` : `Already in ${result.planTitle}`" />
           <div class="actions"><UButton :to="`/app/study-plans/${result.studyPlanId}`">View plan</UButton><UButton color="neutral" variant="ghost" @click="open = false">Done</UButton></div>
         </template>
-        <CoreEmptyState v-else-if="!plans.length" title="No editable study plan" description="Create a Draft plan before adding this lesson.">
+        <CoreErrorState v-else-if="error && !plans.length" :error="new Error(error)" @retry="show" />
+        <CoreEmptyState v-else-if="!plans.length" title="No editable study plan" :description="`Create a Draft plan before adding this ${contentLabel}.`">
           <UButton to="/app/study-plans">Create Study Plan</UButton>
         </CoreEmptyState>
         <template v-else>
           <label v-for="plan in plans" :key="plan.studyPlanId" class="plan-option" :class="{ disabled: plan.containsLesson }">
             <input v-model="selectedId" type="radio" :value="plan.studyPlanId" :disabled="plan.containsLesson"><span><strong>{{ plan.title }}</strong><small>{{ plan.containsLesson ? 'Already added' : `${plan.itemCount} items · ${plan.totalPlannedDurationMinutes} min` }}</small></span>
           </label>
-          <UAlert v-if="error" color="error" variant="subtle" title="Lesson wasn't added" :description="error" />
+          <UAlert v-if="error" color="error" variant="subtle" title="Content wasn't added" :description="error" />
           <div class="actions"><UButton color="neutral" variant="ghost" @click="open = false">Cancel</UButton><UButton :loading="loading" :disabled="!selectedId" @click="add">Add to plan</UButton></div>
         </template>
       </div>

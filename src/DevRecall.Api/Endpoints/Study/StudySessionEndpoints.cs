@@ -114,7 +114,7 @@ public static class StudySessionEndpoints
                     item.Evidence.AttemptId, item.Evidence.Kind,
                     item.Evidence.Outcome, item.Evidence.DurationSeconds,
                     item.Evidence.TimeComplexity),
-                item.CreatedAtUtc, item.UpdatedAtUtc, item.ResourceKey)).ToList()));
+                item.CreatedAtUtc, item.UpdatedAtUtc, item.ResourceKey, item.ContentType, item.SourceName, item.ResourceKind)).ToList()));
     }
 
     private static async Task<IResult> UpdateAsync(

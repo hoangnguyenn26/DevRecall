@@ -12,7 +12,7 @@ public sealed record StudyPlanResourceSummary(
     string Title,
     string? Preview,
     bool IsAvailable,
-    string? PublicKey = null);
+    string? PublicKey = null, string? ContentType = null, string? SourceName = null, string? ResourceKind = null);
 
 public interface IStudyPlanResourceSummaryReader
 {

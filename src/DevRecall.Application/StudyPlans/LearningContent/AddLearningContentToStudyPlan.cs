@@ -46,7 +46,7 @@ public sealed class AddLearningContentToStudyPlanHandler(IStudyPlanRepository re
             || command.SubmissionId == Guid.Empty || string.IsNullOrWhiteSpace(command.Slug))
             throw new ValidationException(new Dictionary<string, string[]>
             {
-                ["request"] = ["Plan, lesson, expected version and submission id are required."]
+                ["request"] = ["Plan, learning content, expected version and submission id are required."]
             });
         var userId = currentUser.UserId ?? throw new UnauthorizedException(
             "AUTH_REQUIRED", "Authentication is required.");

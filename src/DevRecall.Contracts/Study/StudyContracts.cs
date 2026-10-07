@@ -105,7 +105,7 @@ public sealed record StudySessionDetailItemResponse(
     string? Notes, StudySessionEvidenceResponse? Evidence,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
-    string? ResourceKey = null);
+    string? ResourceKey = null, string? ContentType = null, string? SourceName = null, string? ResourceKind = null);
 
 public sealed record StudySessionEvidenceResponse(
     Guid AttemptId, string Kind, string Outcome,

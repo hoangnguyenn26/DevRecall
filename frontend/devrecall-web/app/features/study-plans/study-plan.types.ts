@@ -25,6 +25,9 @@ export interface StudyPlanItem {
   plannedDurationMinutes: number
   position: number
   resourceKey?: string
+  contentType?: 'Lesson' | 'ExternalResource'
+  sourceName?: string
+  resourceKind?: string
 }
 
 export interface StudyPlanDetail extends StudyPlanListItem {

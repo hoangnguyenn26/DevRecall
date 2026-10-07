@@ -4,6 +4,7 @@ import type { PracticeShellContext } from '~/features/practice/practice.types'
 import PracticeShell from '~/features/practice/components/PracticeShell.vue'
 import PracticeLoadingState from '~/features/practice/components/PracticeLoadingState.vue'
 import PracticeErrorState from '~/features/practice/components/PracticeErrorState.vue'
+import { resourceKindLabel } from '~/features/learning-content/learning-content.meta'
 import { studySessionItemTarget } from '../study-session.actions'
 import { useStudySessionApi } from '../study-session.api'
 import type { StudySessionDetail, StudySessionItem } from '../study-session.types'
@@ -17,6 +18,7 @@ const loading = ref(true)
 const error = ref<unknown>()
 const pending = ref(false)
 const conflict = ref(false)
+const refreshWarning = ref(false)
 const reflection = ref('')
 const savedReflection = ref('')
 const reflectionSaved = ref(false)
@@ -49,6 +51,7 @@ async function load(): Promise<void> {
   loading.value = true
   error.value = undefined
   conflict.value = false
+  refreshWarning.value = false
   try {
     detail.value = await api.detail(props.sessionId)
     reflection.value = detail.value.reflection ?? ''
@@ -63,6 +66,7 @@ async function skip(item: StudySessionItem): Promise<void> {
   if (
     !detail.value ||
     pending.value ||
+    conflict.value || refreshWarning.value ||
     !(await confirmDialog.open({
       title: 'Skip this learning item?',
       description: 'You can continue with the rest of the session.',
@@ -86,8 +90,17 @@ async function skip(item: StudySessionItem): Promise<void> {
     pending.value = false
   }
 }
-async function completeKnowledge(item: StudySessionItem): Promise<void> {
-  if (!detail.value || pending.value) return
+function canCompleteTask(item: StudySessionItem): boolean {
+  return item.isResourceAvailable && (item.resourceType === 'KnowledgeNode'
+    || (item.resourceType === 'LearningContent' && item.contentType === 'ExternalResource'))
+}
+function resourceLabel(item: StudySessionItem): string {
+  if (item.contentType === 'ExternalResource') return `${resourceKindLabel(item.resourceKind)} · ${item.sourceName ?? 'Curated source'}`
+  if (item.resourceType === 'LearningContent') return 'Lesson'
+  return item.resourceType
+}
+async function completeTask(item: StudySessionItem): Promise<void> {
+  if (!detail.value || pending.value || conflict.value || refreshWarning.value || !canCompleteTask(item)) return
   pending.value = true
   try {
     await api.completeItem(
@@ -96,7 +109,12 @@ async function completeKnowledge(item: StudySessionItem): Promise<void> {
       detail.value.version,
       submissionId(item.id, 'complete'),
     )
-    await Promise.all([load(), afterStudySessionChanged()])
+    try {
+      detail.value = await api.detail(props.sessionId)
+      await afterStudySessionChanged()
+    } catch {
+      refreshWarning.value = true
+    }
   } catch (cause) {
     if (cause instanceof ApiError && cause.problem.status === 409) conflict.value = true
     else error.value = cause
@@ -164,6 +182,9 @@ onMounted(load)
       @retry="load"
     />
     <div v-else-if="detail" class="session">
+      <UAlert v-if="refreshWarning" color="warning" title="Study task saved" description="The latest session could not be refreshed. Reload before continuing.">
+        <template #actions><UButton label="Reload session" @click="load" /></template>
+      </UAlert>
       <p class="sr-only" aria-live="polite">
         {{ handled }} of {{ detail.progress.totalItems }} learning items handled.
         {{ detail.progress.completedItems }} completed,
@@ -214,7 +235,7 @@ onMounted(load)
             <div>
               <strong>{{ item.resourceTitle }}</strong>
               <p>
-                {{ item.resourceType }} · {{ item.plannedDurationMinutes }} min · {{ item.status }}
+                {{ resourceLabel(item) }} · {{ item.plannedDurationMinutes }} min · {{ item.status }}
               </p>
               <p v-if="item.hasEvidence && item.evidence">
                 {{
@@ -263,7 +284,8 @@ onMounted(load)
           </p>
           <p>Current learning item</p>
           <h1>{{ current.resourceTitle }}</h1>
-          <span>{{ current.resourceType }} · ~{{ current.plannedDurationMinutes }} min</span>
+          <span>{{ resourceLabel(current) }} · ~{{ current.plannedDurationMinutes }} min</span>
+          <p v-if="current.contentType === 'ExternalResource'">Open the source, then explicitly finish your planned study task. This does not mark the resource as a completed lesson.</p>
           <p v-if="!current.isResourceAvailable" class="unavailable">
             This item can no longer be opened. Skip it to continue.
           </p>
@@ -273,17 +295,19 @@ onMounted(load)
               :to="studySessionItemTarget(detail.id, current)!"
               :label="
                 current.resourceType === 'KnowledgeNode' ? 'Open knowledge'
-                  : current.resourceType === 'LearningContent' ? 'Open lesson' : 'Start practice'
+                  : current.resourceType === 'LearningContent' ? (current.contentType === 'ExternalResource' ? 'Open resource' : 'Open lesson') : 'Start practice'
               "
               icon="i-lucide-play"
             /><UButton
-              v-if="current.resourceType === 'KnowledgeNode' && current.isResourceAvailable"
-              label="Mark complete"
+              v-if="canCompleteTask(current)"
+              :label="current.contentType === 'ExternalResource' ? 'Mark study task complete' : 'Mark complete'"
+              :disabled="pending || conflict || refreshWarning"
               color="success"
               variant="outline"
-              @click="completeKnowledge(current)"
+              @click="completeTask(current)"
             /><UButton
               :label="`Skip ${current.resourceTitle}`"
+              :disabled="pending || conflict || refreshWarning"
               color="neutral"
               variant="outline"
               @click="skip(current)"

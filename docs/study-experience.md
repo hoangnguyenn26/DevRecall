@@ -18,7 +18,7 @@ Starting a Session snapshots the ordered learning items, resource titles, and pl
 
 ## Evidence and practice handoff
 
-Knowledge items use explicit completion. Interview and DSA items may be completed with a validated, owner-scoped practice attempt matching the item resource. Learning Content items require the canonical lesson-completion evidence to belong to the same user and lesson and to have been created after the Session started. Evidence summaries are bounded projections and never include full answers, code, solutions, or lesson bodies. Missing historical evidence does not make the Session unreadable.
+Knowledge items use explicit completion. Interview and DSA items may be completed with a validated, owner-scoped practice attempt matching the item resource. Learning Content **Lesson** items require the canonical lesson-completion evidence to belong to the same user and lesson and to have been created after the Session started. **ExternalResource** items instead use explicit study-task completion with no evidence ID, only while the source is Published and the Session has started. Evidence summaries are bounded projections and never include full answers, code, solutions, or lesson bodies. Missing historical evidence does not make the Session unreadable.
 
 Successful practice and successful Session-item completion are separate mutations. The practice result remains successful if the subsequent Session update fails. The frontend retains the same completion submission ID when retrying the Session mutation and does not resubmit the attempt.
 
@@ -36,6 +36,25 @@ Session context are rejected by the backend. A failed attachment leaves a valid 
 the lesson is Completed with evidence while the Session item remains pending.
 
 ## Idempotency and concurrency
+
+Published external resources can be manually added to an owned Draft plan through the existing
+Learning Content endpoint. The same resource in the same plan returns the existing item without
+changing its version; a different plan may contain the resource independently. External resources
+have no progress prerequisite. Completed lessons remain excluded from new plan additions.
+
+Plan and Session detail include `contentType`, `sourceName` and `resourceKind` for Learning Content.
+Plan titles use existing live metadata (no new plan snapshot schema); Session conversion retains
+the existing title/duration snapshot. Archived sources remain visible as unavailable historical
+items, cannot be newly added/converted, and pending external tasks cannot be finished. A previously
+successful completion submission may be replayed after archive without changing the task/version.
+
+Open resource navigates to its internal detail with Session context; the checked source URL opens
+in a separate tab. Returning to the Session preserves server state. Opening does not finish an item.
+Explicit **Mark study task complete** changes only the owned Session item and the existing Session
+lifecycle. It never creates resource progress, lesson completion evidence, Learning History,
+LessonsCompleted, Review evidence or Weak Topic attribution. Existing Study activity/actual elapsed
+duration may count once; estimated reading minutes are never recorded as actual study minutes.
+Discover keeps recommending relevant resources independently of planning/task completion.
 
 Plan conversion is idempotent for the converted plan. Complete and Skip commands carry a submission ID protected by a named unique constraint. Reusing the same submission for the same logical transition returns the existing state; reusing it for another item conflicts.
 

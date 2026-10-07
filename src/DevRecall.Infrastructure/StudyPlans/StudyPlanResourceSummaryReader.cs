@@ -66,8 +66,8 @@ internal sealed class StudyPlanResourceSummaryReader(
             result.AddRange(await dbContext.LearningContents.AsNoTracking()
                 .Where(x => lessonIds.Contains(x.Id))
                 .Select(x => new StudyPlanResourceSummary(StudyPlanResourceType.LearningContent,
-                    x.Id, x.Title, x.Summary, x.Status == ContentStatus.Published
-                        && x.ContentType == LearningContentType.Lesson, x.Slug))
+                    x.Id, x.Title, x.Summary, x.Status == ContentStatus.Published, x.Slug,
+                    x.ContentType.ToString(), x.SourceName, x.ResourceKind == null ? null : x.ResourceKind.ToString()))
                 .ToListAsync(cancellationToken));
         }
 
