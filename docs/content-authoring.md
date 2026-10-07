@@ -36,3 +36,13 @@ CandidateKey is a readable stable concept key within a lesson, e.g. `captive-dep
 Explicit Development seeding can fill missing candidates and perform guarded known-metadata upgrades. It does not automatically rewrite existing bodies/candidates or overwrite customized metadata. Any future editorial content upgrade needs its own bounded, identity-preserving change and regression check. No startup seed, destructive delete/reinsert, admin CMS or AI generation.
 
 The bounded editorial batch compares complete source text with known published seed baselines before revising it (the original eight lessons and the preceding authored batch). It updates wording in place while retaining objective/section positions and candidate IDs/keys; custom text is skipped. New lesson definitions and the revised batch live in `LearningContentSeeder.Curriculum.cs`, separate from the retained legacy baseline. Review each definition before using the existing Draft → Published seed construction. Do not extend this guard into a generic content synchronization engine.
+
+## Foundation closure and next authoring boundary
+
+The current 11 Published lessons pass the editorial foundation review; no current lesson is identified as requiring Draft demotion. Future internal expansion is demand-driven, not a target count. Preserve the flat catalog at this scale. REST foundations are a useful future gap, not a blocker to this vertical. Editorial review and agent-operated workflow smoke do not prove human retention; delayed cold recall remains user validation.
+
+Code-based authoring is still usable. Escaped Markdown and retained baseline duplication are maintenance friction to watch; extract Markdown plus a metadata manifest only if repeated authoring makes this painful. Do not build a CMS, Course, LearningPath or prerequisite graph to close this phase.
+
+Next-phase external resources are references, not DevRecall-taught lessons. Start with manually curated title, a short original description, URL, provider/source and truthful metadata/provenance. Prefer official documentation, official vendor guides, explicitly licensed educational sources, then selected trusted community material. Public access does not grant redistribution rights: do not copy full articles or scrape content. Source-provided metadata requires appropriate permission.
+
+Define engagement before integration. The safe initial direction is **Open external source only**, with no completion, learning evidence, Active Day or StudyMinutes from a click. Do not automatically add external links to Study Plans. Provider APIs, sync jobs, crawlers and AI summaries remain deferred. These are next-phase constraints, not functionality introduced by the foundation checkpoint.

@@ -27,7 +27,7 @@ Distribution: BF 11/11, IP 6/11, BP 3/11; DotNet 11, AspNetCore 5, EfCore 3, CSh
 
 ### In-place editorial upgrades
 
-`LearningContentSeeder.Curriculum.cs` contains the current authored batch; the prior eight definitions in `Samples` are retained only as the exact bounded upgrade baseline. Explicit Development seeding updates an existing Published, DevRecall-owned lesson only when its title, summary, objectives, sections and candidates still match that baseline. An editor's different text is skipped, not overwritten. This guard intentionally requires review for any customized legacy content that still contains an audit issue.
+`LearningContentSeeder.Curriculum.cs` contains the current authored batch; the prior eight definitions in `Samples` are retained as one exact bounded upgrade baseline. Explicit Development seeding updates an existing Published, DevRecall-owned lesson only when its title, summary, objectives, sections and candidates still match the original eight-lesson definition or the preceding authored-batch definition. An editor's different text is skipped, not overwritten. This guard intentionally requires review for any customized legacy content that still contains an audit issue.
 
 Revisions keep lesson IDs/slugs, objective/section IDs and positions, candidate IDs/keys, publication time and lifecycle. Only source wording and the stated metadata change. Created Knowledge/Review snapshots, progress, completion evidence and scheduling are untouched. This is not automatic source-to-user synchronization. Repeated seeding is a no-op after the upgrade. No migration or new authoring API is required.
 
@@ -45,7 +45,7 @@ Technical checks use primary documentation, not copied tutorials. Examples are s
 
 Passed one targeted Domain revision test, the existing PostgreSQL seed/progress/evidence/snapshot regression and eleven existing API cases for paging/filtering, two-profile Discover signals and Review snapshot stability. The snapshot assertion now checks the captured original prompt/answer rather than hard-coding editorial wording. No full-suite run or new per-lesson test matrix was added.
 
-The Docker Release API build succeeded and the updated API is healthy. Explicit seed created three lessons, then zero on repeat; complete lesson/section/candidate checksums were unchanged on the repeat. Existing eight IDs/slugs/status/publication times and candidate IDs were preserved, as were live Review rows. Live progress/evidence are empty; preservation with real Completed state and a sourced Review snapshot is covered by the PostgreSQL regression.
+At the authoring-batch checkpoint, the Docker Release API build succeeded and the updated API was healthy. Explicit seed created three lessons, then zero on repeat; complete lesson/section/candidate checksums were unchanged on the repeat. Existing eight IDs/slugs/status/publication times and candidate IDs were preserved, as were live Review rows. Live progress/evidence were empty at that checkpoint; preservation with real Completed state and a sourced Review snapshot was covered by the PostgreSQL regression. The later dogfood checkpoint below also checks live user state.
 
 The existing Markdown parser successfully processed all ten sections across Configuration/Options and API Error Handling, including C# and JSON code fences. This was a parser smoke, not visual browser QA or real timed learner dogfooding. Real curriculum dogfooding and qualitative friction assessment remain the next checkpoint.
 
@@ -61,7 +61,7 @@ The existing Markdown parser successfully processed all ten sections across Conf
 
 **Gaps:** No observed Critical gap blocked this flow. REST foundations are Useful, not a quota-driven addition. Caching, background jobs, observability, formal sequencing and feedback remain Later. Options and API Errors already exist, so neither was re-authored as a duplicate.
 
-**Decision:** Curriculum **Ready for the internal-foundation checkpoint**; navigation **Sufficient**; Discover **Useful** for this persona. The next bottleneck is broader reference depth and repeated human use, not another scoring mechanism. Day 7 can evaluate Option A (stop internal expansion, consider curated external resources); no external ingestion was implemented here.
+**Days 5–6 decision:** Curriculum **Ready for the internal-foundation checkpoint**; navigation **Sufficient**; Discover **Useful** for this persona. The next bottleneck is broader reference depth and repeated human use, not another scoring mechanism. No external ingestion was implemented here; the closure decision follows below.
 
 This was an agent-operated product/interaction dogfood, not proof of human learning or next-day retention. The Good/Again inputs intentionally exercised scheduling outcomes; they are not measured recall ability. True delayed cold recall and timing remain user validation. The disposable account/data are retained locally for reproducibility, separate from the demo user's data; no credentials are committed.
 
@@ -71,9 +71,44 @@ The async polish upgrades either the exact original eight-lesson text or the exa
 
 Reference for the async clarification: [C# asynchronous programming](https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/). No new test matrix, API contract, schema, ranking policy or lesson was added.
 
+## Internal learning foundation — final checkpoint
+
+Logical checkpoint: `v2-week-07-internal-learning-foundation` (a product milestone, not an automatically created Git tag).
+
+### Curriculum status
+
+- Published, editorially strong: **11**; Draft / identified as needing further polish: **0** in this curated seed catalog.
+- Critical content gaps for the current learning loop: **none observed**.
+- Useful future gap: REST API Fundamentals. Later possibilities: caching, background jobs and observability, only when demand justifies them.
+- Four coherent clusters are represented. There is no major duplicate concept ownership, formal curriculum completion percentage or inferred topic mastery.
+
+### What improved
+
+Three new lessons cover configuration/options, authentication/authorization and API error contracts. Existing explanations now focus on control flow, cooperative cancellation, tracking, atomic boundaries and lost updates. Takeaways are concise note seeds; candidates test standalone concepts rather than registration trivia. Metadata differentiates backend, interview and project intent without changing Discover's deterministic ranking.
+
+The production-browser walkthrough exercised Discover → explicit Start → Complete → Knowledge/Review, Continue and History. Source snapshots and scheduling remain independent of later lesson edits. Existing scoped tests and seed checks cover ownership, lifecycle and stable identities; the verification record above distinguishes actual checks from intended behavior.
+
+Final closeout smoke: two existing Discover API cases passed (`Discover_ShouldBeAuthenticatedReadOnlyAndExcludeOnlyTheCurrentUsersProgress` and `DiscoverRanking_ShouldUseExactTechnologySignalsWithoutExposingScoresAndRefreshAfterProfileChange`). These cover read-only/authenticated behavior, current-owner progress exclusion, an EF-focused secondary profile, exact signals and profile-change freshness. Browser re-check confirmed the QA account's started/completed lessons remain absent from Discover and its flat catalog retains Completed/In progress states. Reopened Options still rendered objectives, code and takeaway, then saved a second independent Knowledge note from its takeaway (in addition to Auth/Authz). The success dialog retained the lesson-completed context. API, web and PostgreSQL were healthy. No new test suite, full regression or production rebuild was needed for this documentation-only closeout.
+
+### Remaining validation and friction
+
+Delayed human cold recall and actual reading time remain **pending user validation**. Agent-operated Good/Again submissions demonstrate transitions, not memory performance. Completion remains a historical action, never mastery. Review performance supplies only existing valid attribution; global content topics are not silently mapped into personal Weak Topics.
+
+Flat catalog, existing filters, Continue and History are sufficient at this scale. No repeated sequencing problem was established. Code authoring remains manageable, with baseline duplication and escaped Markdown recorded as technical friction to watch rather than justification for a CMS.
+
+### Product bottleneck and decision
+
+**Decision: Close the internal learning foundation phase.** The current .NET backend curriculum is sufficient to validate Learn, Discover, Knowledge and Review together. Further internal lesson expansion will be demand-driven. This is a product/technical checkpoint, not a declaration that human learning effectiveness has been measured.
+
+### Next phase
+
+**Curated External Learning Resources** is next (chronologically Week 8). Begin with semantics, manual records, provenance and licensing-safe metadata; then narrowly integrate Learn/Discover and dogfood source UX. The plan remains revisable after its first two days.
+
+Internal lessons teach directly; external resources point to trusted deeper or primary material. Prefer official sources and keep short original descriptions, not copied articles. Initial direction: Open external source only, without completion, evidence, Active Days or StudyMinutes. No crawler, provider sync, AI summaries, recommendation feedback, LearningPath or automatic Study Plan integration. No next-phase feature is implemented by this closeout.
+
 ## Historical baseline — before the authored batch
 
-Scope: one small vertical, currently eight Published lessons. Target is 8–12 useful lessons, not a quota. Clusters below are editorial thinking aids, not entities, persisted ordering or prerequisite rules.
+Historical scope: one small vertical with eight Published lessons at that time. Target was 8–12 useful lessons, not a quota. The audit/backlog below records the pre-authoring state, not unresolved current defects or today's inventory. Clusters are editorial thinking aids, not entities, persisted ordering or prerequisite rules.
 
 ## Inventory and concept ownership
 
