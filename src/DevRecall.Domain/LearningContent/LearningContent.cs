@@ -41,6 +41,28 @@ public sealed class LearningContent
     public IReadOnlyCollection<LearningReviewCandidate> ReviewCandidates => _reviewCandidates.AsReadOnly();
     public IReadOnlyCollection<LearningContentGoal> Goals => _goals.AsReadOnly();
 
+    public void UpdateLearningMetadata(IReadOnlyCollection<Technology> technologies, ContentDifficulty difficulty,
+        int estimatedMinutes, DateTimeOffset currentUtc)
+    {
+        ArgumentNullException.ThrowIfNull(technologies);
+        EnsureUtc(currentUtc);
+        if (!Enum.IsDefined(difficulty)) throw new ArgumentOutOfRangeException(nameof(difficulty));
+        if (estimatedMinutes is < 1 or > 480) throw new ArgumentOutOfRangeException(nameof(estimatedMinutes));
+        if (technologies.Count > MaximumTechnologies || technologies.Distinct().Count() != technologies.Count
+            || technologies.Any(value => !Enum.IsDefined(value)))
+            throw new ArgumentException("Technologies must be unique canonical values.", nameof(technologies));
+        if (Difficulty == difficulty && EstimatedMinutes == estimatedMinutes
+            && _technologies.Select(item => item.Technology).Order().SequenceEqual(technologies.Order())) return;
+        var nextVersion = checked(Version + 1);
+        _technologies.RemoveAll(item => !technologies.Contains(item.Technology));
+        _technologies.AddRange(technologies.Where(value => _technologies.All(item => item.Technology != value))
+            .Select(value => new LearningContentTechnology(Guid.NewGuid(), Id, value)));
+        Difficulty = difficulty;
+        EstimatedMinutes = estimatedMinutes;
+        UpdatedAtUtc = currentUtc;
+        Version = nextVersion;
+    }
+
     public void SetGoals(IReadOnlyCollection<LearningProfileGoal> goals, DateTimeOffset currentUtc)
     {
         ArgumentNullException.ThrowIfNull(goals);

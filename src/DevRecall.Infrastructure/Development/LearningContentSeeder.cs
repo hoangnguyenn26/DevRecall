@@ -37,7 +37,8 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
         var additions = samples.Where(item => !existingSlugs.Contains(item.Slug)).ToArray();
         dbContext.LearningContents.AddRange(additions);
         var sampleBySlug = samples.ToDictionary(item => item.Slug);
-        var existingContents = await dbContext.LearningContents.AsSplitQuery().Include(item => item.ReviewCandidates).Include(item => item.Goals)
+        var existingContents = await dbContext.LearningContents.AsSplitQuery().Include(item => item.ReviewCandidates)
+            .Include(item => item.Goals).Include(item => item.Technologies)
             .Where(item => existingSlugs.Contains(item.Slug)).ToListAsync(cancellationToken);
         foreach (var content in existingContents.Where(item => item.ReviewCandidates.Count == 0
             && sampleBySlug.ContainsKey(item.Slug)))
@@ -54,6 +55,28 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
             && item.Goals.Count == 2 && item.Goals.Any(goal => goal.Goal == LearningProfileGoal.ImproveBackendFundamentals)
             && item.Goals.Any(goal => goal.Goal == LearningProfileGoal.PrepareForInterviews)))
             content.SetGoals(sampleBySlug[content.Slug].Goals.Select(item => item.Goal).ToArray(), now);
+        // Migrate known seed metadata field-by-field; never replace content or custom metadata.
+        foreach (var content in existingContents.Where(item => sampleBySlug.TryGetValue(item.Slug, out var sample)
+            && item.Id == sample.Id && item.Status == ContentStatus.Published
+            && item.SourceType == ContentSourceType.Internal && item.SourceName == "DevRecall"))
+        {
+            var sample = sampleBySlug[content.Slug];
+            var oldMinutes = content.Slug switch
+            {
+                "dependency-injection-fundamentals" or "async-await-fundamentals" => 12,
+                "aspnet-core-cancellation-tokens" => 14,
+                "aspnet-core-service-lifetimes" or "ef-core-tracking-vs-no-tracking"
+                    or "aspnet-core-middleware-pipeline" or "ef-core-transactions" or "ef-core-optimistic-concurrency" => 15,
+                _ => (int?)null
+            };
+            if (oldMinutes is null) continue;
+            var technologies = content.Technologies.Select(item => item.Technology).ToArray();
+            if (content.Slug == "dependency-injection-fundamentals"
+                && technologies.SequenceEqual(new[] { Technology.AspNetCore }))
+                technologies = sample.Technologies.Select(item => item.Technology).ToArray();
+            content.UpdateLearningMetadata(technologies, content.Difficulty,
+                content.EstimatedMinutes == oldMinutes ? sample.EstimatedMinutes : content.EstimatedMinutes, now);
+        }
         if (dbContext.ChangeTracker.HasChanges()) await dbContext.SaveChangesAsync(cancellationToken);
         return additions.Length;
     }
@@ -62,7 +85,7 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
     [
         CreateLesson(Id(101), "dependency-injection-fundamentals", "Dependency Injection Fundamentals",
             "Understand why dependency injection reduces coupling and how constructor injection makes dependencies explicit.",
-            ContentDifficulty.Beginner, 12, [Technology.AspNetCore], [Id(1)],
+            ContentDifficulty.Beginner, 10, [Technology.DotNet], [Id(1)],
             ["Explain what dependency injection solves.", "Recognize constructor injection.",
                 "Describe why direct dependency creation increases coupling."],
             [(LearningContentSectionType.Explanation, "The dependency problem",
@@ -98,7 +121,7 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
                 "The Singleton can hold a shorter-lived dependency beyond its intended scope, creating a captive dependency and potentially leaking request-specific state.")], now.AddMinutes(-2)),
         CreateLesson(Id(103), "ef-core-tracking-vs-no-tracking", "EF Core Tracking vs No Tracking",
             "Understand change tracking, AsNoTracking, and the right default for read-only query paths.",
-            ContentDifficulty.Intermediate, 15, [Technology.EfCore, Technology.DotNet], [Id(2)],
+            ContentDifficulty.Intermediate, 10, [Technology.EfCore, Technology.DotNet], [Id(2)],
             ["Explain what a tracking query does.", "Use AsNoTracking for read-only projections.",
                 "Recognize when tracking is required for updates."],
             [(LearningContentSectionType.Explanation, "Tracking queries",
@@ -135,7 +158,7 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
                 "It invokes the next component in the pipeline. Code before the call runs on the request path, and code after awaiting it runs on the response path as the result travels back out.")], now.AddMinutes(1)),
         CreateLesson(Id(105), "async-await-fundamentals", "async/await Fundamentals",
             "Learn what await really does in ASP.NET Core request code: how it frees threads during I/O, why async is not a background thread, and why blocking with .Result is harmful.",
-            ContentDifficulty.Beginner, 12, [Technology.CSharp, Technology.DotNet], [Id(4)],
+            ContentDifficulty.Beginner, 15, [Technology.CSharp, Technology.DotNet], [Id(4)],
             ["Explain what await does to the flow of an asynchronous method.",
                 "Distinguish asynchronous I/O from work running on a background thread.",
                 "Explain why .Result and .Wait() are the wrong default in request code."],
@@ -157,7 +180,7 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
                 "They block a thread pool thread for the entire wait. Under load, blocked threads accumulate and can starve the thread pool, increasing latency for all requests. await pauses the method without holding a thread.")], now.AddMinutes(1)),
         CreateLesson(Id(106), "aspnet-core-cancellation-tokens", "CancellationToken in ASP.NET Core",
             "Learn how request cancellation flows from the ASP.NET Core request boundary through services and repositories to I/O, and why dropping or replacing the token wastes work.",
-            ContentDifficulty.Intermediate, 14, [Technology.AspNetCore, Technology.CSharp], [Id(4)],
+            ContentDifficulty.Intermediate, 15, [Technology.AspNetCore, Technology.CSharp], [Id(4)],
             ["Explain where an ASP.NET Core request's CancellationToken originates.",
                 "Pass cancellation through the whole call chain down to I/O.",
                 "Recognize when a token is dropped or replaced without a reason."],
@@ -179,7 +202,7 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
                 "It is the signal that the request was aborted. Swallowing it makes the code continue doing work nobody is waiting for and can report false success, so cancellation should end the operation honestly.")], now.AddMinutes(2)),
         CreateLesson(Id(107), "ef-core-transactions", "EF Core Transactions",
             "Know when the built-in SaveChanges transaction is enough and when a multi-step workflow needs an explicit transaction boundary.",
-            ContentDifficulty.Intermediate, 15, [Technology.EfCore, Technology.DotNet], [Id(5)],
+            ContentDifficulty.Intermediate, 20, [Technology.EfCore, Technology.DotNet], [Id(5)],
             ["Describe the transaction behavior of a single SaveChanges call.",
                 "Identify workflows that need an explicit transaction boundary.",
                 "Avoid adding manual transactions where SaveChanges already provides atomicity."],
@@ -201,7 +224,7 @@ public sealed class LearningContentSeeder(DevRecallDbContext dbContext)
                 "SaveChanges is already atomic, so a manual transaction adds ceremony and can hold locks longer without adding any safety. Add explicit boundaries only where consistency spans multiple steps.")], now.AddMinutes(3)),
         CreateLesson(Id(108), "ef-core-optimistic-concurrency", "Optimistic Concurrency in EF Core",
             "Understand the stale update problem, how a concurrency token detects conflicts, and why a conflict needs an explicit resolution instead of a silent overwrite.",
-            ContentDifficulty.Intermediate, 15, [Technology.EfCore, Technology.DotNet], [Id(6)],
+            ContentDifficulty.Intermediate, 20, [Technology.EfCore, Technology.DotNet], [Id(6)],
             ["Explain how two updates can silently overwrite each other.",
                 "Describe how a concurrency token makes EF Core detect the conflict.",
                 "Respond to DbUpdateConcurrencyException with an explicit resolution."],

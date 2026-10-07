@@ -43,6 +43,40 @@ public sealed class LearningContentPersistenceTests(PostgreSqlFixture fixture)
         (await context.LearningContentReviewCandidates.CountAsync()).Should().BeGreaterThanOrEqualTo(23);
         (await context.Set<LearningContentGoal>().CountAsync()).Should().Be(16);
         (await context.Set<LearningContentGoal>().CountAsync(item => item.Goal == DevRecall.Domain.LearningProfiles.LearningProfileGoal.PrepareForInterviews)).Should().Be(5);
+        var di = await context.LearningContents.Include(item => item.Technologies).Include(item => item.ReviewCandidates)
+            .SingleAsync(item => item.Slug == "dependency-injection-fundamentals");
+        var originalId = di.Id;
+        var published = await context.LearningContents.Where(item => item.Id == di.Id).Select(item => item.PublishedAtUtc).SingleAsync();
+        var candidateIds = di.ReviewCandidates.Select(item => item.Id).ToArray();
+        di.UpdateLearningMetadata([DevRecall.Domain.LearningProfiles.Technology.AspNetCore], di.Difficulty, 12, DateTimeOffset.UtcNow);
+        var now = DateTimeOffset.UtcNow;
+        var userId = Guid.NewGuid();
+        context.Users.Add(User.Create(userId, $"metadata-{userId}@example.com", "Metadata QA", "hash", now));
+        context.LearningContentProgresses.Add(LearningContentProgress.CompleteDirectly(Guid.NewGuid(), userId, di.Id, now));
+        var evidence = LearningContentCompletionEvidence.Create(Guid.NewGuid(), userId, di.Id, di.Title, now);
+        context.LearningContentCompletionEvidence.Add(evidence);
+        var custom = await context.LearningContents.Include(item => item.Technologies)
+            .SingleAsync(item => item.Slug == "ef-core-tracking-vs-no-tracking");
+        custom.UpdateLearningMetadata([DevRecall.Domain.LearningProfiles.Technology.EfCore], ContentDifficulty.Advanced, 25, now);
+        await context.SaveChangesAsync();
+        await seeder.SeedAsync();
+        var migratedVersion = di.Version;
+        await seeder.SeedAsync();
+        di.Version.Should().Be(migratedVersion);
+        context.ChangeTracker.Clear();
+        di = await context.LearningContents.Include(item => item.Technologies).Include(item => item.ReviewCandidates)
+            .SingleAsync(item => item.Slug == "dependency-injection-fundamentals");
+        di.Id.Should().Be(originalId);
+        di.PublishedAtUtc.Should().Be(published);
+        di.EstimatedMinutes.Should().Be(10);
+        di.Technologies.Should().ContainSingle(item => item.Technology == DevRecall.Domain.LearningProfiles.Technology.DotNet);
+        di.ReviewCandidates.Select(item => item.Id).Should().BeEquivalentTo(candidateIds);
+        (await context.LearningContentProgresses.SingleAsync(item => item.UserId == userId)).Status.Should().Be(LearningProgressStatus.Completed);
+        (await context.LearningContentCompletionEvidence.SingleAsync(item => item.UserId == userId)).Id.Should().Be(evidence.Id);
+        custom = await context.LearningContents.Include(item => item.Technologies).SingleAsync(item => item.Id == custom.Id);
+        custom.EstimatedMinutes.Should().Be(25);
+        custom.Difficulty.Should().Be(ContentDifficulty.Advanced);
+        custom.Technologies.Should().ContainSingle(item => item.Technology == DevRecall.Domain.LearningProfiles.Technology.EfCore);
     }
 
     [Fact]

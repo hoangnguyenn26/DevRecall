@@ -15,6 +15,11 @@ The stable content types are `Lesson` and `ExternalResource`. Week 2 supplies in
 
 ## Lesson structure
 
+Editorial standards and the current .NET foundation inventory are maintained in
+[Content authoring](content-authoring.md) and [Content curriculum](content-curriculum.md).
+The explicit development seed normalizes known legacy metadata in place; it does not replace
+lesson rows or rewrite user-owned progress, completion evidence or Review snapshots.
+
 A `LearningContent` aggregate owns metadata, technologies, topic links, objectives, sections, lifecycle, version, and timestamps. Objectives and sections use zero-based canonical positions assigned by the aggregate; arbitrary client positions are not trusted.
 
 Defensive bounds include 1–480 estimated minutes, at most 10 objectives, at most 50 sections, and at most 50,000 Markdown characters per section.

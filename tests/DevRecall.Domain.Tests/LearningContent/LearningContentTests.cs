@@ -134,6 +134,32 @@ public sealed class LearningContentTests
         content.Goals.Should().HaveCount(2);
     }
 
+    [Fact]
+    public void MetadataUpdates_ShouldBeValidatedIdempotentAndPreservePublishedContent()
+    {
+        var content = CreateDraft();
+        content.Publish(Now);
+        var id = content.Id;
+        var published = content.PublishedAtUtc;
+        var sectionIds = content.Sections.Select(item => item.Id).ToArray();
+        var invalid = () => content.UpdateLearningMetadata([Technology.DotNet], ContentDifficulty.Beginner, 0, Now);
+        invalid.Should().Throw<ArgumentOutOfRangeException>();
+        content.Technologies.Should().ContainSingle(item => item.Technology == Technology.AspNetCore);
+        content.UpdateLearningMetadata([Technology.DotNet], ContentDifficulty.Beginner, 10, Now.AddMinutes(1));
+        var version = content.Version;
+        content.UpdateLearningMetadata([Technology.DotNet], ContentDifficulty.Beginner, 10, Now.AddMinutes(2));
+        content.Version.Should().Be(version);
+        content.Id.Should().Be(id);
+        content.Status.Should().Be(ContentStatus.Published);
+        content.PublishedAtUtc.Should().Be(published);
+        content.Sections.Select(item => item.Id).Should().Equal(sectionIds);
+        var duplicate = () => content.UpdateLearningMetadata([Technology.DotNet, Technology.DotNet], content.Difficulty, 10, Now);
+        duplicate.Should().Throw<ArgumentException>();
+        // Generic content can remain technology-neutral.
+        content.UpdateLearningMetadata([], content.Difficulty, 10, Now);
+        content.Technologies.Should().BeEmpty();
+    }
+
     private static LearningContentAggregate CreateDraft(int estimatedMinutes = 15,
         LearningContentType contentType = LearningContentType.Lesson,
         ContentSourceType sourceType = ContentSourceType.Internal, string? sourceUrl = null,
