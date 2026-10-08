@@ -151,3 +151,73 @@ passed before that fixture extension. Frontend type-check and changed-file ESLin
 Deferred: supporting actions pending demonstrated value, dismiss, snooze, pin, manual
 priority, recommendation history, NBA analytics, time budgeting, calendar integration,
 multiple daily goals, AI scheduling and background/cache layers.
+
+## Days 5–6 — daily-loop validation and readiness direction
+
+**Direction A, technically qualified:** move toward deeper dogfood, hardening and release
+readiness rather than new orchestration features. This is not a release approval or a
+claim that users trust Today. Live browser/mobile perception, natural decision burden and
+subjective usefulness remain Day 7/user checkpoint questions. No production data was
+modified and deployed Docker was not rebuilt during this source/test-only checkpoint.
+
+The existing mixed-session API scenario was extended, not a broad new matrix. Its isolated
+PostgreSQL fixture starts with two due lesson-sourced cards, an InProgress lesson, a mixed
+Draft plan and a relevant profile. It uses actual authenticated API mutations:
+
+| Transition | Recomputed Today action |
+| --- | --- |
+| Due cards → normal Good ratings | ContinueLearning |
+| InProgress lesson → canonical Complete | ContinueStudyPlan |
+| Draft → Ready | StartStudyPlan (Open study plan, navigation only) |
+| Ready → explicit Convert/start | ContinueStudySession |
+| Partial mixed Session, including explicit external task finish | ContinueStudySession |
+| All Session items completed with valid evidence | LearnRecommendedContent |
+| Open recommended lesson + repeated Today GETs | Same recommendation; no Start |
+| Add recommended lesson to Draft plan | ContinueStudyPlan |
+| Explicit Start of that lesson | ContinueLearning |
+| Canonical Complete | Previous candidate removed; another relevant fallback |
+
+The loop keeps five lesson completion facts (two setup lessons, two mixed-session lessons,
+one fallback lesson) and two normal Review outcomes; the external resource adds neither
+lesson completion nor History. Existing stale Session attachment returns 409 while keeping
+the successful lesson completion; submission replay remains safe. The resource's actual
+Session time follows existing semantics, never reading estimates.
+
+### Invalidation boundaries
+
+| Successful mutation | Today behavior |
+| --- | --- |
+| Review rating / adding Review cards | Clear Today cache; refresh only Review/navigation entry points |
+| Lesson Start / Complete | Clear Today cache through progress sync; completion also clears analytics/history |
+| Plan item add/remove/edit, Ready, conversion | Clear Today cache; refresh local Plan view independently |
+| Session start/item finish/session finish/cancel | Clear Today cache; local Session refresh remains separate |
+| Learning Profile save | Clear Today and Discover caches |
+| Weak Topic recalculation / recommendation lifecycle | Clear Today; navigation/module refresh independent |
+| Unrelated capture/edit or external source Open | No Today refresh merely for visiting or creating unrelated content |
+
+Clear invalidates the existing Nuxt query; the next Today mount uses its normal immediate
+fetch. Manual Today refresh stays available. Review/Session flows do not fetch Today after
+every item. Onboarding's existing explicit entry-point refresh is retained. No custom stale
+state manager, polling, event bus or generic NBA evidence is added. Logout clears private
+Nuxt data/state; previous owner-isolation API checks remain applicable. UTC due boundaries
+are unchanged; no new timezone handling or artificial midnight test was introduced.
+
+### Compact friction log
+
+- Daily loop: technical smoke smooth; real daily use/visual dogfood not measured.
+- Wrong primary transitions: none in the scoped API scenario; not a universal correctness claim.
+- Stale candidate issues: eager Review/Plan refresh coupling found and removed; cache invalidation
+  is tested, live back-navigation remains to be checked in browser at the requested checkpoint.
+- Secondary action value: unmeasured. Final current policy is **Option A: primary-only**;
+  no useful alternative is invented just to fill the screen.
+- Reason/CTA mismatches: no new mismatch observed in source/API; existing domain-specific copy retained.
+- Navigation friction: Session has Return to Today, lesson uses safe returnTo; Review exits to its
+  queue and Today remains in normal navigation. End-to-end browser ergonomics still unvalidated.
+- P0/P1/P2: no P0 observed in this smoke; P1 eager refresh coupling fixed; no extra visual work
+  justified without evidence. Production rebuild and real dogfood are outstanding readiness work.
+
+Validation: the extended API daily-loop smoke passed; 19 scoped frontend invalidation,
+best-effort refresh and auth tests passed. A failed auxiliary refresh cannot prevent Today
+being marked stale; best-effort refresh preserves saved mutation success. Frontend type-check
+and changed-file lint passed. No full suite, browser check, performance baseline or final
+release gate was claimed. Snooze/dismiss/pin/AI/action analytics remain deferred.

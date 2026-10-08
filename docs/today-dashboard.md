@@ -61,9 +61,11 @@ The application shell owns one Quick Capture panel shared by the top bar and com
 
 Frontend invalidation is targeted:
 
-- onboarding, review completion, Study Plan generation/lifecycle, and Weak Topic recalculation refresh Today and navigation indicators;
-- recommendation lifecycle refreshes Today, while recommendation generation also refreshes navigation;
-- Quick Capture refreshes its module list and Today;
+- Review, Plan/Session changes, lesson Start/Complete, Profile save, Weak Topic recalculation
+  and recommendation lifecycle invalidate Today for its next entry; local views/navigation
+  refresh independently where needed;
+- onboarding retains its existing explicit entry-point refresh;
+- Quick Capture refreshes its affected module projections, not Today merely for unrelated capture;
 - background Today refresh retains the previous response if the new request fails.
 
 The frontend does not refresh every query after a mutation and does not poll indicators continuously.
