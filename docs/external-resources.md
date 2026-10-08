@@ -231,3 +231,16 @@ Validation: the single extended PostgreSQL-backed API smoke passed. An initial t
 two concurrent Drafts and correctly hit `ux_study_plans_user_draft`; the fixture was corrected to the
 real Ready → next Draft lifecycle, without changing the business constraint. No application/UI code
 changed, so no frontend quality gate, production rebuild or unrelated suite was rerun.
+
+## Final planning closure — Day 7
+
+External Resource Planning is closed: intentional read-later uses Study Plan; Bookmark
+remains deferred, and resources remain globally stateless. Existing mixed-session,
+ownership, evidence and archival rules are preserved. The two scoped API smokes passed;
+a brief local UI check verified Discover/resource intent separation and the no-Draft
+planning escape, without creating production learning activity.
+
+Next phase is **Today / Next Best Action integration** using existing Today, not a new
+dashboard. No priority redesign or Week 10 implementation is included in this closure.
+See [the Week 9 checkpoint](v2-week9-validation.md) for validation scope, remaining human
+dogfood questions and explicitly deferred features.
