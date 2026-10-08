@@ -32,6 +32,7 @@ public sealed class LearningRecommendationPolicyTests
         score.Reasons.Should().BeEmpty();
         LearningRecommendationPolicy.Build(new(Profile(Technology.CSharp, goal: null), [], [unrelated]))
             .Recommended.Should().BeEmpty();
+        LearningRecommendationPolicy.GetTopRecommendedLesson(new(Profile(Technology.CSharp, goal: null), [], [unrelated])).Should().BeNull();
     }
 
     [Fact]
@@ -106,6 +107,7 @@ public sealed class LearningRecommendationPolicyTests
             { Id = Guid.Parse($"00000000-0000-0000-0000-{index + 1:D12}") }).Reverse().ToArray();
         var inputs = new DiscoverInputs(Profile(), [], candidates);
         var result = LearningRecommendationPolicy.Build(inputs);
+        LearningRecommendationPolicy.GetTopRecommendedLesson(inputs).Should().BeEquivalentTo(result.Recommended[0]);
         result.Recommended.Select(item => item.Slug).Should().Equal("lesson-0", "lesson-1", "lesson-2", "lesson-3");
         result.BasedOnGoals.Should().HaveCount(3);
         result.Recommended.Concat(result.BasedOnGoals).Select(item => item.Slug).Should().OnlyHaveUniqueItems();

@@ -8,7 +8,8 @@ the owner from authentication and reads the clock once. `TodayDashboardReader` c
 bounded, no-tracking projections; `TodayRecentActivityReader` reads one resumable recent
 activity. `TodayNextActionPolicy.SelectAction` selects one primary action through explicit
 ordered branches, not enum integers or a global numeric score. `NextActionCard.vue`
-renders backend title/description/label/path; `Dashboard.vue` keeps supporting previews.
+renders backend title/description/label/path; `Dashboard.vue` now presents only primary
+learning work with optional setup below it.
 
 Code pointers (relative to repository root):
 
@@ -40,7 +41,7 @@ Recent Interview/DSA activity remains supporting navigation, not an urgency sign
 | 5 / Suggested practice | OpenRecommendation | Available Critical/High V1 Study Recommendation, active and unexpired | Recommendation detail |
 | 5 / Suggested planning | GenerateStudyPlan | Existing active V1 Study Recommendations; preserve V1 planning fallback | Plan generation entry |
 | 6 / Suggested learning | LearnRecommendedContent | Top eligible semantically relevant Discover Lesson, only without stronger work | lesson reader with internal returnTo |
-| Empty | BrowseLearning | No actionable candidate; no fabricated recommendation | `/app/learn` |
+| Empty | BrowseLearning | No actionable candidate; no fabricated recommendation | `/app/discover` |
 
 Backbone: **Due → Ongoing → Planned → Observed practice suggestion → Recommended lesson**.
 Due Review now intentionally wins over Session/Ready Plan; scheduler and Review-start
@@ -60,8 +61,9 @@ retained for compatibility but no longer selected as an empty-user learning obli
 - Session dominates its contained lesson/resource. Only one primary is emitted, so no
   competing per-item candidate appears while a Session is active. Continue lesson dominates
   its planned/recommended duplicate; actionable Plan dominates Discover recommendations.
-- The recent-activity CTA is omitted when it targets the same resource as primary. Other
-  existing contextual previews remain; no secondary-candidate list or mini planner is added.
+- The recent-activity DTO is omitted when it targets the same resource as primary. The UI
+  does not render recent activity or other competing preview lists; no secondary-candidate
+  list or mini planner is added.
 - External resources never enter NBA from Trusted Resources. They enter through declared
   Plan/Session intent only. No role hardcoding, minutes-based suppression or percentage mastery.
 - V1 recommendation score ordering is retained inside its own tier; Discover ranking is
@@ -74,8 +76,9 @@ Queries are sequential on the scoped DbContext. The existing dashboard reads one
 one eligible Plan (five preview items), three recommendations/weakness previews and seven
 activity points. If due Review or Session exists, no lesson lookup is needed. Otherwise
 Continue Learning reads top one; Discover is queried only at the fallback tier. Its existing
-100-candidate compact bound and scoring are reused; the lesson-only path skips the external
-resource query. There are no internal HTTP calls, source-site requests or full catalog loads.
+100-candidate compact bound and shared ranking are reused through `GetTopRecommendedLesson`,
+without mapping secondary Discover sections; the lesson-only path skips the external resource
+query. There are no internal HTTP calls, source-site requests or full catalog loads.
 
 One UTC instant and existing UTC day/week boundaries are preserved. Today GET has no
 SaveChanges, Start, conversion, evidence, impression or recommendation persistence.
@@ -103,3 +106,48 @@ Frontend type-check and ESLint on changed frontend files passed. Backend builds 
 by the scoped test commands produced no new warnings. No production Docker rebuild or
 database mutation was performed; local deployed containers still require a later rebuild
 to serve these source changes.
+
+## Days 3–4 — calm action presentation and conflict review
+
+Decision: **one primary, zero supporting learning actions** for now. The previous grid
+made metrics, plans, weakness, recommendations and activity equally visible. Removing
+it protects the decision-first surface; setup is secondary and modules remain in navigation.
+One/two alternatives might help choice, but there is no repeated user feedback establishing
+that value. Do not construct an Up next list or infer semantic dedupe in the browser.
+
+The card shows a human-readable action label, work title, factual why-now explanation,
+small existing context and an explicit navigation CTA. Session uses its name and remaining
+items; plan uses its name and **Estimated plan time**; lesson time is an estimate, never
+percentage progress. V1 practice uses its evidence-backed reason summary. Discover reasons
+use actual goal/technology labels, without priority scores or confidence claims. Open study
+plan navigates; it does not start/convert anything. Empty state offers Explore Discover.
+
+Conflict log (synthetic/API/component checks, **not human/browser dogfood**):
+
+| Conflict | Decision / observed smoke result |
+| --- | --- |
+| 5 due cards + active Session containing InProgress Lesson | Review primary; scheduler-first baseline retained |
+| Session + its lesson | Session primary, one CTA, no individual duplicate |
+| InProgress Lesson + Plan | Continue lesson wins |
+| Planned external source + Discover Lesson | Plan wins even when its time estimate exceeds profile preference |
+| No stronger intent + relevant lesson | Top Discover lesson; no Start mutation on navigation |
+| No profile/no learning work | Explore Discover; setup is optional below primary |
+
+No reliable current-interaction signal distinguishes resumable Session from work actively
+being performed moments ago. Therefore Review > Session remains; no LastViewedAt heuristic,
+priority retuning or scheduler urgency model was introduced. The daily-loop subjective
+question (does Review interrupt natural continuity?) remains for real user dogfood.
+
+Scoped validation: existing Today API smoke extended for due-vs-contained-Session conflict;
+component checks cover action labels/context/trusted destinations and the absence of the old
+grid. Shared Discover policy checks guard eligibility/order. Type-check and changed-file lint
+are run; no full suites or browser check during implementation days. Live visual/mobile
+perception and measured latency are not claimed. Production Docker is not rebuilt here.
+
+Results: 10 Today component/unit tests, 26 scoped Today/Discover policy tests and the
+extended PostgreSQL Today conflict smoke passed. The existing 7 Today API tests also
+passed before that fixture extension. Frontend type-check and changed-file ESLint passed.
+
+Deferred: supporting actions pending demonstrated value, dismiss, snooze, pin, manual
+priority, recommendation history, NBA analytics, time budgeting, calendar integration,
+multiple daily goals, AI scheduling and background/cache layers.

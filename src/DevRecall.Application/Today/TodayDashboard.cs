@@ -107,8 +107,7 @@ public sealed class GetTodayDashboardHandler(
             && !dashboard.HasActionablePlan && dashboard.ActiveRecommendationCount == 0)
         {
             var inputs = await discoverReader.GetLessonInputsAsync(userId, cancellationToken);
-            var lessons = LearningRecommendationPolicy.Build(inputs).Recommended;
-            recommended = lessons.Count > 0 ? lessons[0] : null;
+            recommended = LearningRecommendationPolicy.GetTopRecommendedLesson(inputs);
         }
         var action = nextActionPolicy.SelectAction(new TodayActionContext(
             dashboard.ActiveSession, dashboard.StudyPlan,

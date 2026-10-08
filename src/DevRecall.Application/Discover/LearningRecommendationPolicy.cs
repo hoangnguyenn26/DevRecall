@@ -85,9 +85,7 @@ public static class LearningRecommendationPolicy
     {
         var scored = inputs.Candidates.Select(candidate => (Candidate: candidate,
             Score: Score(candidate, inputs.Declared, inputs.WeakTopics))).ToArray();
-        var recommended = scored.Where(item => item.Score.HasSemanticMatch && item.Score.Total > 0)
-            .OrderByDescending(item => item.Score.Total).ThenByDescending(item => item.Candidate.PublishedAtUtc)
-            .ThenBy(item => item.Candidate.Id).Take(RecommendedLimit).ToArray();
+        var recommended = Rank(scored).Take(RecommendedLimit).ToArray();
         var claimed = recommended.Select(item => item.Candidate.Id).ToHashSet();
         var secondary = scored.OrderByDescending(item => item.Candidate.PublishedAtUtc).ThenBy(item => item.Candidate.Id).ToArray();
         var weak = secondary.Where(item => item.Score.WeakTopic > 0 && !claimed.Contains(item.Candidate.Id))
@@ -101,6 +99,19 @@ public static class LearningRecommendationPolicy
             weak.Select(item => Map(item.Candidate, item.Score.Reasons)).ToArray(),
             recommended.Select(item => Map(item.Candidate, item.Score.Reasons)).ToArray());
     }
+
+    public static DiscoverLesson? GetTopRecommendedLesson(DiscoverInputs inputs)
+    {
+        var top = Rank(inputs.Candidates.Select(candidate => (Candidate: candidate,
+            Score: Score(candidate, inputs.Declared, inputs.WeakTopics)))).FirstOrDefault();
+        return top.Candidate is null ? null : Map(top.Candidate, top.Score.Reasons);
+    }
+
+    private static IOrderedEnumerable<(DiscoverCandidate Candidate, LearningRecommendationScore Score)> Rank(
+        IEnumerable<(DiscoverCandidate Candidate, LearningRecommendationScore Score)> scored) =>
+        scored.Where(item => item.Score.HasSemanticMatch && item.Score.Total > 0)
+            .OrderByDescending(item => item.Score.Total).ThenByDescending(item => item.Candidate.PublishedAtUtc)
+            .ThenBy(item => item.Candidate.Id);
 
     private static DiscoverLesson Map(DiscoverCandidate item, IReadOnlyList<DiscoverReason> reasons) => new(
         item.Slug, item.Title, item.Summary, item.Difficulty.ToString(), item.EstimatedMinutes,

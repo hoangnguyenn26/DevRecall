@@ -47,18 +47,16 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
     public TodayNextAction SelectAction(TodayActionContext context)
     {
         if (context.ReviewsDue > 0)
-            return Create(TodayActionType.StartReview, $"{context.ReviewsDue} reviews due",
-                "Scheduled reviews are ready for recall.", "Start review", "refresh", null,
+            return Create(TodayActionType.StartReview, $"{context.ReviewsDue} {(context.ReviewsDue == 1 ? "card is" : "cards are")} due",
+                "Keep your review schedule moving while these cards are due.", "Start review", "refresh", null,
                 new(null, null, null, null, context.ReviewsDue, null));
 
         if (context.ActiveSession is { } session)
         {
             return Create(
                 TodayActionType.ContinueStudySession,
-                "Continue your study session",
-                session.RemainingItemCount == 1
-                    ? "1 item remains in your active session."
-                    : $"{session.RemainingItemCount} items remain in your active session.",
+                session.Title,
+                "You already started this study session.",
                 "Continue session", "timer", session.Id,
                 new(session.Id, null, session.Title, session.RemainingMinutes,
                     session.RemainingItemCount, null));
@@ -73,14 +71,14 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
         {
             return CreatePlanAction(
                 TodayActionType.StartStudyPlan, readyPlan,
-                "Your study plan is ready", "Start study plan", "list-checks");
+                readyPlan.Title, "Open study plan", "list-checks");
         }
 
         if (context.HasActionablePlan && context.StudyPlan is { Status: StudyPlanStatus.Draft } draftPlan)
         {
             return CreatePlanAction(
                 TodayActionType.ContinueStudyPlan, draftPlan,
-                "Finish your study plan", "Continue planning", "pencil");
+                draftPlan.Title, "Continue planning", "pencil");
         }
 
         if (context.TopRecommendation is
@@ -89,7 +87,7 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
             return Create(
                 TodayActionType.OpenRecommendation,
                 recommendation.ResourceTitle,
-                $"A {recommendation.Priority.ToString().ToLowerInvariant()} priority recommendation is ready.",
+                recommendation.ReasonSummary,
                 "View recommendation", "sparkles", recommendation.RecommendationId,
                 new(recommendation.ResourceId, recommendation.ResourceType.ToString(),
                     recommendation.ResourceTitle, null, null,
@@ -107,12 +105,12 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
 
         if (context.RecommendedLesson is { } suggested)
             return new(TodayActionType.LearnRecommendedContent, suggested.Title,
-                "A lesson matching your declared learning focus.", "Open lesson",
+                RecommendationReason(suggested), "Open lesson",
                 $"/app/learn/{Uri.EscapeDataString(suggested.Slug)}?returnTo=/app", "book-open",
                 new(null, "LearningContent", suggested.Title, suggested.EstimatedMinutes, null, null));
 
         return Create(TodayActionType.BrowseLearning, "You're clear for now",
-            "Browse Learn or discover something new.", "Browse Learn", "book-open", null, null);
+            "Explore Discover when you want something new to learn.", "Explore Discover", "book-open", null, null);
     }
 
     private static TodayNextAction CreatePlanAction(
@@ -120,7 +118,7 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
         string title, string label, string icon) =>
         Create(
             type, title,
-            $"{plan.ItemCount} items · {plan.TotalPlannedDurationMinutes} minutes",
+            "You planned this work for study. Open the plan to prepare or start a session.",
             label, icon, plan.StudyPlanId,
             new(plan.StudyPlanId, "StudyPlan", plan.Title,
                 plan.TotalPlannedDurationMinutes, plan.ItemCount, null));
@@ -144,9 +142,21 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
             TodayActionType.OpenRecommendation =>
                 $"/app/recommendations/{RequireId(entityId)}",
             TodayActionType.CreateKnowledge => "/app/knowledge?action=create",
-            TodayActionType.BrowseLearning => "/app/learn",
+            TodayActionType.BrowseLearning => "/app/discover",
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
+
+    private static string RecommendationReason(DiscoverLesson lesson)
+    {
+        var reasons = lesson.Reasons.Take(2).Select(reason => reason.Type switch
+        {
+            "GoalMatch" when reason.Goal is not null => $"Matches your goal: {reason.Goal.Label}",
+            "PrimaryTechnologyMatch" or "SecondaryTechnologyMatch" when reason.Label is not null => $"Matches your focus: {reason.Label}",
+            "WeakTopicMatch" when reason.Label is not null => $"Related to a weak topic: {reason.Label}",
+            _ => null
+        }).Where(reason => reason is not null).ToArray();
+        return reasons.Length > 0 ? string.Join(" · ", reasons) : "A lesson matching your declared learning focus.";
+    }
 
     private static Guid RequireId(Guid? id) =>
         id is { } value && value != Guid.Empty

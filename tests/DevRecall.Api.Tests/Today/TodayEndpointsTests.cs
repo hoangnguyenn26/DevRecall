@@ -14,6 +14,7 @@ using DevRecall.Infrastructure.Development;
 using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.LearningProfiles;
 using DevRecall.Domain.StudyPlans;
+using DevRecall.Domain.Reviews;
 
 namespace DevRecall.Api.Tests.Today;
 
@@ -55,11 +56,24 @@ public sealed class TodayEndpointsTests(AuthApiFactory factory)
         }
         var ongoing = (await client.GetFromJsonAsync<GetTodayDashboardResponse>("/api/v1/today"))!;
         ongoing.NextAction.Type.Should().Be("ContinueLearning");
-        var sessionId = await SeedActiveSessionAsync(auth.User.Id, "Execution context");
+        var sessionId = await SeedActiveSessionAsync(auth.User.Id, "Execution context", lessonId);
         (await client.GetFromJsonAsync<GetTodayDashboardResponse>("/api/v1/today"))!.NextAction.Type.Should().Be("ContinueStudySession");
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+            db.ReviewItems.AddRange(Enumerable.Range(0, 5).Select(_ => ReviewItem.Create(Guid.NewGuid(), auth.User.Id,
+                ReviewResourceType.KnowledgeNode, Guid.NewGuid(), now.AddDays(-1), now.AddDays(-2))));
+            await db.SaveChangesAsync();
+        }
+        var due = (await client.GetFromJsonAsync<GetTodayDashboardResponse>("/api/v1/today"))!;
+        due.NextAction.Type.Should().Be("StartReview");
+        due.NextAction.TargetPath.Should().Be("/app/review");
+        due.NextAction.Title.Should().Be("5 cards are due");
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+            foreach (var item in await db.ReviewItems.Where(row => row.UserId == auth.User.Id).ToListAsync())
+                item.Archive(DateTimeOffset.UtcNow);
             var session = await db.StudySessions.Include(row => row.Items).SingleAsync(row => row.Id == sessionId);
             session.Cancel(DateTimeOffset.UtcNow);
             var progress = await db.LearningContentProgresses.SingleAsync(row => row.UserId == auth.User.Id && row.LearningContentId == lessonId);
@@ -162,14 +176,14 @@ public sealed class TodayEndpointsTests(AuthApiFactory factory)
         dashboard.RecentActivity.Should().BeNull("the primary session action already represents this work");
     }
 
-    private async Task<Guid> SeedActiveSessionAsync(Guid userId, string title)
+    private async Task<Guid> SeedActiveSessionAsync(Guid userId, string title, Guid? lessonId = null)
     {
         var now = DateTimeOffset.UtcNow.AddMinutes(-5);
         var session = StudySession.Create(
             Guid.NewGuid(), userId, title, 30, null, now);
         session.AddItem(
-            Guid.NewGuid(), StudyResourceType.KnowledgeNode,
-            Guid.NewGuid(), null, now);
+            Guid.NewGuid(), lessonId is null ? StudyResourceType.KnowledgeNode : StudyResourceType.LearningContent,
+            lessonId ?? Guid.NewGuid(), null, now);
         session.Start(now.AddMinutes(1));
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider

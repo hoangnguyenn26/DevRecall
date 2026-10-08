@@ -30,7 +30,7 @@ The application policy selects exactly one action in this order:
 5. Open a Critical or High recommendation.
 6. Generate a Study Plan from active V1 recommendations.
 7. Open a relevant Discover Lesson as fallback.
-8. Browse Learn when no actionable work exists.
+8. Explore Discover when no actionable work exists (navigation, not a recommendation).
 
 See [V2 candidate audit and priority semantics](today-next-best-action.md) for eligibility,
 deduplication, bounded reads and the intentional change from Session/Ready-before-Review.
@@ -39,7 +39,11 @@ Every target path is constructed in application code. Database text and user-pro
 
 ## Supporting sections
 
-Weekly metrics reuse Review, Analytics, and Study definitions. Study Plan, recommendation, and Weak Topic previews provide navigation only; Today does not convert plans, dismiss recommendations, or recalculate weakness profiles. Continue Learning is visually secondary to Next Best Action and omits itself when no valid resource is available.
+The V2 UI now renders one primary card; it no longer renders metrics, activity charts,
+plan-item lists, recommendation lists, weak-topic lists or a second recent-activity CTA.
+These modules remain accessible through application navigation. Existing bounded API
+preview fields are retained for compatibility, not presented as competing actions.
+Optional onboarding/profile setup stays below the primary and does not gate learning.
 
 ## Onboarding
 

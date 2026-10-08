@@ -102,7 +102,7 @@ public sealed class TodayNextActionPolicyTests
         var result = _policy.SelectAction(new(null, null, 0, null, 0));
 
         result.Type.Should().Be(TodayActionType.BrowseLearning);
-        result.TargetPath.Should().Be("/app/learn");
+        result.TargetPath.Should().Be("/app/discover");
     }
 
     [Fact]
