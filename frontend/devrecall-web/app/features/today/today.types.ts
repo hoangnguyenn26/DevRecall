@@ -6,6 +6,9 @@ export type TodayActionType =
   | 'GenerateStudyPlan'
   | 'OpenRecommendation'
   | 'CreateKnowledge'
+  | 'ContinueLearning'
+  | 'LearnRecommendedContent'
+  | 'BrowseLearning'
 
 export interface TodayDashboard {
   generatedAtUtc: string

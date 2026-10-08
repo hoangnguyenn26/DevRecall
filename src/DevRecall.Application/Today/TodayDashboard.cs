@@ -1,6 +1,8 @@
 using DevRecall.Application.Common.Exceptions;
 using DevRecall.Application.Common.Time;
 using DevRecall.Application.Identity;
+using DevRecall.Application.LearningContent;
+using DevRecall.Application.Discover;
 using DevRecall.Domain.Identity;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.StudyPlans;
@@ -50,7 +52,10 @@ public sealed record TodayDashboardReadModel(
     IReadOnlyList<TodayWeakTopicReadModel> WeakTopics,
     IReadOnlyList<TodayActivityPointReadModel> WeeklyActivity,
     ActiveStudySessionCandidate? ActiveSession,
-    int ActiveRecommendationCount);
+    int ActiveRecommendationCount)
+{
+    public bool HasActionablePlan { get; init; }
+}
 
 public interface ITodayDashboardReader
 {
@@ -77,7 +82,8 @@ public sealed record TodayDashboardResult(
 public sealed class GetTodayDashboardHandler(
     ITodayDashboardReader reader, ITodayNextActionPolicy nextActionPolicy,
     ITodayRecentActivityReader recentActivityReader,
-    ICurrentUser currentUser, IUtcClock utcClock)
+    ICurrentUser currentUser, IUtcClock utcClock,
+    ILearningContentReader learningContentReader, IDiscoverReader discoverReader)
 {
     public async Task<TodayDashboardResult> HandleAsync(
         GetTodayDashboardQuery query, CancellationToken cancellationToken)
@@ -90,12 +96,32 @@ public sealed class GetTodayDashboardHandler(
             userId, currentUtc, cancellationToken);
         var recentActivity = await recentActivityReader.ReadLatestAsync(
             userId, currentUtc, cancellationToken);
+        ContinueLearningContentItem? continuing = null;
+        if (dashboard.ActiveSession is null && dashboard.Metrics.ReviewsDue == 0)
+        {
+            var lessons = await learningContentReader.GetInProgressAsync(userId, 1, cancellationToken);
+            continuing = lessons.Count > 0 ? lessons[0] : null;
+        }
+        DiscoverLesson? recommended = null;
+        if (dashboard.ActiveSession is null && dashboard.Metrics.ReviewsDue == 0 && continuing is null
+            && !dashboard.HasActionablePlan && dashboard.ActiveRecommendationCount == 0)
+        {
+            var inputs = await discoverReader.GetLessonInputsAsync(userId, cancellationToken);
+            var lessons = LearningRecommendationPolicy.Build(inputs).Recommended;
+            recommended = lessons.Count > 0 ? lessons[0] : null;
+        }
         var action = nextActionPolicy.SelectAction(new TodayActionContext(
             dashboard.ActiveSession, dashboard.StudyPlan,
             dashboard.Metrics.ReviewsDue,
             dashboard.Recommendations.FirstOrDefault(item =>
                 item.IsResourceAvailable),
-            dashboard.ActiveRecommendationCount));
+            dashboard.ActiveRecommendationCount)
+        {
+            ContinueLesson = continuing,
+            RecommendedLesson = recommended,
+            HasActionablePlan = dashboard.HasActionablePlan
+        });
+        if (recentActivity?.ResourceId == action.Context?.ResourceId) recentActivity = null;
         return new TodayDashboardResult(
             currentUtc, userId, dashboard.DisplayName,
             dashboard.HasCompletedOnboarding, action, recentActivity,

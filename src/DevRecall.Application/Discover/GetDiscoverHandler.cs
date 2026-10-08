@@ -18,6 +18,7 @@ public sealed record DiscoverResult(bool ProfileConfigured, IReadOnlyList<Discov
 public interface IDiscoverReader
 {
     Task<DiscoverInputs> GetAsync(Guid userId, CancellationToken cancellationToken);
+    Task<DiscoverInputs> GetLessonInputsAsync(Guid userId, CancellationToken cancellationToken);
 }
 public sealed class GetDiscoverHandler(IDiscoverReader reader, ICurrentUser currentUser)
 {

@@ -1,5 +1,7 @@
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.StudyPlans;
+using DevRecall.Application.LearningContent;
+using DevRecall.Application.Discover;
 
 namespace DevRecall.Application.Today;
 
@@ -11,7 +13,10 @@ public enum TodayActionType
     StartReview = 4,
     GenerateStudyPlan = 5,
     OpenRecommendation = 6,
-    CreateKnowledge = 7
+    CreateKnowledge = 7,
+    ContinueLearning = 8,
+    LearnRecommendedContent = 9,
+    BrowseLearning = 10
 }
 
 public sealed record TodayActionContext(
@@ -19,7 +24,12 @@ public sealed record TodayActionContext(
     TodayStudyPlanReadModel? StudyPlan,
     int ReviewsDue,
     TodayRecommendationReadModel? TopRecommendation,
-    int ActiveRecommendationCount);
+    int ActiveRecommendationCount)
+{
+    public ContinueLearningContentItem? ContinueLesson { get; init; }
+    public DiscoverLesson? RecommendedLesson { get; init; }
+    public bool HasActionablePlan { get; init; } = true;
+}
 public sealed record TodayNextActionContextData(
     Guid? ResourceId, string? ResourceType, string? ResourceTitle,
     int? PlannedDurationMinutes, int? RemainingCount, string? Priority);
@@ -36,6 +46,11 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
 {
     public TodayNextAction SelectAction(TodayActionContext context)
     {
+        if (context.ReviewsDue > 0)
+            return Create(TodayActionType.StartReview, $"{context.ReviewsDue} reviews due",
+                "Scheduled reviews are ready for recall.", "Start review", "refresh", null,
+                new(null, null, null, null, context.ReviewsDue, null));
+
         if (context.ActiveSession is { } session)
         {
             return Create(
@@ -49,25 +64,19 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
                     session.RemainingItemCount, null));
         }
 
-        if (context.StudyPlan is { Status: StudyPlanStatus.Ready } readyPlan)
+        if (context.ContinueLesson is { } lesson)
+            return new(TodayActionType.ContinueLearning, lesson.Title, "Continue the lesson you started.",
+                "Continue lesson", $"/app/learn/{Uri.EscapeDataString(lesson.Slug)}?returnTo=/app", "book-open",
+                new(null, "LearningContent", lesson.Title, lesson.EstimatedMinutes, null, null));
+
+        if (context.HasActionablePlan && context.StudyPlan is { Status: StudyPlanStatus.Ready } readyPlan)
         {
             return CreatePlanAction(
                 TodayActionType.StartStudyPlan, readyPlan,
                 "Your study plan is ready", "Start study plan", "list-checks");
         }
 
-        if (context.ReviewsDue > 0)
-        {
-            var noun = context.ReviewsDue == 1 ? "review" : "reviews";
-            return Create(
-                TodayActionType.StartReview,
-                $"{context.ReviewsDue} {noun} due today",
-                "Complete scheduled reviews before they accumulate.",
-                "Start review", "refresh", null,
-                new(null, null, null, null, context.ReviewsDue, null));
-        }
-
-        if (context.StudyPlan is { Status: StudyPlanStatus.Draft } draftPlan)
+        if (context.HasActionablePlan && context.StudyPlan is { Status: StudyPlanStatus.Draft } draftPlan)
         {
             return CreatePlanAction(
                 TodayActionType.ContinueStudyPlan, draftPlan,
@@ -96,11 +105,14 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
                 "Generate study plan", "list-plus", null, null);
         }
 
-        return Create(
-            TodayActionType.CreateKnowledge,
-            "Capture your first concept",
-            "Start with something you recently learned. DevRecall will help you organize, review and practice it later.",
-            "Create knowledge", "book-open", null, null);
+        if (context.RecommendedLesson is { } suggested)
+            return new(TodayActionType.LearnRecommendedContent, suggested.Title,
+                "A lesson matching your declared learning focus.", "Open lesson",
+                $"/app/learn/{Uri.EscapeDataString(suggested.Slug)}?returnTo=/app", "book-open",
+                new(null, "LearningContent", suggested.Title, suggested.EstimatedMinutes, null, null));
+
+        return Create(TodayActionType.BrowseLearning, "You're clear for now",
+            "Browse Learn or discover something new.", "Browse Learn", "book-open", null, null);
     }
 
     private static TodayNextAction CreatePlanAction(
@@ -132,6 +144,7 @@ public sealed class TodayNextActionPolicy : ITodayNextActionPolicy
             TodayActionType.OpenRecommendation =>
                 $"/app/recommendations/{RequireId(entityId)}",
             TodayActionType.CreateKnowledge => "/app/knowledge?action=create",
+            TodayActionType.BrowseLearning => "/app/learn",
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
 

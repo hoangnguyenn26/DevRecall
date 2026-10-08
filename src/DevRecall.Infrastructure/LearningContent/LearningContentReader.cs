@@ -147,6 +147,8 @@ internal sealed class LearningContentReader(DevRecallDbContext dbContext) : ILea
                    && progress.Status == LearningProgressStatus.InProgress
                    && content.Status == ContentStatus.Published
                    && content.ContentType == LearningContentType.Lesson
+                   && !dbContext.LearningContentCompletionEvidence.Any(evidence => evidence.UserId == userId
+                       && evidence.LearningContentId == content.Id)
                orderby progress.StartedAtUtc descending, progress.Id
                select new ContinueLearningContentItem(
                    content.Slug, content.Title, content.Summary, content.Difficulty.ToString(),

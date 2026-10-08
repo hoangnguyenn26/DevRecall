@@ -1,11 +1,13 @@
 import { learningContentKeys } from '~/features/learning-content/learning-content.query-keys'
 import { invalidateDiscover } from '~/features/discover/discover'
+import { queryKeys } from '~/query/query-keys'
 
 export function useLearningContentProgressSync() {
   const learningInvalidation = useLearningDataInvalidation()
 
   function afterProgressChanged(action: 'start' | 'complete'): void {
     invalidateDiscover()
+    clearNuxtData(queryKeys.today)
     clearNuxtData(key => key.startsWith(learningContentKeys.listBase))
     clearNuxtData(learningContentKeys.inProgress)
     if (action !== 'complete') return

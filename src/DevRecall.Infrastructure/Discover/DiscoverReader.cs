@@ -9,7 +9,10 @@ namespace DevRecall.Infrastructure.Discover;
 
 internal sealed class DiscoverReader(DevRecallDbContext dbContext) : IDiscoverReader
 {
-    public async Task<DiscoverInputs> GetAsync(Guid userId, CancellationToken cancellationToken)
+    public Task<DiscoverInputs> GetAsync(Guid userId, CancellationToken cancellationToken) => ReadAsync(userId, true, cancellationToken);
+    public Task<DiscoverInputs> GetLessonInputsAsync(Guid userId, CancellationToken cancellationToken) => ReadAsync(userId, false, cancellationToken);
+
+    private async Task<DiscoverInputs> ReadAsync(Guid userId, bool includeResources, CancellationToken cancellationToken)
     {
         var profile = await dbContext.LearningProfiles.AsNoTracking().AsSplitQuery().Include(item => item.Goals)
             .Include(item => item.Technologies).SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
@@ -41,6 +44,9 @@ internal sealed class DiscoverReader(DevRecallDbContext dbContext) : IDiscoverRe
                     dbContext.ContentTopics.Where(topic => topic.Id == link.TopicId).Select(topic => topic.Slug).First(),
                     dbContext.ContentTopics.Where(topic => topic.Id == link.TopicId).Select(topic => topic.Name).First())).ToArray()
             }).ToListAsync(cancellationToken);
+        var candidates = lessons.Select(item => new DiscoverCandidate(item.Id, item.Slug, item.Title, item.Summary,
+            item.Difficulty, item.EstimatedMinutes, item.PublishedAtUtc!.Value, item.Technologies, item.Goals, item.Topics)).ToArray();
+        if (!includeResources) return new(signals, [], candidates);
         var resources = await dbContext.LearningContents.AsNoTracking().AsSplitQuery()
             .Where(item => item.Status == ContentStatus.Published && item.ContentType == LearningContentType.ExternalResource
                 && (item.Goals.Any(goal => goals.Contains(goal.Goal))

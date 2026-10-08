@@ -4,6 +4,8 @@ using DevRecall.Application.Today;
 using DevRecall.Domain.Recommendations;
 using DevRecall.Domain.StudyPlans;
 using FluentAssertions;
+using DevRecall.Application.LearningContent;
+using DevRecall.Application.Discover;
 
 namespace DevRecall.Application.Tests.Today;
 
@@ -12,22 +14,38 @@ public sealed class TodayNextActionPolicyTests
     private readonly TodayNextActionPolicy _policy = new();
 
     [Fact]
-    public void ActiveSession_ShouldHaveHighestPriority()
+    public void OngoingWork_ShouldDominatePlannedAndSuggestedWork()
+    {
+        var lesson = new DevRecall.Application.LearningContent.ContinueLearningContentItem(
+            "middleware", "Middleware", "Pipeline", "Intermediate", 20, [], DateTimeOffset.UtcNow);
+        var suggested = new DevRecall.Application.Discover.DiscoverLesson("options", "Options", "Configuration",
+            "Intermediate", 20, [], [], []);
+        var context = new TodayActionContext(null, Plan(StudyPlanStatus.Ready), 0, null, 0)
+        { ContinueLesson = lesson, RecommendedLesson = suggested };
+        _policy.SelectAction(context).Type.Should().Be(TodayActionType.ContinueLearning);
+        _policy.SelectAction(context with { ActiveSession = Session() }).Type.Should().Be(TodayActionType.ContinueStudySession);
+        _policy.SelectAction(context with { ContinueLesson = null }).Type.Should().Be(TodayActionType.StartStudyPlan);
+        _policy.SelectAction(context with { ContinueLesson = null, HasActionablePlan = false }).Type.Should().Be(TodayActionType.LearnRecommendedContent);
+        _policy.SelectAction(context with { ContinueLesson = null, StudyPlan = null, RecommendedLesson = null }).Type.Should().Be(TodayActionType.BrowseLearning);
+    }
+
+    [Fact]
+    public void DueReviews_ShouldWinOverSessionPlanAndRecommendation()
     {
         var result = _policy.SelectAction(new(
             Session(), Plan(StudyPlanStatus.Ready), 9,
             Recommendation(RecommendationPriority.Critical), 3));
 
-        result.Type.Should().Be(TodayActionType.ContinueStudySession);
+        result.Type.Should().Be(TodayActionType.StartReview);
     }
 
     [Fact]
-    public void ReadyPlan_ShouldWinOverReviews()
+    public void Reviews_ShouldWinOverReadyPlan()
     {
         var result = _policy.SelectAction(new(
             null, Plan(StudyPlanStatus.Ready), 9, null, 0));
 
-        result.Type.Should().Be(TodayActionType.StartStudyPlan);
+        result.Type.Should().Be(TodayActionType.StartReview);
     }
 
     [Fact]
@@ -79,12 +97,12 @@ public sealed class TodayNextActionPolicyTests
     }
 
     [Fact]
-    public void EmptyDashboard_ShouldCreateKnowledge()
+    public void EmptyDashboard_ShouldOfferLearningBrowse()
     {
         var result = _policy.SelectAction(new(null, null, 0, null, 0));
 
-        result.Type.Should().Be(TodayActionType.CreateKnowledge);
-        result.TargetPath.Should().Be("/app/knowledge?action=create");
+        result.Type.Should().Be(TodayActionType.BrowseLearning);
+        result.TargetPath.Should().Be("/app/learn");
     }
 
     [Fact]
@@ -127,7 +145,7 @@ public sealed class TodayNextActionPolicyTests
         var recentReader = new RecentReaderStub();
         var handler = new GetTodayDashboardHandler(
             reader, _policy, recentReader,
-            new CurrentUserStub(Guid.NewGuid()), clock);
+            new CurrentUserStub(Guid.NewGuid()), clock, new EmptyLearningReader(), new EmptyDiscoverReader());
 
         var result = await handler.HandleAsync(
             new GetTodayDashboardQuery(), CancellationToken.None);
@@ -199,5 +217,24 @@ public sealed class TodayNextActionPolicyTests
             CurrentUtc = currentUtc;
             return Task.FromResult<TodayRecentActivityReadModel?>(null);
         }
+    }
+
+    private sealed class EmptyDiscoverReader : IDiscoverReader
+    {
+        public Task<DiscoverInputs> GetLessonInputsAsync(Guid userId, CancellationToken cancellationToken) => GetAsync(userId, cancellationToken);
+        public Task<DiscoverInputs> GetAsync(Guid userId, CancellationToken cancellationToken) =>
+            Task.FromResult(new DiscoverInputs(new(null, null,
+                new HashSet<DevRecall.Domain.LearningProfiles.Technology>(), new HashSet<DevRecall.Domain.LearningProfiles.Technology>(),
+                new HashSet<DevRecall.Domain.LearningProfiles.LearningProfileGoal>(), null, false), [], []));
+    }
+
+    private sealed class EmptyLearningReader : ILearningContentReader
+    {
+        public Task<IReadOnlyList<ContinueLearningContentItem>> GetInProgressAsync(Guid userId, int take, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ContinueLearningContentItem>>([]);
+        public Task<PublishedLearningContentPage> GetPublishedAsync(Guid userId, string? technology, string? topicSlug,
+            string? difficulty, int skip, int take, CancellationToken cancellationToken, string? contentType = null) => throw new NotSupportedException();
+        public Task<PublishedLearningContentDetail?> GetPublishedBySlugAsync(Guid userId, string slug, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<LearningContentHistoryPage> GetHistoryAsync(Guid userId, int skip, int take, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

@@ -2,6 +2,7 @@
 import type { StudyPlanListItem } from '~/features/study-plans/study-plan.types'
 import { useStudyPlanApi } from '~/features/study-plans/study-plan.api'
 import { normalizeApiError } from '~/utils/normalize-api-error'
+import { queryKeys } from '~/query/query-keys'
 
 const props = defineProps<{ slug: string; completed: boolean; contentType?: 'Lesson' | 'ExternalResource' }>()
 const contentLabel = computed(() => props.contentType === 'ExternalResource' ? 'resource' : 'lesson')
@@ -36,6 +37,7 @@ async function add() {
   try {
     result.value = await api.addLearningContent(plan.studyPlanId, props.slug,
       plan.version, submissionId.value)
+    clearNuxtData(queryKeys.today)
   } catch (cause) { error.value = normalizeApiError(cause).detail ?? `The ${contentLabel.value} could not be added.` }
   finally { loading.value = false }
 }

@@ -11,6 +11,7 @@ using DevRecall.Domain.Reviews;
 using DevRecall.Domain.Study;
 using DevRecall.Domain.StudyPlans;
 using DevRecall.Domain.WeakTopics;
+using DevRecall.Domain.LearningContent;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -105,7 +106,10 @@ internal sealed class TodayDashboardReader(
                     item.Score, summary.Title, WeakTopicSummary(item),
                     summary.Available);
             }).ToArray(),
-            activity, activeSession, activeRecommendationCount);
+            activity, activeSession, activeRecommendationCount)
+        {
+            HasActionablePlan = plan?.HasActionableItems == true
+        };
     }
 
     private Task<ActiveStudySessionCandidate?> ReadActiveSessionAsync(
@@ -129,6 +133,20 @@ internal sealed class TodayDashboardReader(
             .Where(plan => plan.UserId == userId
                 && (plan.Status == StudyPlanStatus.Ready
                     || plan.Status == StudyPlanStatus.Draft))
+            .Where(plan => plan.Items.Any(item =>
+                item.ResourceType == StudyPlanResourceType.LearningContent
+                    && dbContext.LearningContents.Any(content => content.Id == item.ResourceId
+                        && content.Status == ContentStatus.Published
+                        && (content.ContentType == LearningContentType.ExternalResource
+                            || !dbContext.LearningContentCompletionEvidence.Any(evidence => evidence.UserId == userId && evidence.LearningContentId == content.Id)
+                                && !dbContext.LearningContentProgresses.Any(progress => progress.UserId == userId
+                                    && progress.LearningContentId == content.Id && progress.Status == LearningProgressStatus.Completed)))
+                || item.ResourceType == StudyPlanResourceType.KnowledgeNode
+                    && dbContext.KnowledgeNodes.Any(node => node.Id == item.ResourceId && node.UserId == userId && node.Status == KnowledgeNodeStatus.Active)
+                || item.ResourceType == StudyPlanResourceType.InterviewQuestion
+                    && dbContext.InterviewQuestions.Any(question => question.Id == item.ResourceId && question.UserId == userId && question.Status == InterviewQuestionStatus.Active)
+                || item.ResourceType == StudyPlanResourceType.DsaProblem
+                    && dbContext.DsaProblems.Any(problem => problem.Id == item.ResourceId && problem.UserId == userId && problem.Status == DsaProblemStatus.Active)))
             .OrderBy(plan => plan.Status == StudyPlanStatus.Ready ? 0 : 1)
             .ThenByDescending(plan => plan.UpdatedAtUtc)
             .ThenByDescending(plan => plan.GeneratedAtUtc)
@@ -137,6 +155,7 @@ internal sealed class TodayDashboardReader(
                 plan.Id, plan.Title, plan.Status, plan.Items.Count,
                 plan.Items.Sum(item => item.PlannedDurationMinutes),
                 plan.Version,
+                true,
                 plan.Items.OrderBy(item => item.Position)
                     .ThenBy(item => item.Id).Take(5)
                     .Select(item => new RawStudyPlanItem(
@@ -195,6 +214,16 @@ internal sealed class TodayDashboardReader(
             .Distinct()
             .ToArray();
         var result = new Dictionary<ResourceKey, ResourceSummary>();
+
+        var contentIds = Ids(references, 4);
+        if (contentIds.Length > 0)
+        {
+            var rows = await dbContext.LearningContents.AsNoTracking()
+                .Where(content => contentIds.Contains(content.Id))
+                .Select(content => new ResourceRow(content.Id, content.Title, content.Status == ContentStatus.Published))
+                .ToListAsync(cancellationToken);
+            Add(result, 4, rows);
+        }
 
         var knowledgeIds = Ids(references, 1);
         if (knowledgeIds.Length > 0)
@@ -315,7 +344,7 @@ internal sealed class TodayDashboardReader(
         DateOnly StartDate, DateTimeOffset StartUtc, DateTimeOffset EndUtc);
     private sealed record RawStudyPlan(
         Guid Id, string Title, StudyPlanStatus Status, int ItemCount,
-        int TotalMinutes, int Version, IReadOnlyList<RawStudyPlanItem> Items);
+        int TotalMinutes, int Version, bool HasActionableItems, IReadOnlyList<RawStudyPlanItem> Items);
     private sealed record RawStudyPlanItem(
         Guid Id, StudyPlanResourceType ResourceType, Guid ResourceId,
         int PlannedDurationMinutes, int Position);
