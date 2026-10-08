@@ -1,5 +1,10 @@
 # Today / Next Best Action — V2 policy
 
+Week 10 is closed as a functional milestone; see the
+[product checkpoint and hardening direction](v2-week10-validation.md).
+Final presentation budget: one primary and at most one useful secondary. The current
+primary-only implementation intentionally leaves that secondary slot absent.
+
 ## Audit and pipeline
 
 `TodayEndpoints.MapTodayEndpoints` authenticates `GET /api/v1/today` and maps the
