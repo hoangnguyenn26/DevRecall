@@ -11,7 +11,7 @@ Today is DevRecall's action-first entry point. It answers what the learner shoul
 The response is deliberately bounded:
 
 - one active Study Session candidate;
-- one Ready or Draft Study Plan with at most five ordered items;
+- one actionable Ready or Draft Study Plan with at most five ordered preview items;
 - at most three active, unexpired recommendations;
 - at most three current Weak Topic profiles;
 - exactly seven daily activity points;
@@ -23,13 +23,17 @@ Readers use no-tracking projections and never execute lifecycle mutations or `Sa
 
 The application policy selects exactly one action in this order:
 
-1. Continue an active Study Session.
-2. Start a Ready Study Plan.
-3. Start due reviews.
-4. Continue a Draft Study Plan.
+1. Start due reviews.
+2. Continue an active Study Session.
+3. Continue an InProgress published Lesson.
+4. Start a Ready or continue an actionable Draft Study Plan.
 5. Open a Critical or High recommendation.
-6. Generate a Study Plan from active recommendations.
-7. Capture Knowledge as the empty-workspace fallback.
+6. Generate a Study Plan from active V1 recommendations.
+7. Open a relevant Discover Lesson as fallback.
+8. Browse Learn when no actionable work exists.
+
+See [V2 candidate audit and priority semantics](today-next-best-action.md) for eligibility,
+deduplication, bounded reads and the intentional change from Session/Ready-before-Review.
 
 Every target path is constructed in application code. Database text and user-provided URLs are never used as navigation targets.
 
