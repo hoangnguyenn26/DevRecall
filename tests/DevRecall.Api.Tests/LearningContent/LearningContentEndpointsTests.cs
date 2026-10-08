@@ -9,6 +9,7 @@ using DevRecall.Contracts.LearningContent;
 using DevRecall.Contracts.Reviews;
 using DevRecall.Contracts.Study;
 using DevRecall.Contracts.StudyPlans;
+using DevRecall.Contracts.Today;
 using DevRecall.Domain.StudyPlans;
 using DevRecall.Domain.LearningContent;
 using DevRecall.Domain.LearningProfiles;
@@ -46,13 +47,35 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
             db.StudyPlans.Add(plan);
             await db.SaveChangesAsync();
         }
+        (await client.PutAsJsonAsync("/api/v1/learning-profile", new
+        {
+            targetRole = "BackendDeveloper", experienceLevel = "Junior", availableMinutesPerDay = 30,
+            technologies = new[] { new { name = "EfCore", isPrimary = true } },
+            goals = new List<string> { "ImproveBackendFundamentals" }, expectedVersion = (int?)null
+        })).EnsureSuccessStatusCode();
+        const string recallLesson = "aspnet-core-service-lifetimes";
+        const string ongoingLesson = "aspnet-core-middleware-pipeline";
+        (await client.PostAsJsonAsync($"/api/v1/learning-content/{recallLesson}/progress/complete", new CompleteLearningContentRequest(null))).EnsureSuccessStatusCode();
+        var cards = (await (await client.PostAsJsonAsync($"/api/v1/review/from-learning-content/{recallLesson}",
+            new CreateLearningContentReviewsRequest(["three-service-lifetimes", "captive-dependency"], Guid.NewGuid())))
+            .Content.ReadFromJsonAsync<LearningContentReviewBatchResponse>())!;
+        (await client.PostAsync($"/api/v1/learning-content/{ongoingLesson}/progress/start", null)).EnsureSuccessStatusCode();
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("StartReview");
+        foreach (var card in cards.Items)
+            (await client.PostAsJsonAsync($"/api/v1/review-items/{card.ReviewItemId}/evaluate",
+                new EvaluateReviewItemRequest("Good", 0, Guid.NewGuid()))).EnsureSuccessStatusCode();
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("ContinueLearning");
+        (await client.PostAsJsonAsync($"/api/v1/learning-content/{ongoingLesson}/progress/complete", new CompleteLearningContentRequest(1))).EnsureSuccessStatusCode();
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("ContinueStudyPlan");
         (await client.PostAsJsonAsync($"/api/v1/study-plans/{plan.Id}/ready", new StudyPlanMutationRequest(plan.Version))).EnsureSuccessStatusCode();
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("StartStudyPlan");
         var ready = (await client.GetFromJsonAsync<StudyPlanDetailResponse>($"/api/v1/study-plans/{plan.Id}"))!;
         var conversion = await client.PostAsJsonAsync($"/api/v1/study-plans/{plan.Id}/convert", new ConvertStudyPlanRequest(ready.Version));
         conversion.EnsureSuccessStatusCode();
         var converted = (await conversion.Content.ReadFromJsonAsync<ConvertStudyPlanResponse>())!;
         var route = $"/api/v1/study-sessions/{converted.StudySessionId}";
         var session = (await client.GetFromJsonAsync<StudySessionDetailResponse>(route))!;
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("ContinueStudySession");
         session.Items.Select(row => row.ResourceKey).Should().Equal(slugs);
         session.Items.Select(row => row.ContentType).Should().Equal("Lesson", "ExternalResource", "Lesson");
         for (var index = 0; index < slugs.Length; index++)
@@ -80,15 +103,41 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
             (await client.PostAsJsonAsync($"{route}/items/{item.Id}/complete", finish)).EnsureSuccessStatusCode();
             (await client.GetFromJsonAsync<StudySessionDetailResponse>(route))!.Version.Should().Be(session.Version);
             session.Status.Should().Be(index == 2 ? "Completed" : "InProgress");
+            (await ReadTodayAsync(client)).NextAction.Type.Should().Be(index == 2 ? "LearnRecommendedContent" : "ContinueStudySession");
         }
         var overview = (await client.GetFromJsonAsync<AnalyticsOverviewResponse>("/api/v1/analytics/overview"))!;
-        overview.LearningContentCompletedCount.Should().Be(2);
+        overview.LearningContentCompletedCount.Should().Be(4, "two earlier lessons plus two canonical mixed-session lessons, never the external resource");
         var progressOverview = (await client.GetFromJsonAsync<ProgressOverviewResponse>("/api/v1/analytics/progress-overview"))!;
         progressOverview.StudyMinutes.Should().Be(session.ActualDurationMinutes!.Value);
         progressOverview.StudyMinutes.Should().BeLessThan(session.PlannedDurationMinutes);
         var history = (await client.GetFromJsonAsync<PagedResponse<LearningContentHistoryItemResponse>>("/api/v1/learning-content/history"))!;
-        history.Items.Should().HaveCount(2).And.NotContain(row => row.SourceSlug == slugs[1]);
+        history.Items.Should().HaveCount(4).And.NotContain(row => row.SourceSlug == slugs[1]);
+        var fallback = (await ReadTodayAsync(client)).NextAction;
+        var recommendedSlug = fallback.TargetPath.Split('?')[0].Split('/')[^1];
+        (await client.GetAsync($"/api/v1/learning-content/{recommendedSlug}")).EnsureSuccessStatusCode();
+        for (var repeat = 0; repeat < 3; repeat++)
+            (await ReadTodayAsync(client)).NextAction.Should().BeEquivalentTo(fallback);
+        var plannedAgain = StudyPlan.Create(Guid.NewGuid(), user.Id, "Intent from recommendation", DateTimeOffset.UtcNow, null);
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+            db.StudyPlans.Add(plannedAgain);
+            await db.SaveChangesAsync();
+        }
+        (await client.PostAsJsonAsync($"/api/v1/study-plans/{plannedAgain.Id}/learning-content/{recommendedSlug}",
+            new AddLearningContentToStudyPlanRequest(1, Guid.NewGuid()))).EnsureSuccessStatusCode();
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("ContinueStudyPlan");
+        (await client.PostAsync($"/api/v1/learning-content/{recommendedSlug}/progress/start", null)).EnsureSuccessStatusCode();
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("ContinueLearning");
+        (await client.PostAsJsonAsync($"/api/v1/learning-content/{recommendedSlug}/progress/complete", new CompleteLearningContentRequest(1))).EnsureSuccessStatusCode();
+        (await ReadTodayAsync(client)).NextAction.Type.Should().Be("LearnRecommendedContent");
+        var afterLoop = (await client.GetFromJsonAsync<AnalyticsOverviewResponse>("/api/v1/analytics/overview"))!;
+        afterLoop.LearningContentCompletedCount.Should().Be(5);
+        afterLoop.ReviewCount.Should().Be(2);
     }
+
+    private static async Task<GetTodayDashboardResponse> ReadTodayAsync(HttpClient client) =>
+        (await client.GetFromJsonAsync<GetTodayDashboardResponse>("/api/v1/today"))!;
 
     [Fact]
     public async Task ExternalResourceStudyTask_ShouldBeOwnerScopedDeduplicatedAndNeverCreateLessonEvidence()

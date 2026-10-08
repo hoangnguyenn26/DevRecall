@@ -13,25 +13,31 @@ export function useLearningDataInvalidation() {
     queryKeys.knowledgeList('{}'),
   )
   const refreshToday = (): Promise<void> => refreshNuxtData(queryKeys.today)
+  const invalidateToday = async (): Promise<void> => { clearNuxtData(queryKeys.today) }
   const refreshTodayAndNavigation = (): Promise<void> =>
     Promise.all([
       refreshNuxtData(queryKeys.today),
       refreshNuxtData(queryKeys.navigationIndicators),
     ]).then(() => undefined)
-  const afterReviewEvaluation = (): Promise<void> =>
-    Promise.all([
+  const invalidateTodayAndRefreshNavigation = (): Promise<void> => {
+    clearNuxtData(queryKeys.today)
+    return refreshNuxtData(queryKeys.navigationIndicators)
+  }
+  const afterReviewEvaluation = (): Promise<void> => {
+    clearNuxtData(queryKeys.today)
+    clearAnalyticsAndInsights()
+    return Promise.all([
       refreshNuxtData(queryKeys.reviewDue),
-      refreshNuxtData(queryKeys.today),
-      refreshNuxtData(queryKeys.navigationIndicators),
-    ]).then(() => {
-      clearAnalyticsAndInsights()
-    })
-  const afterReviewItemsAdded = (): Promise<void> =>
-    Promise.all([
-      refreshNuxtData(queryKeys.reviewDue),
-      refreshNuxtData(queryKeys.today),
       refreshNuxtData(queryKeys.navigationIndicators),
     ]).then(() => undefined)
+  }
+  const afterReviewItemsAdded = (): Promise<void> => {
+    clearNuxtData(queryKeys.today)
+    return Promise.all([
+      refreshNuxtData(queryKeys.reviewDue),
+      refreshNuxtData(queryKeys.navigationIndicators),
+    ]).then(() => undefined)
+  }
   const afterInterviewPractice = (questionId: string): Promise<void> =>
     Promise.all([
       refreshNuxtData(queryKeys.interviewAttempts(questionId)),
@@ -53,7 +59,7 @@ export function useLearningDataInvalidation() {
   }
   const afterLessonCompleted = (): void => clearAnalyticsAndInsights()
   const afterRecommendationsChanged = async (): Promise<void> => {
-    await refreshTodayAndNavigation()
+    await invalidateTodayAndRefreshNavigation()
     for (const range of insightRanges) clearNuxtData(queryKeys.learningInsights(range))
   }
   const afterRecommendationDismissed = afterRecommendationsChanged
@@ -73,14 +79,16 @@ export function useLearningDataInvalidation() {
           : queryKeys.dsaList
     const keys =
       type === 'KnowledgeNode'
-        ? [moduleKey, queryKeys.knowledgeTopics, queryKeys.knowledgeTags(), queryKeys.today]
-        : [moduleKey, queryKeys.today]
+        ? [moduleKey, queryKeys.knowledgeTopics, queryKeys.knowledgeTags()]
+        : [moduleKey]
     await Promise.all(keys.map((key) => refreshNuxtData(key)))
   }
 
   return {
     refreshToday,
+    invalidateToday,
     refreshTodayAndNavigation,
+    invalidateTodayAndRefreshNavigation,
     afterReviewEvaluation,
     afterReviewItemsAdded,
     afterInterviewPractice,
