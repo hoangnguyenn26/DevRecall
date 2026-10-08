@@ -176,3 +176,58 @@ process-local `DOCKER_HOST`, without changing user/global configuration. No full
 check was run. This is technical rehearsal with realistic curriculum content, **not** proof that a
 human read the sources, found mixed planning natural, or prefers planning over bookmarking. Those
 subjective Day 3 dogfood questions remain open for user feedback / the requested visual checkpoint.
+
+## Planning usefulness checkpoint — Days 5–6
+
+**Selected: Decision A — keep Study Plan for intentional future study; Bookmark is not justified yet.**
+The user delegated the choice to the agent rather than reporting repeated reference-only friction.
+This is a scope/product judgment, not a claim that human dogfood proved the need solved. No new
+persistence surface or resource lifecycle is authorized by a generic market preference.
+
+Market reference: [Readwise Reader's library configuration](https://docs.readwise.io/reader/guides/workflows/library-configuration)
+distinguishes must-read from might-read material through its library workflows. This supports treating
+reading intent explicitly, but does not prove that DevRecall needs to reproduce a reader/bookmark
+library. DevRecall already has an actionable planning surface; a low-commitment reference collection
+would have a different job and should remain separate if later justified.
+
+| Intent / concrete current source | Current route | Assessment |
+| --- | --- | --- |
+| Read now / Middleware documentation | Discover → detail → Read on Microsoft Learn | Planning optional; no content/evidence mutation |
+| Study later / Handling Concurrency Conflicts | Detail → owned Draft plan → Session → explicit finish | Technically supported; usefulness remains a human feedback question |
+| Reference only / Tracking vs. No-Tracking Queries | Browse filters → detail/source | Useful specific reference; repeated need for private persistent saving not established |
+
+Code inspection found the requested CTA hierarchy, explicit completion copy, source identity, estimated
+planned time, duplicate membership feedback, no-plan escape and validated Session return already in
+place. Keep them rather than adding helper text or inline plan creation without demonstrated pain.
+Only Draft plans appear; terminal states do not become selectable. Reading/source navigation remains
+read-only and resources stay discoverable after task completion. Current lesson-picker visible default
+selection is preserved, not expanded into an automatic resource assignment.
+
+### Findings / remaining evidence
+
+- Planning intent: technically explicit; subjective naturalness unvalidated.
+- Actionable read-later: supported end to end, not proven useful through actual human reading today.
+- Reference-only saving: Bookmark threshold not met; one delegated choice is not repeated pain.
+- Session wording: distinct in code (Complete lesson / Mark study task complete); visual perception pending.
+- No-plan detour: an existing escape to Study Plans, not yet a repeatedly demonstrated blocker.
+- Repeated Discover resources: intentional stateless behavior; annoyance not reported, no suppression.
+
+The existing resource-task smoke is extended, not a new suite: the first owned plan becomes Ready
+before creating the next Draft, respecting the one-Draft-per-account constraint. Both independently
+contain the same resource; membership in one does not prepopulate another, account B sees no account A
+picker options, and finishing the first Session leaves the second plan's version/membership untouched.
+Existing resource progress/evidence and LessonsCompleted invariants remain checked in that scenario.
+No production data mutation, schema change, browser check or full regression is needed for this
+documentation/test-only checkpoint.
+
+Reconsider Bookmark only when **all three** recur: reference-only intent, Study Plan creates false
+commitment, and retrieval through Learn filters/Discover is insufficient. Even then, design it as a
+separate next phase (save/unsave, owner-scoped retrieval, archive behavior and Knowledge distinction),
+not a Day 6 side feature. No resource analytics, reading history, global done badge, provider ingestion
+or outbound tracking is added. Day 7 can review the technical phase while clearly retaining the human
+dogfood questions above rather than claiming adoption or measured satisfaction.
+
+Validation: the single extended PostgreSQL-backed API smoke passed. An initial test fixture attempted
+two concurrent Drafts and correctly hit `ux_study_plans_user_draft`; the fixture was corrected to the
+real Ready → next Draft lifecycle, without changing the business constraint. No application/UI code
+changed, so no frontend quality gate, production rebuild or unrelated suite was rerun.

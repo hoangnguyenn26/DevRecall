@@ -99,6 +99,7 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var user = (await client.GetFromJsonAsync<CurrentUserResponse>("/api/v1/auth/me"))!;
         var slug = "ef-core-handling-concurrency-conflicts";
         var plan = StudyPlan.Create(Guid.NewGuid(), user.Id, "Read EF concurrency", DateTimeOffset.UtcNow, null);
+        var secondPlan = StudyPlan.Create(Guid.NewGuid(), user.Id, "Backend Deep Dive", DateTimeOffset.UtcNow, null);
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
@@ -115,11 +116,29 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         var added = (await add.Content.ReadFromJsonAsync<AddLearningContentToStudyPlanResponse>())!;
         var retry = await client.PostAsJsonAsync(addRoute, request);
         (await retry.Content.ReadFromJsonAsync<AddLearningContentToStudyPlanResponse>())!.Added.Should().BeFalse();
+        var memberships = (await client.GetFromJsonAsync<LearningContentStudyPlanOptionResponse[]>($"/api/v1/study-plans/learning-content/{slug}/options"))!;
+        memberships.Single(option => option.StudyPlanId == plan.Id).AlreadyContains.Should().BeTrue();
+        (await other.GetFromJsonAsync<LearningContentStudyPlanOptionResponse[]>($"/api/v1/study-plans/learning-content/{slug}/options"))!.Should().BeEmpty();
         var detail = (await client.GetFromJsonAsync<StudyPlanDetailResponse>($"/api/v1/study-plans/{plan.Id}"))!;
         detail.Items.Should().ContainSingle();
         detail.Items[0].ContentType.Should().Be("ExternalResource");
         detail.Items[0].SourceName.Should().Be("Microsoft Learn");
         (await client.PostAsJsonAsync($"/api/v1/study-plans/{plan.Id}/ready", new StudyPlanMutationRequest(added.Version))).EnsureSuccessStatusCode();
+        // Preserve the existing one-Draft-per-account constraint.
+        await using (var secondScope = factory.Services.CreateAsyncScope())
+        {
+            var db = secondScope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+            db.StudyPlans.Add(secondPlan);
+            await db.SaveChangesAsync();
+        }
+        var nextOptions = (await client.GetFromJsonAsync<LearningContentStudyPlanOptionResponse[]>($"/api/v1/study-plans/learning-content/{slug}/options"))!;
+        nextOptions.Should().ContainSingle(option => option.StudyPlanId == secondPlan.Id && !option.AlreadyContains);
+        nextOptions.Should().NotContain(option => option.StudyPlanId == plan.Id);
+        var secondAdd = await client.PostAsJsonAsync($"/api/v1/study-plans/{secondPlan.Id}/learning-content/{slug}",
+            new AddLearningContentToStudyPlanRequest(1, Guid.NewGuid()));
+        secondAdd.EnsureSuccessStatusCode();
+        var secondAdded = (await secondAdd.Content.ReadFromJsonAsync<AddLearningContentToStudyPlanResponse>())!;
+        secondAdded.ItemId.Should().NotBe(added.ItemId);
         detail = (await client.GetFromJsonAsync<StudyPlanDetailResponse>($"/api/v1/study-plans/{plan.Id}"))!;
         var convert = await client.PostAsJsonAsync($"/api/v1/study-plans/{plan.Id}/convert", new ConvertStudyPlanRequest(detail.Version));
         convert.EnsureSuccessStatusCode();
@@ -143,6 +162,10 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
         session = (await client.GetFromJsonAsync<StudySessionDetailResponse>(sessionRoute))!;
         session.Items.Single().Status.Should().Be("Completed");
         session.Items.Single().HasEvidence.Should().BeFalse();
+        var untouchedPlan = (await client.GetFromJsonAsync<StudyPlanDetailResponse>($"/api/v1/study-plans/{secondPlan.Id}"))!;
+        untouchedPlan.Status.Should().Be("Draft");
+        untouchedPlan.Version.Should().Be(secondAdded.Version);
+        untouchedPlan.Items.Should().ContainSingle(row => row.ResourceId == item.ResourceId);
         var pending = await client.PostAsJsonAsync("/api/v1/study-sessions", new CreateStudySessionRequest("Read later", 20, null));
         var pendingSession = (await pending.Content.ReadFromJsonAsync<StudySessionResponse>())!;
         var pendingItemResponse = await client.PostAsJsonAsync($"/api/v1/study-sessions/{pendingSession.Id}/items",
