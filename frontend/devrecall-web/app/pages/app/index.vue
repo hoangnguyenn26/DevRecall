@@ -18,12 +18,12 @@ const { data: dashboard, error, refreshError, isPending, refreshing, refresh } =
 
 <template>
   <CoreAppContainer size="wide" class="py-6 sm:py-8">
-    <UAlert v-if="refreshError" class="mb-4" color="warning" variant="subtle" title="Dashboard refresh failed" description="Your existing dashboard is still available. Try again when you are ready." />
+    <UAlert v-if="refreshError" class="mb-4" color="warning" variant="subtle" title="Today's action refresh failed" description="Your previous action is still available. Refresh when you're ready; don't repeat a saved learning action." />
     <div class="mb-3 flex justify-end"><UButton color="neutral" variant="ghost" icon="i-lucide-refresh-cw" label="Refresh" :loading="refreshing" :aria-busy="refreshing" @click="() => refresh()" /></div>
     <FeedbackPageState
       :pending="isPending"
       :refreshing="refreshing"
-      :error="error"
+      :error="error ? { ...error, title: `We couldn't load today's next action.` } : null"
       @retry="refresh"
     >
       <TodayDashboard v-if="dashboard" :dashboard="dashboard" />
