@@ -27,6 +27,70 @@ namespace DevRecall.Api.Tests.LearningContent;
 public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
 {
     [Fact]
+    public async Task MixedStudySession_ShouldPreserveOrderCanonicalEvidenceAndActualTime()
+    {
+        await SeedAsync();
+        using var client = await CreateAuthenticatedClientAsync("mixed-concurrency");
+        var user = (await client.GetFromJsonAsync<CurrentUserResponse>("/api/v1/auth/me"))!;
+        var slugs = new[] { "ef-core-optimistic-concurrency", "ef-core-handling-concurrency-conflicts", "ef-core-transactions" };
+        var plan = StudyPlan.Create(Guid.NewGuid(), user.Id, "Backend Concurrency Study", DateTimeOffset.UtcNow, null);
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<DevRecallDbContext>();
+            foreach (var slug in slugs)
+            {
+                var content = await db.LearningContents.SingleAsync(row => row.Slug == slug);
+                plan.EnsureManualItem(Guid.NewGuid(), StudyPlanResourceType.LearningContent,
+                    content.Id, content.EstimatedMinutes, plan.Version, DateTimeOffset.UtcNow);
+            }
+            db.StudyPlans.Add(plan);
+            await db.SaveChangesAsync();
+        }
+        (await client.PostAsJsonAsync($"/api/v1/study-plans/{plan.Id}/ready", new StudyPlanMutationRequest(plan.Version))).EnsureSuccessStatusCode();
+        var ready = (await client.GetFromJsonAsync<StudyPlanDetailResponse>($"/api/v1/study-plans/{plan.Id}"))!;
+        var conversion = await client.PostAsJsonAsync($"/api/v1/study-plans/{plan.Id}/convert", new ConvertStudyPlanRequest(ready.Version));
+        conversion.EnsureSuccessStatusCode();
+        var converted = (await conversion.Content.ReadFromJsonAsync<ConvertStudyPlanResponse>())!;
+        var route = $"/api/v1/study-sessions/{converted.StudySessionId}";
+        var session = (await client.GetFromJsonAsync<StudySessionDetailResponse>(route))!;
+        session.Items.Select(row => row.ResourceKey).Should().Equal(slugs);
+        session.Items.Select(row => row.ContentType).Should().Equal("Lesson", "ExternalResource", "Lesson");
+        for (var index = 0; index < slugs.Length; index++)
+        {
+            var item = session.Items[index];
+            (await client.GetAsync($"/api/v1/learning-content/{slugs[index]}")).EnsureSuccessStatusCode();
+            (await client.GetFromJsonAsync<StudySessionDetailResponse>(route))!.Version.Should().Be(session.Version);
+            Guid? evidenceId = null;
+            if (item.ContentType == "Lesson")
+            {
+                var lessonCompletion = await client.PostAsJsonAsync($"/api/v1/learning-content/{slugs[index]}/progress/complete", new CompleteLearningContentRequest(null));
+                lessonCompletion.EnsureSuccessStatusCode();
+                var progress = (await lessonCompletion.Content.ReadFromJsonAsync<LearningContentProgressResponse>())!;
+                evidenceId = progress.CompletionEvidenceId;
+                evidenceId.Should().NotBeNull();
+                var staleAttach = await client.PostAsJsonAsync($"{route}/items/{item.Id}/complete",
+                    new CompleteStudySessionItemRequest(null, session.Version - 1, Guid.NewGuid(), evidenceId));
+                staleAttach.StatusCode.Should().Be(HttpStatusCode.Conflict);
+                (await client.GetFromJsonAsync<LearningContentDetailResponse>($"/api/v1/learning-content/{slugs[index]}"))!.Progress!.Status.Should().Be("Completed");
+                (await client.GetFromJsonAsync<StudySessionDetailResponse>(route))!.Items[index].Status.Should().Be("Pending");
+            }
+            var finish = new CompleteStudySessionItemRequest(null, session.Version, Guid.NewGuid(), evidenceId);
+            (await client.PostAsJsonAsync($"{route}/items/{item.Id}/complete", finish)).EnsureSuccessStatusCode();
+            session = (await client.GetFromJsonAsync<StudySessionDetailResponse>(route))!;
+            (await client.PostAsJsonAsync($"{route}/items/{item.Id}/complete", finish)).EnsureSuccessStatusCode();
+            (await client.GetFromJsonAsync<StudySessionDetailResponse>(route))!.Version.Should().Be(session.Version);
+            session.Status.Should().Be(index == 2 ? "Completed" : "InProgress");
+        }
+        var overview = (await client.GetFromJsonAsync<AnalyticsOverviewResponse>("/api/v1/analytics/overview"))!;
+        overview.LearningContentCompletedCount.Should().Be(2);
+        var progressOverview = (await client.GetFromJsonAsync<ProgressOverviewResponse>("/api/v1/analytics/progress-overview"))!;
+        progressOverview.StudyMinutes.Should().Be(session.ActualDurationMinutes!.Value);
+        progressOverview.StudyMinutes.Should().BeLessThan(session.PlannedDurationMinutes);
+        var history = (await client.GetFromJsonAsync<PagedResponse<LearningContentHistoryItemResponse>>("/api/v1/learning-content/history"))!;
+        history.Items.Should().HaveCount(2).And.NotContain(row => row.SourceSlug == slugs[1]);
+    }
+
+    [Fact]
     public async Task ExternalResourceStudyTask_ShouldBeOwnerScopedDeduplicatedAndNeverCreateLessonEvidence()
     {
         await SeedAsync();
@@ -104,9 +168,13 @@ public sealed class LearningContentEndpointsTests(AuthApiFactory factory)
             archived.Items.Single().IsResourceAvailable.Should().BeFalse();
             archived.Items.Single().ResourceTitle.Should().Be(item.ResourceTitle);
             (await client.PostAsJsonAsync(addRoute, request)).StatusCode.Should().Be(HttpStatusCode.NotFound);
-            // A pending task cannot be manually finished after its source is archived.
+            // Availability controls opening/new planning, not an existing task's explicit finish.
             (await client.PostAsJsonAsync($"/api/v1/study-sessions/{pendingSession.Id}/items/{pendingItem.Id}/complete",
-                new CompleteStudySessionItemRequest(null, pendingStarted.Version, Guid.NewGuid()))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+                new CompleteStudySessionItemRequest(null, pendingStarted.Version, Guid.NewGuid()))).EnsureSuccessStatusCode();
+            var partial = (await client.GetFromJsonAsync<StudySessionDetailResponse>($"/api/v1/study-sessions/{pendingSession.Id}"))!;
+            partial.Status.Should().Be("InProgress");
+            partial.Items.Single(row => row.Id == pendingItem.Id).Status.Should().Be("Completed");
+            partial.Items.Single(row => row.Id == lessonItem.Id).Status.Should().Be("Pending");
         }
         finally { await SetLessonArchivedAsync(slug, false); }
         await using var finalScope = factory.Services.CreateAsyncScope();

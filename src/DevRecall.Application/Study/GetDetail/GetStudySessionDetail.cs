@@ -80,7 +80,7 @@ public sealed class GetStudySessionDetailHandler(
                 (item.ResourceType, item.ResourceId), out var resource);
             return new StudySessionDetailItem(
                 item.Id, item.ResourceType.ToString(), item.ResourceId,
-                resource?.Title ?? item.TitleSnapshot,
+                resource is { IsAvailable: true } ? resource.Title : item.TitleSnapshot,
                 resource?.Preview, resource?.IsAvailable ?? false,
                 item.EvidenceId is not null,
                 item.PlannedDurationMinutes, item.Position,

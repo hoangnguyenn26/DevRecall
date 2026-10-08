@@ -19,7 +19,8 @@ internal sealed class StudySessionEvidenceValidator(DevRecallDbContext dbContext
                 .Select(item => new { item.ContentType, item.Status }).SingleOrDefaultAsync(cancellationToken);
             if (content is null) return false;
             if (content.ContentType == LearningContentType.ExternalResource)
-                return content.Status == ContentStatus.Published && sessionStartedAtUtc is not null && evidenceId is null;
+                return content.Status is ContentStatus.Published or ContentStatus.Archived
+                    && sessionStartedAtUtc is not null && evidenceId is null;
             if (evidenceId is null || sessionStartedAtUtc is null) return false;
         }
         if (evidenceId is null) return true;

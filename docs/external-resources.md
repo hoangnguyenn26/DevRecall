@@ -126,7 +126,7 @@ are reused; there is no bookmark table, global Planned/Read status or schema mig
 | Mark study task complete | Explicit completion of one owned Session task | No lesson/resource completion evidence |
 
 Lesson tasks still require fresh canonical lesson evidence; this is not a generic manual completion
-escape hatch. Archived sources disable open/finish for pending tasks but retain historical context.
+escape hatch. Archived sources disable open/new planning but existing Session tasks may still be explicitly finalized, retaining historical context.
 Existing Study activity and actual-duration semantics apply once, not a separate resource activity;
 EstimatedMinutes are planning hints only. Resource task completion does not affect Discover eligibility,
 Learning History, LessonsCompleted or Weak Topics. See [Study Experience](study-experience.md).
@@ -135,9 +135,44 @@ Learning History, LessonsCompleted or Weak Topics. See [Study Experience](study-
 
 PostgreSQL-backed API smoke covers plan options, owned Draft additions/deduplication, conversion,
 read-only detail navigation, explicit task finish, cross-user rejection, unchanged lesson counters,
-archive-safe history/replay and rejection of pending archived tasks. The same scenario verifies that
+archive-safe history/replay (the initial foundation rejected pending archived tasks; Days 3–4 deliberately allow their explicit finish). The same scenario verifies that
 a Lesson session item still rejects manual completion without evidence. The existing external-resource
 Start/Complete/Knowledge/Review rejection smoke and two existing plan-handler cases also passed.
 Frontend checks covered 19 relevant Learn/plan/session cases, type-check and touched-file lint.
 No full suite or browser dogfood was run; actual source reading/navigation UX remains for the requested
 checkpoint. No production data was reseeded or migrated.
+
+## Mixed Session checkpoint
+
+Days 3–4 intentionally supersede the initial archive/finish restriction: a Published or Archived
+external source already referenced by an owned, started Session can be explicitly finished as a task
+without evidence. Archive still prevents discovery, opening, new additions and new conversion.
+Missing/hard-deleted content retains unavailable/skip behavior because no subtype snapshot was added.
+
+The scoped PostgreSQL scenario uses **Backend Concurrency Study** in curriculum order:
+Optimistic Concurrency in EF Core → Handling Concurrency Conflicts → EF Core Transactions.
+It checks read-only opens, partial state after the first two tasks, canonical lesson evidence, recovery
+after stale attachment, success-equivalent submission replay, automatic final Session closure,
+exactly two lesson-history entries and actual—not estimated—StudyMinutes. A resource-first mixed
+Session in the existing resource-task scenario remains active with its Lesson pending after the
+archived resource task is finished. No external progress/evidence is created.
+
+### Friction log
+
+- **P0:** No evidence/counting violation found in the scoped technical scenarios.
+- **P1 (fixed):** Resource Plan detail previously also displayed the generic “Lesson” label. Type/source
+  now use the resource kind/source consistently in the detail and builder.
+- **P1 (fixed):** Catalog archive incorrectly prevented finalizing an already planned resource task.
+  Availability and task finish are now independent; unavailable sources retain snapshot context.
+- **P1 (fixed):** Reader return/header context previously trusted raw Session query parameters. It now
+  validates UUID shape, fetches the owned Session, matches item/content and ignores stale responses.
+  Invalid/inaccessible/mismatched context leaves ordinary content usable without Session controls.
+- **P2 (fixed):** Plan total and external task duration now clearly communicate planning estimates.
+- **Later:** Bookmark desire and suppression of studied resources remain unproven; no feature added.
+
+Two focused API scenarios and five existing frontend cases passed, together with type-check and
+touched-file lint. Docker was started; Testcontainers used its Linux-engine named pipe via a
+process-local `DOCKER_HOST`, without changing user/global configuration. No full regression or browser
+check was run. This is technical rehearsal with realistic curriculum content, **not** proof that a
+human read the sources, found mixed planning natural, or prefers planning over bookmarking. Those
+subjective Day 3 dogfood questions remain open for user feedback / the requested visual checkpoint.

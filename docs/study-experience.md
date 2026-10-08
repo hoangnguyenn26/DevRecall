@@ -18,7 +18,7 @@ Starting a Session snapshots the ordered learning items, resource titles, and pl
 
 ## Evidence and practice handoff
 
-Knowledge items use explicit completion. Interview and DSA items may be completed with a validated, owner-scoped practice attempt matching the item resource. Learning Content **Lesson** items require the canonical lesson-completion evidence to belong to the same user and lesson and to have been created after the Session started. **ExternalResource** items instead use explicit study-task completion with no evidence ID, only while the source is Published and the Session has started. Evidence summaries are bounded projections and never include full answers, code, solutions, or lesson bodies. Missing historical evidence does not make the Session unreadable.
+Knowledge items use explicit completion. Interview and DSA items may be completed with a validated, owner-scoped practice attempt matching the item resource. Learning Content **Lesson** items require the canonical lesson-completion evidence to belong to the same user and lesson and to have been created after the Session started. **ExternalResource** items instead use explicit study-task completion with no evidence ID once the Session has started. Existing tasks can be finalized after source archive: catalog availability is not proof of task completion. Evidence summaries are bounded projections and never include full answers, code, solutions, or lesson bodies. Missing historical evidence does not make the Session unreadable.
 
 Successful practice and successful Session-item completion are separate mutations. The practice result remains successful if the subsequent Session update fails. The frontend retains the same completion submission ID when retrying the Session mutation and does not resubmit the attempt.
 
@@ -45,7 +45,7 @@ have no progress prerequisite. Completed lessons remain excluded from new plan a
 Plan and Session detail include `contentType`, `sourceName` and `resourceKind` for Learning Content.
 Plan titles use existing live metadata (no new plan snapshot schema); Session conversion retains
 the existing title/duration snapshot. Archived sources remain visible as unavailable historical
-items, cannot be newly added/converted, and pending external tasks cannot be finished. A previously
+items, cannot be newly added/converted, but existing external tasks can still be explicitly finished. A previously
 successful completion submission may be replayed after archive without changing the task/version.
 
 Open resource navigates to its internal detail with Session context; the checked source URL opens
@@ -55,6 +55,19 @@ lifecycle. It never creates resource progress, lesson completion evidence, Learn
 LessonsCompleted, Review evidence or Weak Topic attribution. Existing Study activity/actual elapsed
 duration may count once; estimated reading minutes are never recorded as actual study minutes.
 Discover keeps recommending relevant resources independently of planning/task completion.
+
+| Resource | Open action | Session completion requirement | Global completion |
+| --- | --- | --- | --- |
+| Lesson | Open lesson | Fresh canonical owner/resource-matched lesson evidence | One lifetime lesson completion |
+| External resource | Internal detail → source in new tab | Explicit task finish, including an existing archived source | None |
+
+An archived external source cannot be opened, but the learner can finish an already planned task or
+skip it. Hard-deleted/missing content cannot be classified as external without a new snapshot schema,
+so it retains the existing unavailable/skip path. No source-name snapshot or new content type is added.
+Plan/session planned-duration totals may sum resource estimates; actual StudyMinutes never use those
+totals. Mixed item order remains user-owned. Session links in content URLs are validated by fetching
+the owned Session and matching the content/item; malformed, inaccessible or mismatched context leaves
+the detail in standalone mode with no Session controls. Opening never automatically attaches evidence.
 
 Plan conversion is idempotent for the converted plan. Complete and Skip commands carry a submission ID protected by a named unique constraint. Reusing the same submission for the same logical transition returns the existing state; reusing it for another item conflicts.
 

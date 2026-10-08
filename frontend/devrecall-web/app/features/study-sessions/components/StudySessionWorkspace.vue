@@ -91,8 +91,8 @@ async function skip(item: StudySessionItem): Promise<void> {
   }
 }
 function canCompleteTask(item: StudySessionItem): boolean {
-  return item.isResourceAvailable && (item.resourceType === 'KnowledgeNode'
-    || (item.resourceType === 'LearningContent' && item.contentType === 'ExternalResource'))
+  return (item.resourceType === 'KnowledgeNode' && item.isResourceAvailable)
+    || (item.resourceType === 'LearningContent' && item.contentType === 'ExternalResource')
 }
 function resourceLabel(item: StudySessionItem): string {
   if (item.contentType === 'ExternalResource') return `${resourceKindLabel(item.resourceKind)} · ${item.sourceName ?? 'Curated source'}`
@@ -287,7 +287,9 @@ onMounted(load)
           <span>{{ resourceLabel(current) }} · ~{{ current.plannedDurationMinutes }} min</span>
           <p v-if="current.contentType === 'ExternalResource'">Open the source, then explicitly finish your planned study task. This does not mark the resource as a completed lesson.</p>
           <p v-if="!current.isResourceAvailable" class="unavailable">
-            This item can no longer be opened. Skip it to continue.
+            {{ current.contentType === 'ExternalResource'
+              ? 'Source unavailable. You can still finish this planned task if it is done, or skip it.'
+              : 'This item can no longer be opened. Skip it to continue.' }}
           </p>
           <div>
             <UButton

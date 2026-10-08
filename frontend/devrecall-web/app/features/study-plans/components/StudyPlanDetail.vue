@@ -18,7 +18,7 @@ const emit = defineEmits<{ edit: []; start: [] }>()
         <h1>{{ detail.title }}</h1>
         <p>
           {{ detail.itemCount }} learning items ·
-          {{ formatMinutes(detail.totalPlannedDurationMinutes) }}
+          ~{{ formatMinutes(detail.totalPlannedDurationMinutes) }} planned
         </p>
       </div>
       <UButton
@@ -46,17 +46,17 @@ const emit = defineEmits<{ edit: []; start: [] }>()
           <strong>{{ item.resourceTitle }}</strong>
           <p>
             {{
-              item.isResourceAvailable
-                ? studyPlanResourceMeta[item.resourceType].label
-                : 'This learning item is no longer available.'
+              item.contentType === 'ExternalResource'
+                ? `${resourceKindLabel(item.resourceKind)} · ${item.sourceName ?? 'Curated source'}`
+                : studyPlanResourceMeta[item.resourceType].label
             }}
           </p>
+          <p v-if="!item.isResourceAvailable">Source unavailable</p>
         </div>
-        <span>{{ item.plannedDurationMinutes }} min</span>
+        <span>{{ item.contentType === 'ExternalResource' ? '~' : '' }}{{ item.plannedDurationMinutes }} min</span>
         <UButton
           v-if="item.resourceType === 'LearningContent' && item.isResourceAvailable && item.resourceKey"
           :to="`/app/learn/${item.resourceKey}`" :label="item.contentType === 'ExternalResource' ? 'Open resource' : 'Open lesson'" color="neutral" variant="ghost" />
-        <p v-if="item.contentType === 'ExternalResource'">{{ resourceKindLabel(item.resourceKind) }} · {{ item.sourceName }}</p>
       </li>
     </ol>
     <CoreEmptyState

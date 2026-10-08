@@ -5,6 +5,7 @@ import { studyPlanResourceMeta } from '../study-plan.meta'
 import { useStudyPlanEditor } from '../useStudyPlanEditor'
 import { useStudyPlanApi } from '../study-plan.api'
 import LearningResourcePicker from './LearningResourcePicker.vue'
+import { resourceKindLabel } from '~/features/learning-content/learning-content.meta'
 
 const props = defineProps<{ detail: StudyPlanDetail }>()
 const emit = defineEmits<{
@@ -148,7 +149,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', shortcut))
             <strong>{{ item.resourceTitle }}</strong
             ><span
               ><UIcon :name="studyPlanResourceMeta[item.resourceType].icon" />
-              {{ item.contentType === 'ExternalResource' ? `External resource · ${item.sourceName}` : studyPlanResourceMeta[item.resourceType].label }}</span
+              {{ item.contentType === 'ExternalResource' ? `${resourceKindLabel(item.resourceKind)} · ${item.sourceName ?? 'Curated source'}` : studyPlanResourceMeta[item.resourceType].label }}</span
             >
           </div>
           <UFormField :label="`Planned minutes for ${item.resourceTitle}`"

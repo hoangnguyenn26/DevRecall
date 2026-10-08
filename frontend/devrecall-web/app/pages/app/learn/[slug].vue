@@ -27,8 +27,24 @@ const mutationPending = ref(false)
 const mutationError = ref<NormalizedApiError | null>(null)
 const sessionApi = useStudySessionApi()
 const progressSync = useLearningContentProgressSync()
-const sessionId = computed(() => typeof route.query.studySession === 'string' ? route.query.studySession : '')
-const sessionItemId = computed(() => typeof route.query.studyItem === 'string' ? route.query.studyItem : '')
+const requestedSessionId = computed(() => typeof route.query.studySession === 'string' ? route.query.studySession : '')
+const requestedItemId = computed(() => typeof route.query.studyItem === 'string' ? route.query.studyItem : '')
+const verifiedContext = ref<{ sessionId: string; itemId: string }>()
+const sessionId = computed(() => verifiedContext.value?.sessionId ?? '')
+const sessionItemId = computed(() => verifiedContext.value?.itemId ?? '')
+watch([requestedSessionId, requestedItemId, () => lesson.value?.id], async ([id, itemId, contentId], _, onCleanup) => {
+  verifiedContext.value = undefined
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!contentId || !uuid.test(id) || !uuid.test(itemId)) return
+  let stale = false
+  onCleanup(() => { stale = true })
+  try {
+    const session = await sessionApi.detail(id)
+    const item = session.items.find(candidate => candidate.id === itemId
+      && candidate.resourceType === 'LearningContent' && candidate.resourceId === contentId)
+    if (!stale && item) verifiedContext.value = { sessionId: session.id, itemId: item.id }
+  } catch { /* Invalid or inaccessible context leaves standalone content usable. */ }
+}, { immediate: true })
 const sessionAttachError = ref('')
 const pendingSessionEvidenceId = ref('')
 const sessionCompletionSubmissionId = ref(crypto.randomUUID())
