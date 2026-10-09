@@ -48,3 +48,62 @@ hardened and checked, but live account-switch validation remains outstanding. No
 release readiness, bug-free behavior, retention benefit or subjective product usefulness.
 Bookmark, Learning Paths, AI, new ranking signals, curriculum expansion and P2 polish remain
 deferred. Fix further P0/P1 only when those remaining flows expose a concrete problem.
+
+## 2026-10-09 — Recovery and interaction hardening, Days 3–4
+
+The user authorized creating a separate local dogfood account. Normal authenticated APIs
+created its Profile, two lesson completions, two due Review cards and a mixed Study Session;
+the browser also saved a Knowledge note. Existing accounts/passwords and historical data
+were not reset. This is representative interaction smoke, not delayed human retention testing.
+
+| Flow | Finding | Resolution |
+| --- | --- | --- |
+| Login after cache isolation | P1: clearing every Nuxt state emptied the framework toast array; login succeeded but the UI reported failure | Clear personalized queries, Knowledge state and private open/query controls; retain framework state and reset notifications to an array |
+| Today / Discover refresh | P1 recovery risk: cached results could remain authoritative after refresh failed | Gate action/recommendation rendering on initial or refresh errors; retain retry and Learn fallback, without inventing a replacement action |
+| Profile conflict reload | P1: clearing the draft before a failed reload lost local work | Replace draft/version only after a successful GET; failed reload preserves local input and conflict, with explicit feedback |
+| Knowledge dialog keyboard | Escape was always disabled | Escape uses the existing guarded close path; pending saves remain non-dismissible; dirty draft still requires confirmation |
+| Mixed Session summary | P1 semantic copy: Lesson completion evidence was labelled DSA attempt | Explicit evidence-kind labels; Lesson completion has no fabricated attempt duration |
+
+### Observed browser checks
+
+- Mobile 390 × 844: Today primary action, Review queue/focus, Lesson reader,
+  Resource detail, Knowledge dialog and empty Plan picker. Review ratings measured
+  175 × 56 px, in two columns, with no horizontal page overflow. Code blocks scroll
+  internally rather than expanding the lesson viewport. Knowledge dialog measured
+  358 × 678 px with visible labelled fields and actions.
+- Keyboard Review: Space reveal, Good/Again numeric ratings, Enter next, then completion.
+  Answers were hidden before reveal. Good and Again both saved normal next intervals.
+  Opening the lesson source used a separate tab; the original Review session continued.
+  The source lesson still displayed Completed after Again.
+- Knowledge: initial focus on Title, Escape on a clean draft returns to the trigger;
+  Escape on edited Title invokes discard confirmation, Cancel preserves the draft;
+  normal Save displays Saved to Knowledge. Plan picker distinguishes loading from
+  no editable plan; Escape closes it and returns focus.
+- Mixed Session: lesson completion attached evidence, returning selected the external
+  resource. Opening Microsoft Learn left the task pending. Explicit task completion
+  completed the Session. Resource detail never displayed lesson progress controls.
+- Production Docker logout/login returned to Today successfully, without the former
+  false login failure. This verifies the actual toast/cache repair, not cross-account isolation.
+- Tablet 768 × 1024: existing completed lesson and post-lesson actions remained readable.
+  Desktop was inspected before mobile checks. These are sampled responsive checks,
+  not certification or an exhaustive screen-reader/200%-zoom audit.
+
+### Scoped verification and limits
+
+- 33 frontend checks passed across auth, recovery states, lesson retention, learning
+  content and session navigation; the four retention checks also reran after dialog change.
+  Only two new recovery checks were added for the identified Today/Profile failures.
+- Four existing PostgreSQL API checks passed: archived History snapshots, unavailable
+  direct content, external task ownership and stale Profile version/ownership. Archived
+  behavior is API evidence, not a claim that production content was archived for dogfood.
+- Touched-file ESLint and Nuxt type-check passed. Docker production web rebuilt without
+  changing PostgreSQL storage or API semantics. Nuxt/Nitro emitted its existing unused
+  H3Error/H3Event import warning; this is not a warning-free build claim.
+- Historical rendering/new eligibility, mutation refresh separation and dialog draft
+  handling were source-audited. No new domain, scheduler, taxonomy bridge, migration,
+  resource progress or automatic retry was introduced.
+- Directly created Session items currently display 0 planned minutes; recorded as P2
+  presentation debt outside this recovery patch. Plan-generated duration semantics were
+  not changed. Full browser account-switch isolation, all archived historical screens,
+  exhaustive filter combinations and formal assistive-technology checks remain separate
+  release checks. No blanket release-readiness claim is made.

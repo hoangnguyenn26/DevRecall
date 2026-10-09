@@ -89,7 +89,7 @@ async function save() {
 
 <template>
   <UButton icon="i-lucide-bookmark-plus" @click="begin">Save to Knowledge</UButton>
-  <UModal :open="open" :dismissible="false" title="Save your notes" description="Keep ideas you want to revisit, connect, or expand later." :ui="{ content: 'sm:max-w-2xl' }" @update:open="value => { if (!value) void close() }">
+  <UModal :open="open" :dismissible="!pending" title="Save your notes" description="Keep ideas you want to revisit, connect, or expand later." :ui="{ content: 'sm:max-w-2xl' }" @update:open="value => { if (!value) void close() }">
     <template #body>
       <div v-if="result" class="space-y-5 py-2 text-center" aria-live="polite">
         <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-success/10 text-success"><UIcon name="i-lucide-circle-check" class="size-6" /></div>

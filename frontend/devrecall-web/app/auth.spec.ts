@@ -11,7 +11,12 @@ const get = vi.fn<(path: string) => Promise<CurrentUser>>()
 const post = vi.fn<(path: string, body?: unknown) => Promise<CurrentUser | undefined>>()
 const resetSecurityContext = vi.fn<() => void>()
 const clearData = vi.fn<() => void>()
-const clearState = vi.fn<() => void>()
+const clearState = vi.fn<(filter?: (key: string) => boolean) => void>()
+const appStates = new Map<string, { value: unknown }>()
+vi.stubGlobal('useState', (key: string, init: () => unknown) => {
+  if (!appStates.has(key)) appStates.set(key, { value: init() })
+  return appStates.get(key)
+})
 
 vi.stubGlobal('useApi', () => ({ get, post, resetSecurityContext }))
 vi.stubGlobal('clearNuxtData', clearData)
@@ -26,6 +31,7 @@ describe('authentication foundation', () => {
     resetSecurityContext.mockReset()
     clearData.mockReset()
     clearState.mockReset()
+    appStates.clear()
   })
 
   it('stores the current user after a valid login', async () => {
@@ -37,6 +43,11 @@ describe('authentication foundation', () => {
     expect(resetSecurityContext).toHaveBeenCalledOnce()
     expect(clearData).toHaveBeenCalledOnce()
     expect(clearState).toHaveBeenCalledOnce()
+    const stateFilter = clearState.mock.calls[0]![0]!
+    expect(stateFilter('knowledge:active-list-key')).toBe(true)
+    expect(stateFilter('toasts')).toBe(false)
+    expect(stateFilter('nuxt-devtools')).toBe(false)
+    expect(appStates.get('toasts')?.value).toEqual([])
   })
 
   it('stores the authenticated user returned by registration', async () => {

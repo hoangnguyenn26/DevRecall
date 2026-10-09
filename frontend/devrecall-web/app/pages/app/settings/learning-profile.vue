@@ -3,6 +3,7 @@ import type { LearningProfile, LearningProfileDraft, LearningProfileOptions, Put
 import { draftFromProfile, isLearningProfileDraftValid, learningProfileSignature } from '~/features/learning-profile/learning-profile'
 import { useLearningProfileApi } from '~/features/learning-profile/learning-profile.api'
 import { learningProfileKeys } from '~/features/learning-profile/learning-profile.query-keys'
+import { normalizeApiError } from '~/utils/normalize-api-error'
 
 definePageMeta({ layout: 'app' })
 useSeoMeta({ title: 'Learning Profile' })
@@ -12,6 +13,8 @@ const optionsQuery = useApiQuery<LearningProfileOptions>(learningProfileKeys.opt
 const draft = ref<LearningProfileDraft | null>(null)
 const savedSignature = ref('')
 const saved = ref(false)
+const reloadError = ref('')
+const reloading = ref(false)
 
 watch(profileQuery.data, (profile) => {
   if (!profile || draft.value) return
@@ -44,8 +47,19 @@ function toggleGoal(value: string, checked: boolean) {
   draft.value.goals = checked ? [...draft.value.goals, value] : draft.value.goals.filter(goal => goal !== value)
 }
 async function reloadLatest() {
-  draft.value = null
-  await profileQuery.refresh()
+  if (reloading.value || saveMutation.pending.value) return
+  reloading.value = true
+  reloadError.value = ''
+  try {
+    const latest = await api.get()
+    profileQuery.data.value = latest
+    draft.value = draftFromProfile(latest)
+    savedSignature.value = learningProfileSignature(draft.value)
+    saved.value = false
+    saveMutation.clearError()
+  } catch (error) {
+    reloadError.value = normalizeApiError(error).detail ?? 'Please try again.'
+  } finally { reloading.value = false }
 }
 </script>
 
@@ -81,10 +95,11 @@ async function reloadLatest() {
         <strong>{{ saveMutation.error.value.status === 409 ? 'Your learning profile changed in another tab.' : saveMutation.error.value.title }}</strong>
         <p>{{ saveMutation.error.value.status === 409 ? 'Reload the latest version before saving again. Your local changes are still here.' : saveMutation.error.value.detail }}</p>
         <div v-if="saveMutation.error.value.status === 409" class="conflict-actions">
-          <button type="button" class="text-button" @click="reloadLatest">Reload latest</button>
+          <button type="button" class="text-button" :disabled="reloading || saveMutation.pending.value" @click="reloadLatest">{{ reloading ? 'Reloading...' : 'Reload latest' }}</button>
           <button type="button" class="text-button" @click="saveMutation.clearError">Continue editing</button>
         </div>
       </div>
+      <UAlert v-if="reloadError" role="alert" color="error" title="Couldn't reload the latest profile" :description="`${reloadError} Your edits are still here.`" />
       <footer><span aria-live="polite">{{ saved ? 'Learning profile saved.' : isDirty ? 'Unsaved changes' : 'No changes' }}</span><div class="footer-actions"><UButton v-if="saved" to="/app" color="neutral" variant="ghost">Back to Today</UButton><UButton type="submit" :loading="saveMutation.pending.value" :disabled="!isDirty || !valid || saveMutation.pending.value">Save changes</UButton></div></footer>
     </form>
   </div>

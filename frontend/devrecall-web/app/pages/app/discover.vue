@@ -6,6 +6,7 @@ definePageMeta({ layout: 'app' })
 useSeoMeta({ title: 'Discover' })
 const api = useApi()
 const query = useApiQuery<DiscoverResult>(discoverKeys.current, () => api.get('/discover'))
+const loadError = computed(() => query.error.value ?? query.refreshError.value)
 const sections = computed(() => [
   { id: 'recommended', title: 'Recommended for you', description: 'Lessons matching your current learning focus.', items: query.data.value?.recommended ?? [] },
   { id: 'resources', title: 'Trusted resources for your topics', description: 'Curated external sources for deeper learning, not lessons to complete.', items: query.data.value?.trustedResources ?? [] },
@@ -18,7 +19,7 @@ const sections = computed(() => [
     <div v-if="query.isPending.value" class="lesson-grid" aria-label="Loading learning suggestions" aria-busy="true">
       <UCard v-for="index in 4" :key="index"><div class="skeleton"><USkeleton class="h-5 w-24" /><USkeleton class="h-6 w-3/4" /><USkeleton class="h-20 w-full" /><USkeleton class="h-9 w-28" /></div></UCard>
     </div>
-    <CoreErrorState v-else-if="query.error.value" title="We couldn't load Discover" description="You can still explore all learning content." :error="query.error.value" @retry="query.refresh" />
+    <CoreErrorState v-else-if="loadError" title="We couldn't load Discover" description="You can still explore all learning content." :error="loadError" @retry="query.refresh" />
     <template v-else-if="query.data.value">
       <section v-for="section in sections" :key="section.id" :aria-labelledby="`discover-${section.id}`">
         <h2 :id="`discover-${section.id}`">{{ section.title }}</h2><p class="section-description">{{ section.description }}</p>

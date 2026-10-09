@@ -72,7 +72,12 @@ export const useAuthStore = defineStore('auth', () => {
   function clearPersonalizedCache(): void {
     if (typeof window !== 'undefined') {
       clearNuxtData()
-      clearNuxtState()
+      clearNuxtState(key => key.startsWith('knowledge:'))
+      useState('quick-capture:open', () => false).value = false
+      useState('command-palette:open', () => false).value = false
+      useState('command-palette:query-seed', () => '').value = ''
+      useState('app-shell:mobile-navigation-open', () => false).value = false
+      useState<unknown[]>('toasts', () => []).value = []
     }
   }
 

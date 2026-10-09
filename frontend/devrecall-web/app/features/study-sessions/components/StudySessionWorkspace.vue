@@ -239,9 +239,11 @@ onMounted(load)
               </p>
               <p v-if="item.hasEvidence && item.evidence">
                 {{
-                  item.evidence.kind === 'InterviewAttempt' ? 'Practice attempt' : 'DSA attempt'
-                }}: {{ item.evidence.outcome }} ·
-                {{ Math.ceil(item.evidence.durationSeconds / 60) }} min<span
+                  item.evidence.kind === 'LearningContentCompletion' ? 'Lesson completion'
+                    : item.evidence.kind === 'InterviewAttempt' ? 'Practice attempt'
+                      : item.evidence.kind === 'DsaAttempt' ? 'DSA attempt' : 'Learning evidence'
+                }}: {{ item.evidence.outcome }}<span v-if="item.evidence.kind !== 'LearningContentCompletion'"> ·
+                {{ Math.ceil(item.evidence.durationSeconds / 60) }} min</span><span
                   v-if="item.evidence.timeComplexity"
                 >
                   · {{ item.evidence.timeComplexity }}</span

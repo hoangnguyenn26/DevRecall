@@ -66,7 +66,9 @@ Frontend invalidation is targeted:
   refresh independently where needed;
 - onboarding retains its existing explicit entry-point refresh;
 - Quick Capture refreshes its affected module projections, not Today merely for unrelated capture;
-- background Today refresh retains the previous response if the new request fails.
+- background Today refresh retains the previous response in cache if the new request fails,
+  but hides the next-action UI behind a retry/error state until a successful refresh;
+  a cached action is not presented as currently authoritative.
 
 The frontend does not refresh every query after a mutation and does not poll indicators continuously.
 
