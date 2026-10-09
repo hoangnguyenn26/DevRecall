@@ -1,5 +1,7 @@
 # Learning Content
 
+Current V2 closure and validation limits: [Core Learning OS RC](v2-release-candidate.md).
+
 ## Purpose
 
 Learning Content is the global catalog of material that DevRecall offers users to learn. It is separate from user-owned Knowledge: Learning Content is platform content; Knowledge is what an individual user explicitly saves and organizes.

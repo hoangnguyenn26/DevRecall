@@ -1,5 +1,7 @@
 # Study Plans
 
+Current V2 closure and validation limits: [Core Learning OS RC](v2-release-candidate.md).
+
 Study Plans represent future study intent, not bookmarks or proof of learning.
 See [Study Experience](study-experience.md) for lifecycle, conversion, concurrency and evidence rules.
 

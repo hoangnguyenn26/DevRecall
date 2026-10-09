@@ -107,3 +107,44 @@ were not reset. This is representative interaction smoke, not delayed human rete
   not changed. Full browser account-switch isolation, all archived historical screens,
   exhaustive filter combinations and formal assistive-technology checks remain separate
   release checks. No blanket release-readiness claim is made.
+
+## 2026-10-09 — Core Learning OS RC checkpoint
+
+Decision: Outcome A, close feature development and use `v2-core-learning-os-rc1` for local
+sustained dogfood. See [release candidate](v2-release-candidate.md) for the current contract,
+evidence and residual limits. No automatic Week 12 feature scope.
+
+| Classification | Finding / disposition |
+| --- | --- |
+| P1 fixed | `/app/settings/learning-profile` changed the URL but rendered Settings: the parent page lacked a nested outlet. Move the existing overview to `settings/index.vue`, making Profile a sibling route; no form/business logic changes |
+| Test maintenance | Discover mocks lacked the existing refreshError field and expected one invalidation instead of Today plus Discover. Update existing tests, not business behavior |
+| P0 open | None observed in scoped checks |
+| P1 open | None identified after the routing repair; this is not an exhaustive defect-free guarantee |
+| P2 | Stale public Today copy, direct Session planned-minute presentation, existing Nitro unused imports; not release blockers |
+| Later | Bookmark, AI, paths, richer ranking and content expansion require actual user need |
+
+Nine existing PostgreSQL API smoke checks passed: daily priority, mixed session, external
+task ownership/evidence separation, concurrent completion, archived history, Knowledge
+replay, Review batch replay, stale Profile/ownership, and stable no-op Profile version.
+Forty-four scoped frontend tests passed across auth, recovery, invalidation, Today and
+Discover. No full suite or large new test matrix.
+
+Browser account-switch used two separate local dogfood users, without resetting existing
+accounts. The populated account had two completed lessons in History and relevant Discover
+results. After logout/login, the empty account showed no inherited Today action, Discover
+cards, plans or sessions; the same lesson offered Start rather than Completed. This samples
+live boundaries, not every in-flight/frame-level race. Earlier responsive/Review/dialog
+observations above remain applicable. The Profile route defect was found in this check,
+not silently dismissed as an untested limitation.
+
+Production web rebuilt and is healthy; API/PostgreSQL remain healthy with the existing
+data volume. Settings → Set up learning profile now renders the labelled Profile form
+with this new account's empty role/technology/goal selections, rather than the overview.
+Nuxt type-check and touched-file ESLint passed; the 14 Discover tests reran successfully
+after moving the stale-refresh assertion into the existing recovery test. No new test
+suite or backend rebuild was introduced for the route-only fix.
+
+Source-audited bounded reads, SQL Analytics aggregation, sequential scoped-DbContext reads,
+historical snapshots and stable seed identity. No production database archive/delete/reset,
+new migration, external completion or performance benchmark was introduced. Missing Days
+5–6 log entries are not backdated. Delayed human recall remains unmeasured.

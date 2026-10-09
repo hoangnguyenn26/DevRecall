@@ -1,5 +1,9 @@
 # Curated external learning resources
 
+Current V2 closure: [Core Learning OS RC](v2-release-candidate.md). Explicit resource
+Study Plan/Session integration is implemented; historical “next direction” notes below
+record earlier decisions. Resource Open and task finish still never complete a lesson.
+
 ## Purpose and ownership
 
 DevRecall teaches concepts through internal Lessons and curates trusted deeper references through ExternalResources. Both reuse the global `LearningContent` root; there is no new aggregate, Course, relation table or ingestion pipeline.

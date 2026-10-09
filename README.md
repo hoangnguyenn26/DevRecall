@@ -4,6 +4,9 @@
 
 DevRecall connects structured knowledge, active recall, spaced repetition, interview preparation, DSA practice, analytics, weak-topic detection, recommendations, and personalized study plans in one workflow.
 
+V2 Core Learning OS is a local dogfood release candidate. Feature development is closed;
+see the [release-readiness checkpoint](docs/v2-release-candidate.md) for validation and known limits.
+
 ```text
 Capture → Practice → Evaluate → Review → Detect Weakness
         → Recommend Action → Plan Learning → Execute Session
@@ -25,10 +28,9 @@ It is intentionally local-first and backend-focused. AI evaluation, cloud synchr
 
 ### Today workspace
 
-- Action-first dashboard with a deterministic Next Best Action policy
+- One primary action with deterministic priority: due work → ongoing work → explicit plans → relevant suggestions
 - Personalized onboarding and weekly learning targets
-- Weekly metrics, current Study Plan, recommendations, Weak Topics, and seven-day activity
-- Continue Learning from the latest resumable activity
+- Continue ongoing lessons or sessions without competing dashboard lists; detailed metrics remain in Insights
 - Quick Capture for Knowledge, Interview Questions, and DSA Problems
 - Lightweight navigation indicators and targeted data refresh after learning mutations
 
@@ -37,6 +39,8 @@ It is intentionally local-first and backend-focused. AI evaluation, cloud synchr
 - Focused lessons with explicit Start/Complete actions and canonical completion evidence
 - User-selected Knowledge notes and snapshot Review cards from completed lessons
 - [Discover](./docs/discover.md) with deterministic, explainable goal/technology ranking and no automatic enrollment or persisted recommendation scores
+- Separately ranked trusted external resources with transparent sources and intentional outbound navigation
+- Explicit external-resource study tasks without resource completion, lesson evidence, or reading-click analytics
 
 ### Knowledge management
 

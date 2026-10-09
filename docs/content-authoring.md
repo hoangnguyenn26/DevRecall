@@ -1,5 +1,9 @@
 # Internal lesson authoring
 
+Current V2 closure: [Core Learning OS RC](v2-release-candidate.md). External-resource
+planning now records explicit study intent, never source completion; earlier next-phase
+paragraphs below preserve the original authoring boundary and decision history.
+
 Focus: [.NET Backend Foundations](content-curriculum.md). Teach one owned concept and a useful decision: when, why, what goes wrong. Natural conceptual progression does not require Course, Module or prerequisite entities.
 
 ## Before publishing

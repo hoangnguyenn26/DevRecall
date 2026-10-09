@@ -1,5 +1,9 @@
 # Discover foundation
 
+Current V2 closure: [Core Learning OS RC](v2-release-candidate.md). Earlier phase notes
+retain their historical scope; explicit external-resource planning now exists separately
+from read-only Discover/Open, without resource completion or reading analytics.
+
 `GET /api/v1/discover` requires authentication and is a read-only projection. It never starts content, records impressions, persists recommendations or changes learning evidence.
 
 Eligibility: Published Lessons with no progress and no canonical completion evidence for the current user. In-progress and completed lessons belong in Learn / Continue Learning / History, not Discover. Difficulty, technology and available time are not eligibility filters.

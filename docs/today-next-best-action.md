@@ -1,5 +1,8 @@
 # Today / Next Best Action — V2 policy
 
+V2 feature development is closed at the [Core Learning OS RC](v2-release-candidate.md).
+The current app is primary-only; prior audit limitations below are historical observations.
+
 Week 10 is closed as a functional milestone; see the
 [product checkpoint and hardening direction](v2-week10-validation.md).
 Final presentation budget: one primary and at most one useful secondary. The current

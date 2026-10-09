@@ -14,13 +14,13 @@ const item: DiscoverLesson = {
   reasons: [{ type: 'GoalMatch', goal: { value: 'PrepareForInterviews', label: 'Prepare for technical interviews' } }],
 }
 describe('Discover foundation', () => {
-  function mountPage(result: { profileConfigured: boolean; recommended?: DiscoverLesson[]; trustedResources?: DiscoverResource[]; basedOnGoals: DiscoverLesson[]; basedOnWeakTopics: DiscoverLesson[] } | null, pending = false, error: object | null = null) {
+  function mountPage(result: { profileConfigured: boolean; recommended?: DiscoverLesson[]; trustedResources?: DiscoverResource[]; basedOnGoals: DiscoverLesson[]; basedOnWeakTopics: DiscoverLesson[] } | null, pending = false, error: object | null = null, refreshError: object | null = null) {
     const refresh = vi.fn<() => void>()
     vi.stubGlobal('definePageMeta', vi.fn<() => void>())
     vi.stubGlobal('useSeoMeta', vi.fn<() => void>())
     vi.stubGlobal('computed', computed)
     vi.stubGlobal('useApi', () => ({ get: vi.fn<() => Promise<unknown>>() }))
-    vi.stubGlobal('useApiQuery', () => ({ data: ref(result), isPending: ref(pending), error: ref(error), refresh }))
+    vi.stubGlobal('useApiQuery', () => ({ data: ref(result), isPending: ref(pending), error: ref(error), refreshError: ref(refreshError), refresh }))
     return { refresh, wrapper: mount(DiscoverPage, { global: { stubs: {
       CorePageHeader: { template: '<header><slot /></header>' }, CoreEmptyState: { props: ['title', 'description'], template: '<div>{{ title }} {{ description }}<slot /></div>' },
       CoreErrorState: { emits: ['retry'], template: '<button @click="$emit(\'retry\')">Retry</button>' },
@@ -87,6 +87,9 @@ describe('Discover foundation', () => {
     await wrapper.find('button').trigger('click')
     expect(refresh).toHaveBeenCalledOnce()
     expect(wrapper.find('a[href="/app/learn"]').exists()).toBe(true)
+    const stale = mountPage({ profileConfigured: true, recommended: [item], basedOnGoals: [], basedOnWeakTopics: [] }, false, null, { status: 503 }).wrapper
+    expect(stale.text()).toContain('Retry')
+    expect(stale.text()).not.toContain(item.title)
   })
   it('allows Discover recovery but rejects external or unrelated return destinations', () => {
     expect(lessonReturnTo('/app/discover')).toBe('/app/discover')
@@ -139,7 +142,9 @@ describe('Discover foundation', () => {
     vi.stubGlobal('useApi', () => ({ put }))
     const api = useLearningProfileApi()
     await api.put({ targetRole: 'BackendDeveloper', experienceLevel: 'Junior', availableMinutesPerDay: 15, technologies: [], goals: [], expectedVersion: null })
-    expect(clear).toHaveBeenCalledTimes(1)
+    expect(clear).toHaveBeenCalledTimes(2)
+    expect(clear).toHaveBeenCalledWith('today-dashboard')
+    expect(clear.mock.calls.some(([key]) => typeof key === 'function' && key('discover:current'))).toBe(true)
     clear.mockClear()
     put.mockRejectedValueOnce(new Error('Conflict'))
     await expect(api.put({ targetRole: '', experienceLevel: '', availableMinutesPerDay: 15, technologies: [], goals: [], expectedVersion: null })).rejects.toThrow('Conflict')
