@@ -19,8 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       const normalized = normalizeApiError(error)
       if (normalized.status === 401) {
-        user.value = null
-        status.value = 'anonymous'
+        api.resetSecurityContext()
+        clearSession()
         return
       }
       status.value = 'unknown'
@@ -42,6 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(request: LoginRequest): Promise<CurrentUser> {
     const currentUser = await api.post<CurrentUser>('/auth/login', request)
     api.resetSecurityContext()
+    clearPersonalizedCache()
     user.value = currentUser
     status.value = 'authenticated'
     return currentUser
@@ -50,6 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(request: RegisterRequest): Promise<CurrentUser> {
     const currentUser = await api.post<CurrentUser>('/auth/register', request)
     api.resetSecurityContext()
+    clearPersonalizedCache()
     user.value = currentUser
     status.value = 'authenticated'
     return currentUser
@@ -64,7 +66,11 @@ export const useAuthStore = defineStore('auth', () => {
   function clearSession(): void {
     user.value = null
     status.value = 'anonymous'
-    if (import.meta.client) {
+    clearPersonalizedCache()
+  }
+
+  function clearPersonalizedCache(): void {
+    if (typeof window !== 'undefined') {
       clearNuxtData()
       clearNuxtState()
     }

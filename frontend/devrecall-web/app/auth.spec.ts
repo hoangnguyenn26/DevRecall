@@ -10,10 +10,12 @@ const currentUser: CurrentUser = { id: 'user-1', email: 'learner@example.com', d
 const get = vi.fn<(path: string) => Promise<CurrentUser>>()
 const post = vi.fn<(path: string, body?: unknown) => Promise<CurrentUser | undefined>>()
 const resetSecurityContext = vi.fn<() => void>()
+const clearData = vi.fn<() => void>()
+const clearState = vi.fn<() => void>()
 
 vi.stubGlobal('useApi', () => ({ get, post, resetSecurityContext }))
-vi.stubGlobal('clearNuxtData', vi.fn<() => void>())
-vi.stubGlobal('clearNuxtState', vi.fn<() => void>())
+vi.stubGlobal('clearNuxtData', clearData)
+vi.stubGlobal('clearNuxtState', clearState)
 const { useAuthStore } = await import('~/stores/auth')
 
 describe('authentication foundation', () => {
@@ -22,6 +24,8 @@ describe('authentication foundation', () => {
     get.mockReset()
     post.mockReset()
     resetSecurityContext.mockReset()
+    clearData.mockReset()
+    clearState.mockReset()
   })
 
   it('stores the current user after a valid login', async () => {
@@ -31,6 +35,8 @@ describe('authentication foundation', () => {
     expect(auth.user).toEqual(currentUser)
     expect(auth.status).toBe('authenticated')
     expect(resetSecurityContext).toHaveBeenCalledOnce()
+    expect(clearData).toHaveBeenCalledOnce()
+    expect(clearState).toHaveBeenCalledOnce()
   })
 
   it('stores the authenticated user returned by registration', async () => {
@@ -40,6 +46,8 @@ describe('authentication foundation', () => {
     expect(auth.status).toBe('authenticated')
     expect(auth.user).toEqual(currentUser)
     expect(resetSecurityContext).toHaveBeenCalledOnce()
+    expect(clearData).toHaveBeenCalledOnce()
+    expect(clearState).toHaveBeenCalledOnce()
   })
 
   it('deduplicates concurrent session restoration', async () => {
@@ -59,6 +67,26 @@ describe('authentication foundation', () => {
     const auth = useAuthStore()
     await auth.restore()
     expect(auth.status).toBe('anonymous')
+    expect(clearData).toHaveBeenCalledOnce()
+    expect(clearState).toHaveBeenCalledOnce()
+    expect(resetSecurityContext).toHaveBeenCalledOnce()
+  })
+
+  it('clears previous personalized state when another account logs in without logout', async () => {
+    const secondUser = { ...currentUser, id: 'user-2', email: 'second@example.com' }
+    post.mockResolvedValueOnce(currentUser).mockResolvedValueOnce(secondUser)
+    const auth = useAuthStore()
+    await auth.login({ email: currentUser.email, password: 'Example123!' })
+    clearData.mockClear()
+    clearState.mockClear()
+    await auth.login({ email: secondUser.email, password: 'Example123!' })
+    expect(auth.user).toEqual(secondUser)
+    expect(clearData).toHaveBeenCalledOnce()
+    expect(clearState).toHaveBeenCalledOnce()
+    post.mockRejectedValueOnce(new ApiError({ status: 401, title: 'Unauthorized' }))
+    await expect(auth.login({ email: currentUser.email, password: 'incorrect' })).rejects.toBeInstanceOf(ApiError)
+    expect(auth.user).toEqual(secondUser)
+    expect(clearData).toHaveBeenCalledOnce()
   })
 
   it('keeps status unknown when session verification fails', async () => {
