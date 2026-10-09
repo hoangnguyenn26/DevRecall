@@ -28,7 +28,7 @@ Resources have `progressStatus: null` on lists and `progress: null` on detail. D
 
 Detail GET and external link opening are navigation only. There is **no Start, Complete, progress row, completion evidence, Continue entry, History entry, Active Day or StudyMinutes** from resource opening. There is no outbound-click/impression tracking or new resource state machine.
 
-Direct Start/Complete API calls reject resources with `409 LEARNING_CONTENT_LESSON_REQUIRED`. Lesson-to-Knowledge and lesson-to-Review source lookups exclude resources; Study Plan lesson source/options also exclude them. Thus hiding UI actions is not the only boundary. No Knowledge, Review or Study Plan integration is enabled for resources yet. Discover now projects a separate, read-only `trustedResources` array; see [resource ranking and intent separation](discover.md#trusted-external-resources). It does not change these boundaries.
+Direct Start/Complete API calls reject resources with `409 LEARNING_CONTENT_LESSON_REQUIRED`. Lesson-to-Knowledge and lesson-to-Review source lookups exclude resources; Study Plan lesson source/options also exclude them. Thus hiding UI actions is not the only boundary. Week 9 added explicit external-resource Study Plan/Session tasks, separate from Lesson options; see [Study experience](study-experience.md). Their explicit task completion is orchestration only, never global resource completion or Lesson evidence. No resource-to-Knowledge/Review integration is enabled. Discover projects a separate, read-only `trustedResources` array; see [resource ranking and intent separation](discover.md#trusted-external-resources).
 
 ## Initial manual curation
 
