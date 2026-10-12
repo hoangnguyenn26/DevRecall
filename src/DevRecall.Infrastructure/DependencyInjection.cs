@@ -101,6 +101,7 @@ public static class DependencyInjection
             });
 
         services.AddScoped<DemoDataSeeder>();
+        services.AddScoped<DogfoodDataSeeder>();
         services.AddScoped<LearningContentSeeder>();
         services.AddScoped<LearningContentConsistencyRepair>();
 

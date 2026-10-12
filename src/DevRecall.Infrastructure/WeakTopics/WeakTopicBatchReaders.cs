@@ -37,6 +37,7 @@ internal sealed class WeakTopicCandidateReader(DevRecallDbContext dbContext)
             where session.UserId == userId && item.CompletedAtUtc >= fromUtc
                 && item.CompletedAtUtc < toUtc
                 && item.ResourceType != StudyResourceType.ReviewItem
+                && item.ResourceType != StudyResourceType.LearningContent
                 && (item.Status == StudySessionItemStatus.Completed
                     || item.Status == StudySessionItemStatus.Skipped)
             select new { item.ResourceType, item.ResourceId })
@@ -105,6 +106,7 @@ internal sealed class WeakTopicBatchSignalReader(DevRecallDbContext dbContext)
             where session.UserId == userId && item.CompletedAtUtc >= fromUtc
                 && item.CompletedAtUtc < toUtc
                 && item.ResourceType != StudyResourceType.ReviewItem
+                && item.ResourceType != StudyResourceType.LearningContent
                 && (item.Status == StudySessionItemStatus.Completed
                     || item.Status == StudySessionItemStatus.Skipped)
             select new

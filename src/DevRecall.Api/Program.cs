@@ -176,6 +176,17 @@ if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
+if (args.Contains("--seed-dogfood", StringComparer.OrdinalIgnoreCase))
+{
+    DemoDataSeeder.EnsureDevelopmentEnvironment(app.Environment.IsDevelopment());
+    var password = app.Configuration["DEVRECALL_DOGFOOD_PASSWORD"]
+        ?? throw new InvalidOperationException("DEVRECALL_DOGFOOD_PASSWORD was not configured.");
+    await using var scope = app.Services.CreateAsyncScope();
+    var created = await scope.ServiceProvider.GetRequiredService<DogfoodDataSeeder>().SeedAsync(password);
+    Console.WriteLine(created ? "Dogfood playground created." : "Dogfood account already exists; no changes were made.");
+    return;
+}
+
 if (args.Contains("--seed-learning-content", StringComparer.OrdinalIgnoreCase))
 {
     LearningContentSeeder.EnsureDevelopmentEnvironment(app.Environment.IsDevelopment());

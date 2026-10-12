@@ -1,5 +1,9 @@
 # DevRecall Demo Guide
 
+For a larger V2 dataset spanning eight weeks of simulated activity, use the
+[local dogfood playground](local-playground.md). It has its own account and preserves
+the smaller demo account described below.
+
 ## Prepare the application
 
 1. Copy `deploy/.env.example` to `deploy/.env` and replace the database password.
