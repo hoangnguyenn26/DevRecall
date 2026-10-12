@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000103",
+  "slug": "ef-core-tracking-vs-no-tracking",
+  "title": "EF Core Tracking vs No Tracking",
+  "summary": "Choose entity tracking for updates and avoid unnecessary tracking in read-only query paths.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 10,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "EfCore"
+  ],
+  "topics": [
+    "change-tracking"
+  ],
+  "goals": [
+    "PrepareForInterviews",
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Explain what tracking provides for returned entities.",
+    "Choose no tracking for read-only entity queries.",
+    "Distinguish scalar DTO projections from projections containing entities."
+  ],
+  "sections": [
+    {
+      "bodyKey": "read-or-update",
+      "type": "Explanation",
+      "heading": "Read or update?"
+    },
+    {
+      "bodyKey": "entity-reads-and-dto-projections",
+      "type": "CodeExample",
+      "heading": "Entity reads and DTO projections"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "tracking-query",
+      "prompt": "What does an EF Core tracking query provide?",
+      "answer": "It records materialized entity instances so changes can be detected and saved through the current DbContext."
+    },
+    {
+      "key": "no-tracking-reads",
+      "prompt": "When should AsNoTracking usually be used?",
+      "answer": "Use it for read-only entity queries where the returned entities will not be updated through the same DbContext. A scalar-only DTO projection returns no entity instances to track."
+    }
+  ]
+}

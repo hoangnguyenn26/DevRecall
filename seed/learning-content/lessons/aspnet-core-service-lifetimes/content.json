@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000102",
+  "slug": "aspnet-core-service-lifetimes",
+  "title": "ASP.NET Core Service Lifetimes",
+  "summary": "Choose between Transient, Scoped, and Singleton services and avoid lifetime dependency mistakes.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "dependency-injection"
+  ],
+  "goals": [
+    "PrepareForInterviews",
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Explain the three built-in service lifetimes.",
+    "Choose an appropriate lifetime for a service.",
+    "Identify a captive dependency."
+  ],
+  "sections": [
+    {
+      "bodyKey": "transient-scoped-and-singleton",
+      "type": "Explanation",
+      "heading": "Transient, Scoped, and Singleton"
+    },
+    {
+      "bodyKey": "registration",
+      "type": "CodeExample",
+      "heading": "Registration"
+    },
+    {
+      "bodyKey": "lifetime-mismatch",
+      "type": "Explanation",
+      "heading": "Lifetime mismatch"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "three-service-lifetimes",
+      "prompt": "What are the three built-in ASP.NET Core service lifetimes?",
+      "answer": "Transient, Scoped, and Singleton."
+    },
+    {
+      "key": "scoped-per-request",
+      "prompt": "How does a Scoped service behave in a typical ASP.NET Core request?",
+      "answer": "One instance is reused within the request scope, while different requests receive different instances."
+    },
+    {
+      "key": "lifetime-selection",
+      "prompt": "What should guide the lifetime chosen for an ASP.NET Core service?",
+      "answer": "Choose the shortest lifetime that satisfies the service's state-sharing requirements, then verify that longer-lived services do not capture shorter-lived dependencies."
+    },
+    {
+      "key": "captive-dependency",
+      "prompt": "Why can injecting a Scoped service into a Singleton be problematic?",
+      "answer": "The Singleton can hold a shorter-lived dependency beyond its intended scope, creating a captive dependency and potentially leaking request-specific state."
+    }
+  ]
+}

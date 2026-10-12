@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "topics": [
+    { "id": "10000000-0000-0000-0000-000000000001", "slug": "dependency-injection", "name": "Dependency Injection" },
+    { "id": "10000000-0000-0000-0000-000000000002", "slug": "change-tracking", "name": "Change Tracking" },
+    { "id": "10000000-0000-0000-0000-000000000003", "slug": "request-pipeline", "name": "Request Pipeline" },
+    { "id": "10000000-0000-0000-0000-000000000004", "slug": "asynchronous-programming", "name": "Asynchronous Programming" },
+    { "id": "10000000-0000-0000-0000-000000000005", "slug": "transactions", "name": "Transactions" },
+    { "id": "10000000-0000-0000-0000-000000000006", "slug": "concurrency", "name": "Concurrency" },
+    { "id": "10000000-0000-0000-0000-000000000007", "slug": "configuration", "name": "Configuration" },
+    { "id": "10000000-0000-0000-0000-000000000008", "slug": "access-control", "name": "Access Control" },
+    { "id": "10000000-0000-0000-0000-000000000009", "slug": "api-error-contracts", "name": "API Error Contracts" }
+  ]
+}

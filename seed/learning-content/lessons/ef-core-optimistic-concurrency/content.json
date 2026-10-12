@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000108",
+  "slug": "ef-core-optimistic-concurrency",
+  "title": "Optimistic Concurrency Fundamentals",
+  "summary": "Detect lost updates with an expected version and choose a deliberate response to conflicting writes.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "EfCore"
+  ],
+  "topics": [
+    "concurrency"
+  ],
+  "goals": [
+    "PrepareForInterviews",
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Explain the lost-update problem.",
+    "Explain how an expected version detects a stale write.",
+    "Choose an application response when a concurrency conflict occurs."
+  ],
+  "sections": [
+    {
+      "bodyKey": "the-lost-update-comes-first",
+      "type": "Explanation",
+      "heading": "The lost update comes first"
+    },
+    {
+      "bodyKey": "check-the-expected-version-at-write-time",
+      "type": "Explanation",
+      "heading": "Check the expected version at write time"
+    },
+    {
+      "bodyKey": "an-application-managed-token",
+      "type": "CodeExample",
+      "heading": "An application-managed token"
+    },
+    {
+      "bodyKey": "resolve-do-not-erase",
+      "type": "Explanation",
+      "heading": "Resolve, do not erase"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "lost-update-problem",
+      "prompt": "What problem does optimistic concurrency protect against?",
+      "answer": "A lost update: a writer acting on stale data silently overwrites changes made by another writer after the original read."
+    },
+    {
+      "key": "concurrency-token-protection",
+      "prompt": "How does an expected version detect a stale update?",
+      "answer": "The write must match both the row ID and its original version. If another write advanced that version, no row matches and EF Core reports a concurrency conflict."
+    },
+    {
+      "key": "conflict-resolution",
+      "prompt": "What are reasonable responses to a detected concurrency conflict?",
+      "answer": "Reload and ask the user, merge compatible changes, or re-apply an operation after validating it against current state. Silently retrying an unchanged stale overwrite is not a resolution."
+    }
+  ]
+}

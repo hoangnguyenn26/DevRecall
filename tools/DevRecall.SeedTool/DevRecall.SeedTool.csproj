@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DevRecall.Domain\DevRecall.Domain.csproj" />
+    <ProjectReference Include="..\..\src\DevRecall.Infrastructure\DevRecall.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

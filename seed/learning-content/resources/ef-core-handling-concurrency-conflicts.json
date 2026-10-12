@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000205",
+  "slug": "ef-core-handling-concurrency-conflicts",
+  "title": "Handling Concurrency Conflicts",
+  "summary": "Follow the concurrency lesson with EF Core details on configuring tokens and deliberately handling conflicting updates.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/ef/core/saving/concurrency"
+  },
+  "technologies": [
+    "DotNet",
+    "EfCore"
+  ],
+  "topics": [
+    "concurrency"
+  ],
+  "goals": [
+    "PrepareForInterviews",
+    "ImproveBackendFundamentals"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000204",
+  "slug": "ef-core-tracking-documentation",
+  "title": "Tracking vs. No-Tracking Queries",
+  "summary": "Check EF Core-specific tracking, identity resolution and projection behavior when choosing a read-only query strategy.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 15,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/ef/core/querying/tracking"
+  },
+  "technologies": [
+    "DotNet",
+    "EfCore"
+  ],
+  "topics": [
+    "change-tracking"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals"
+  ]
+}

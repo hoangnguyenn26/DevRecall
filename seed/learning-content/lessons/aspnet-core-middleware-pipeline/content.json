@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000104",
+  "slug": "aspnet-core-middleware-pipeline",
+  "title": "ASP.NET Core Middleware Pipeline",
+  "summary": "Follow nested request/response control flow, reason about middleware order, and recognize short-circuiting.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "request-pipeline"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ],
+  "objectives": [
+    "Explain how requests flow through middleware and return from downstream components.",
+    "Explain why middleware ordering changes behavior.",
+    "Distinguish terminal middleware from middleware that calls next."
+  ],
+  "sections": [
+    {
+      "bodyKey": "a-pipeline-of-decisions",
+      "type": "Explanation",
+      "heading": "A pipeline of decisions"
+    },
+    {
+      "bodyKey": "what-order-means",
+      "type": "Explanation",
+      "heading": "What order means"
+    },
+    {
+      "bodyKey": "control-flow-before-and-after-next",
+      "type": "CodeExample",
+      "heading": "Control flow before and after next"
+    },
+    {
+      "bodyKey": "short-circuiting-and-ordering-mistakes",
+      "type": "Explanation",
+      "heading": "Short-circuiting and ordering mistakes"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "middleware-order-behavior",
+      "prompt": "Why does ASP.NET Core middleware ordering matter?",
+      "answer": "Upstream middleware controls which downstream components run and what request state they receive. For example, authorization needs the identity established by authentication."
+    },
+    {
+      "key": "middleware-short-circuiting",
+      "prompt": "What does short-circuiting an ASP.NET Core request pipeline mean?",
+      "answer": "A component handles the request without invoking next, so later middleware and the endpoint do not execute."
+    },
+    {
+      "key": "middleware-next-role",
+      "prompt": "How does control flow work in ASP.NET Core middleware that calls next?",
+      "answer": "It runs work before next, awaits the downstream pipeline, and then continues after downstream returns. On a successful request, the response unwinds through the components in reverse order."
+    }
+  ]
+}

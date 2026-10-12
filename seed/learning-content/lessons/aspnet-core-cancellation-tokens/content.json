@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000106",
+  "slug": "aspnet-core-cancellation-tokens",
+  "title": "CancellationToken Fundamentals",
+  "summary": "Understand cooperative cancellation in .NET and propagate an HTTP caller's cancellation through asynchronous work.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "CSharp",
+    "DotNet"
+  ],
+  "topics": [
+    "asynchronous-programming"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Explain why cancellation in .NET is cooperative.",
+    "Pass CancellationToken through cancellable asynchronous call chains.",
+    "Distinguish requested cancellation from unexpected application failure."
+  ],
+  "sections": [
+    {
+      "bodyKey": "a-signal-not-a-force-kill",
+      "type": "Explanation",
+      "heading": "A signal, not a force kill"
+    },
+    {
+      "bodyKey": "keep-the-caller-s-lifetime",
+      "type": "Explanation",
+      "heading": "Keep the caller's lifetime"
+    },
+    {
+      "bodyKey": "request-to-database",
+      "type": "CodeExample",
+      "heading": "Request to database"
+    },
+    {
+      "bodyKey": "cancellation-versus-failure",
+      "type": "Explanation",
+      "heading": "Cancellation versus failure"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "cancellation-propagation-value",
+      "prompt": "What should a method normally do with the CancellationToken it receives?",
+      "answer": "Pass it to downstream operations that support cancellation, so the caller's request to stop can reach the work actually in progress."
+    },
+    {
+      "key": "cancelled-request-continuing-io",
+      "prompt": "What problem can occur when a request is cancelled but downstream I/O continues?",
+      "answer": "Abandoned work still consumes connections and other resources. Cancellation is cooperative: downstream operations must receive and observe the signal to stop."
+    },
+    {
+      "key": "cancellation-not-an-error",
+      "prompt": "Why should requested cancellation not automatically be treated as an unexpected application error?",
+      "answer": "OperationCanceledException can represent the caller intentionally abandoning work, not a server defect. Preserve that outcome instead of swallowing it or reporting false success."
+    }
+  ]
+}

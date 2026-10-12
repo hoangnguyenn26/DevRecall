@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000203",
+  "slug": "dotnet-cancellation-in-managed-threads",
+  "title": "Cancellation in Managed Threads",
+  "summary": "Extend the CancellationToken lesson with the .NET cooperative cancellation model and practical observation patterns.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads"
+  },
+  "technologies": [
+    "CSharp",
+    "DotNet"
+  ],
+  "topics": [
+    "asynchronous-programming"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals"
+  ]
+}

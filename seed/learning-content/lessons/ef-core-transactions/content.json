@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000107",
+  "slug": "ef-core-transactions",
+  "title": "EF Core Transactions",
+  "summary": "Choose the smallest database transaction boundary that protects a real consistency requirement.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "EfCore"
+  ],
+  "topics": [
+    "transactions"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Explain the normal transactional behavior of SaveChanges with relational providers.",
+    "Decide when an explicit database transaction is needed.",
+    "Explain why database transactions should be short."
+  ],
+  "sections": [
+    {
+      "bodyKey": "start-with-the-consistency-requirement",
+      "type": "Explanation",
+      "heading": "Start with the consistency requirement"
+    },
+    {
+      "bodyKey": "several-database-steps-one-outcome",
+      "type": "Explanation",
+      "heading": "Several database steps, one outcome"
+    },
+    {
+      "bodyKey": "two-saves-with-a-deliberate-boundary",
+      "type": "CodeExample",
+      "heading": "Two saves with a deliberate boundary"
+    },
+    {
+      "bodyKey": "keep-the-protected-boundary-small",
+      "type": "Explanation",
+      "heading": "Keep the protected boundary small"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "savechanges-atomicity",
+      "prompt": "What transaction behavior does EF Core normally provide for one SaveChanges call?",
+      "answer": "With a transaction-supporting provider, its database changes are applied atomically: they all commit or are rolled back together."
+    },
+    {
+      "key": "explicit-transaction-need",
+      "prompt": "When can an explicit database transaction be justified in EF Core?",
+      "answer": "When multiple database persistence steps must succeed as one unit and cannot be staged into a single SaveChanges call. The steps must participate in the same transaction."
+    },
+    {
+      "key": "avoid-unnecessary-transactions",
+      "prompt": "Why should a single SaveChanges call usually not be wrapped in a manual transaction?",
+      "answer": "It already supplies an atomic database boundary. Extra transaction scope adds ceremony and may hold resources longer; keep any required boundary short and do not wait on slow external calls inside it."
+    }
+  ]
+}

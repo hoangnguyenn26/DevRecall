@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000109",
+  "slug": "aspnet-core-configuration-options",
+  "title": "Configuration and Options in ASP.NET Core",
+  "summary": "Assumes basic dependency injection: compose configuration providers and give consumers typed, validated settings.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "configuration"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ],
+  "objectives": [
+    "Explain how later configuration providers can override earlier values.",
+    "Explain why strongly typed options improve maintainability.",
+    "Distinguish IOptions from request-scoped IOptionsSnapshot."
+  ],
+  "sections": [
+    {
+      "bodyKey": "one-boundary-several-providers",
+      "type": "Explanation",
+      "heading": "One boundary, several providers"
+    },
+    {
+      "bodyKey": "name-the-dependency",
+      "type": "Explanation",
+      "heading": "Name the dependency"
+    },
+    {
+      "bodyKey": "bind-validate-consume",
+      "type": "CodeExample",
+      "heading": "Bind, validate, consume"
+    },
+    {
+      "bodyKey": "choose-how-values-refresh",
+      "type": "Explanation",
+      "heading": "Choose how values refresh"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "typed-options-boundary",
+      "prompt": "Why prefer strongly typed options over scattered configuration keys?",
+      "answer": "They group meaningful settings behind an explicit dependency and centralize binding/validation, making consumers easier to refactor and test."
+    },
+    {
+      "key": "configuration-override",
+      "prompt": "How are duplicate configuration keys resolved across ASP.NET Core providers?",
+      "answer": "The provider added later takes precedence for that key. The actual configured provider order determines the winning value."
+    },
+    {
+      "key": "options-refresh-scope",
+      "prompt": "How do IOptions and IOptionsSnapshot differ conceptually?",
+      "answer": "IOptions supplies a cached value without reload updates. IOptionsSnapshot caches per scope, so a later request scope can use updated values when the underlying provider supports reload."
+    }
+  ]
+}

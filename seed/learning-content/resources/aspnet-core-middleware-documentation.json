@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000201",
+  "slug": "aspnet-core-middleware-documentation",
+  "title": "ASP.NET Core middleware",
+  "summary": "Deepen the pipeline lesson with request delegates, short-circuiting and concrete middleware ordering guidance.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-10.0"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "request-pipeline"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ]
+}

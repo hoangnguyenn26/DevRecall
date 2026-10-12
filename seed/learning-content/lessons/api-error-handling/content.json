@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000111",
+  "slug": "api-error-handling",
+  "title": "API Error Handling",
+  "summary": "Design predictable error contracts for expected failures without leaking unexpected exception details.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "api-error-contracts"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ],
+  "objectives": [
+    "Distinguish expected application errors from unexpected failures.",
+    "Explain the role of Problem Details and stable machine-readable codes.",
+    "Avoid exposing implementation details or private data in API errors."
+  ],
+  "sections": [
+    {
+      "bodyKey": "errors-are-part-of-the-contract",
+      "type": "Explanation",
+      "heading": "Errors are part of the contract"
+    },
+    {
+      "bodyKey": "an-intentional-representation",
+      "type": "Explanation",
+      "heading": "An intentional representation"
+    },
+    {
+      "bodyKey": "a-stale-edit-response",
+      "type": "CodeExample",
+      "heading": "A stale-edit response"
+    },
+    {
+      "bodyKey": "keep-the-boundary-safe",
+      "type": "Explanation",
+      "heading": "Keep the boundary safe"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "expected-vs-unexpected-error",
+      "prompt": "How do expected API errors differ from unexpected failures?",
+      "answer": "Expected errors represent known outcomes such as invalid input or a stale edit, with intentional client actions. Unexpected failures need a safe generic server-error response and diagnostics."
+    },
+    {
+      "key": "safe-api-errors",
+      "prompt": "Why should an API avoid returning raw exception details to clients?",
+      "answer": "They can expose stack traces, internal structure or sensitive data. A safe error contract and correlation ID support clients without leaking those details."
+    },
+    {
+      "key": "stable-error-codes",
+      "prompt": "Why are stable machine-readable error codes useful alongside HTTP status codes?",
+      "answer": "Status codes classify broad outcomes, while stable application codes distinguish actionable causes without requiring clients to parse changing human messages."
+    }
+  ]
+}

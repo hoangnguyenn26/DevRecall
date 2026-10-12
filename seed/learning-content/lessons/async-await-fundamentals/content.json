@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000105",
+  "slug": "async-await-fundamentals",
+  "title": "async/await Fundamentals",
+  "summary": "Compose asynchronous operations without blocking request threads, and distinguish await from background-thread execution.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Beginner",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "CSharp",
+    "DotNet"
+  ],
+  "topics": [
+    "asynchronous-programming"
+  ],
+  "goals": [
+    "PrepareForInterviews",
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Explain what await does to the flow of an asynchronous method.",
+    "Distinguish asynchronous I/O from work running on a background thread.",
+    "Explain why .Result and .Wait() are the wrong default in request code."
+  ],
+  "sections": [
+    {
+      "bodyKey": "task-and-await",
+      "type": "Explanation",
+      "heading": "Task and await"
+    },
+    {
+      "bodyKey": "async-is-not-a-background-thread",
+      "type": "Explanation",
+      "heading": "Async is not a background thread"
+    },
+    {
+      "bodyKey": "an-asynchronous-call-chain",
+      "type": "CodeExample",
+      "heading": "An asynchronous call chain"
+    },
+    {
+      "bodyKey": "why-result-and-wait-are-not-the-default",
+      "type": "Explanation",
+      "heading": "Why .Result and .Wait() are not the default"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "await-frees-thread",
+      "prompt": "What happens to an ASP.NET Core request thread while a handler awaits a database call?",
+      "answer": "The thread is released back to the thread pool and can serve other requests while the I/O is in flight. When the operation completes, the method resumes, possibly on a different thread."
+    },
+    {
+      "key": "async-is-not-a-thread",
+      "prompt": "Does awaiting an asynchronous database call run the work on a background thread?",
+      "answer": "No. Asynchronous I/O releases the waiting thread instead of starting a new one. Async is about not holding threads during waits, not about running work in parallel."
+    },
+    {
+      "key": "sync-over-async-cost",
+      "prompt": "Why are .Result and .Wait() usually the wrong default in ASP.NET Core request code?",
+      "answer": "They block a thread pool thread for the entire wait. Under load, blocked threads accumulate and can starve the thread pool, increasing latency for all requests. await pauses the method without holding a thread."
+    }
+  ]
+}

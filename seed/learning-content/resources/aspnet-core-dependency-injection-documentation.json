@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000202",
+  "slug": "aspnet-core-dependency-injection-documentation",
+  "title": "Dependency injection in ASP.NET Core",
+  "summary": "Use this after DI and service lifetimes to inspect framework registration, lifetime behavior and scoped-service guidance.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 25,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-10.0"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "dependency-injection"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ]
+}

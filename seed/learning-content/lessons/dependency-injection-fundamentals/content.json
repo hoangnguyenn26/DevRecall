@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000101",
+  "slug": "dependency-injection-fundamentals",
+  "title": "Dependency Injection Fundamentals",
+  "summary": "Separate object composition from business behavior with explicit, replaceable dependencies.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Beginner",
+  "estimatedMinutes": 10,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet"
+  ],
+  "topics": [
+    "dependency-injection"
+  ],
+  "goals": [
+    "PrepareForInterviews",
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Explain what dependency injection solves.",
+    "Recognize constructor injection.",
+    "Describe why direct dependency creation increases coupling."
+  ],
+  "sections": [
+    {
+      "bodyKey": "composition-versus-behavior",
+      "type": "Explanation",
+      "heading": "Composition versus behavior"
+    },
+    {
+      "bodyKey": "before-and-after",
+      "type": "CodeExample",
+      "heading": "Before and after"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "dependency-injection-purpose",
+      "prompt": "What problem does dependency injection solve?",
+      "answer": "It separates object composition from business behavior, reducing coupling and making dependencies explicit and replaceable."
+    },
+    {
+      "key": "constructor-injection",
+      "prompt": "Why is constructor injection useful?",
+      "answer": "Required dependencies are visible and supplied by the caller, so alternative implementations can be used without changing the consuming class."
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000110",
+  "slug": "authentication-vs-authorization",
+  "title": "Authentication vs Authorization",
+  "summary": "Separate identity from permission and protect private resources even when a caller is logged in.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Beginner",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "access-control"
+  ],
+  "goals": [
+    "PrepareForInterviews",
+    "ImproveBackendFundamentals"
+  ],
+  "objectives": [
+    "Distinguish authentication from authorization.",
+    "Explain why a valid identity does not grant access to every resource.",
+    "Identify where resource authorization belongs in a request flow."
+  ],
+  "sections": [
+    {
+      "bodyKey": "identity-is-not-permission",
+      "type": "Explanation",
+      "heading": "Identity is not permission"
+    },
+    {
+      "bodyKey": "from-request-to-protected-resource",
+      "type": "Explanation",
+      "heading": "From request to protected resource"
+    },
+    {
+      "bodyKey": "a-private-order-lookup",
+      "type": "CodeExample",
+      "heading": "A private order lookup"
+    },
+    {
+      "bodyKey": "resource-aware-decisions",
+      "type": "Explanation",
+      "heading": "Resource-aware decisions"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "identity-vs-permission",
+      "prompt": "What is the difference between authentication and authorization?",
+      "answer": "Authentication establishes who the caller is. Authorization decides whether that caller may perform a particular action on a particular resource."
+    },
+    {
+      "key": "authenticated-not-owner",
+      "prompt": "Why does successful authentication not imply access to every resource?",
+      "answer": "Identity alone does not establish ownership or permission. An authenticated user may still be forbidden from reading another account's private data."
+    },
+    {
+      "key": "resource-authorization",
+      "prompt": "What is resource-based authorization?",
+      "answer": "A permission decision using the specific resource and requested operation, such as whether a caller owns the order they want to view or can approve it."
+    }
+  ]
+}
