@@ -12,10 +12,7 @@
     "type": "Internal",
     "name": "DevRecall"
   },
-  "technologies": [
-    "DotNet",
-    "AspNetCore"
-  ],
+  "technologies": [],
   "topics": [
     "http-semantics"
   ],
