@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000114",
+  "slug": "api-pagination-contracts",
+  "title": "API Pagination Contracts",
+  "summary": "Build bounded, deterministic list endpoints and choose between offset and keyset pagination deliberately.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore",
+    "EfCore"
+  ],
+  "topics": [
+    "pagination"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ],
+  "objectives": [
+    "Define a bounded pagination contract with validated page-size limits.",
+    "Use a fully unique deterministic ordering before applying pagination.",
+    "Compare offset pagination with keyset pagination for common navigation needs.",
+    "Recognize how concurrent inserts or deletes can affect page traversal."
+  ],
+  "sections": [
+    {
+      "bodyKey": "pagination-is-an-api-contract",
+      "type": "Explanation",
+      "heading": "Pagination is an API contract"
+    },
+    {
+      "bodyKey": "ordering-before-windowing",
+      "type": "Explanation",
+      "heading": "Order before taking a window"
+    },
+    {
+      "bodyKey": "offset-pagination",
+      "type": "CodeExample",
+      "heading": "Offset pagination"
+    },
+    {
+      "bodyKey": "keyset-pagination",
+      "type": "CodeExample",
+      "heading": "Keyset pagination"
+    },
+    {
+      "bodyKey": "choose-for-the-navigation-model",
+      "type": "Explanation",
+      "heading": "Choose for the navigation model"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "unique-pagination-order",
+      "prompt": "Why must a paginated query use a fully unique deterministic ordering?",
+      "answer": "Rows tied on a non-unique sort value can move between executions, causing missing or duplicated items across pages. A stable tie-breaker such as the primary key completes the ordering."
+    },
+    {
+      "key": "offset-pagination-tradeoff",
+      "prompt": "What are the main tradeoffs of offset pagination?",
+      "answer": "It supports direct page-number navigation and is simple to expose, but large offsets can require the database to process skipped rows, and concurrent changes can shift rows between pages."
+    },
+    {
+      "key": "keyset-pagination-fit",
+      "prompt": "When is keyset pagination usually a better fit than offset pagination?",
+      "answer": "It fits next/previous traversal over a stable ordered feed, especially for deep result sets. The cursor continues from the last ordering values instead of counting and skipping all earlier rows."
+    },
+    {
+      "key": "bounded-page-size",
+      "prompt": "Why should an API enforce a maximum page size rather than trusting the client's requested value?",
+      "answer": "A maximum keeps query, serialization, memory, and response costs bounded. Pagination is not protective if a caller can request the entire dataset in one page."
+    }
+  ]
+}

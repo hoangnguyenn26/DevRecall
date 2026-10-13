@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000113",
+  "slug": "idempotent-api-operations",
+  "title": "Idempotent API Operations",
+  "summary": "Make retry-prone mutations converge on one business outcome without duplicating side effects.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "idempotency",
+    "http-semantics"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ],
+  "objectives": [
+    "Explain why a timed-out mutation can leave the client uncertain about the server outcome.",
+    "Use a scoped idempotency key to identify one logical operation across retries.",
+    "Keep the business effect and idempotency record inside one consistency boundary.",
+    "Reject reuse of the same idempotency key for a different request payload."
+  ],
+  "sections": [
+    {
+      "bodyKey": "the-ambiguous-outcome",
+      "type": "Explanation",
+      "heading": "The ambiguous outcome"
+    },
+    {
+      "bodyKey": "identify-the-logical-operation",
+      "type": "Explanation",
+      "heading": "Identify the logical operation"
+    },
+    {
+      "bodyKey": "one-consistency-boundary",
+      "type": "CodeExample",
+      "heading": "One consistency boundary"
+    },
+    {
+      "bodyKey": "deduplication-is-a-contract",
+      "type": "Explanation",
+      "heading": "Deduplication is a contract"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "ambiguous-mutation-outcome",
+      "prompt": "Why can a client timeout make retrying an API mutation risky?",
+      "answer": "The server may have committed the mutation even though the response never reached the client. Retrying without a stable operation identity can apply the same business effect twice."
+    },
+    {
+      "key": "idempotency-key-scope",
+      "prompt": "What must an API define about an idempotency key for it to be meaningful?",
+      "answer": "The contract should define its scope, which operation and caller it identifies, how payload reuse is checked, how long the result is retained, and what response a retry receives."
+    },
+    {
+      "key": "idempotency-atomicity",
+      "prompt": "Why should the business mutation and its idempotency record usually commit atomically?",
+      "answer": "If only one commits, a retry can either duplicate an already-applied effect or return a stored success for an effect that never happened. One transaction keeps the outcome and deduplication record consistent."
+    },
+    {
+      "key": "idempotency-key-payload-conflict",
+      "prompt": "How should an API handle the same idempotency key reused with a different payload?",
+      "answer": "It should reject the conflicting reuse rather than treating it as the original operation. A stored payload fingerprint or equivalent comparison makes this mismatch explicit."
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000112",
+  "slug": "http-method-semantics",
+  "title": "HTTP Method Semantics",
+  "summary": "Choose HTTP methods by request intent and reason accurately about safety, idempotency, and retries.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Beginner",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "http-semantics"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ],
+  "objectives": [
+    "Choose GET, POST, PUT, PATCH, or DELETE from the intended resource operation.",
+    "Distinguish safe HTTP methods from idempotent HTTP methods.",
+    "Explain why an idempotent retry may return a different response while preserving the same intended effect."
+  ],
+  "sections": [
+    {
+      "bodyKey": "methods-communicate-intent",
+      "type": "Explanation",
+      "heading": "Methods communicate intent"
+    },
+    {
+      "bodyKey": "safe-and-idempotent-are-different",
+      "type": "Explanation",
+      "heading": "Safe and idempotent are different"
+    },
+    {
+      "bodyKey": "a-resource-oriented-example",
+      "type": "CodeExample",
+      "heading": "A resource-oriented example"
+    },
+    {
+      "bodyKey": "semantics-before-route-style",
+      "type": "Explanation",
+      "heading": "Semantics before route style"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "safe-vs-idempotent-method",
+      "prompt": "What is the difference between a safe HTTP method and an idempotent HTTP method?",
+      "answer": "A safe method asks for an essentially read-only operation. An idempotent method may change state, but repeating the same request has the same intended effect as applying it once."
+    },
+    {
+      "key": "put-delete-idempotency",
+      "prompt": "Why are PUT and DELETE considered idempotent even when repeated requests can return different responses?",
+      "answer": "Idempotency describes the intended effect on server state, not identical response messages. A repeated DELETE can report that the resource is already absent while leaving the same final state."
+    },
+    {
+      "key": "http-method-intent",
+      "prompt": "What should primarily determine the HTTP method chosen for an API operation?",
+      "answer": "Choose the method whose defined semantics match the client's intent toward the target resource, rather than treating methods as interchangeable route decoration."
+    }
+  ]
+}

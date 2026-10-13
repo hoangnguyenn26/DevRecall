@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000115",
+  "slug": "request-validation-boundaries",
+  "title": "Request Validation Boundaries",
+  "summary": "Place structural, application, and domain validation at the boundary that owns each rule.",
+  "contentType": "Lesson",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 15,
+  "source": {
+    "type": "Internal",
+    "name": "DevRecall"
+  },
+  "technologies": [
+    "DotNet",
+    "AspNetCore"
+  ],
+  "topics": [
+    "validation",
+    "api-error-contracts"
+  ],
+  "goals": [
+    "ImproveBackendFundamentals",
+    "BuildProjects"
+  ],
+  "objectives": [
+    "Distinguish request-shape validation from application policy and domain invariants.",
+    "Keep domain rules enforceable independently of the HTTP endpoint.",
+    "Return actionable validation errors without exposing implementation details.",
+    "Avoid using validation as a substitute for authorization or concurrency control."
+  ],
+  "sections": [
+    {
+      "bodyKey": "different-rules-have-different-owners",
+      "type": "Explanation",
+      "heading": "Different rules have different owners"
+    },
+    {
+      "bodyKey": "three-validation-boundaries",
+      "type": "Explanation",
+      "heading": "Three validation boundaries"
+    },
+    {
+      "bodyKey": "a-create-order-flow",
+      "type": "CodeExample",
+      "heading": "A create-order flow"
+    },
+    {
+      "bodyKey": "validation-is-not-every-protection",
+      "type": "Explanation",
+      "heading": "Validation is not every protection"
+    },
+    {
+      "bodyKey": "key-takeaway",
+      "type": "KeyTakeaway",
+      "heading": null
+    }
+  ],
+  "reviewCandidates": [
+    {
+      "key": "validation-rule-ownership",
+      "prompt": "How should an application decide where a validation rule belongs?",
+      "answer": "Place the rule at the boundary that owns the knowledge: request structure at the transport boundary, use-case and ownership checks in the application layer, and always-valid business invariants in the domain model."
+    },
+    {
+      "key": "domain-invariant-validation",
+      "prompt": "Why should a domain invariant not exist only as an ASP.NET Core request validator?",
+      "answer": "The aggregate may be called from tests, jobs, imports, or another API path. Enforcing the invariant in the domain keeps every caller from creating invalid state."
+    },
+    {
+      "key": "validation-vs-authorization",
+      "prompt": "Why is authorization not merely another input-validation rule?",
+      "answer": "Valid input can still target a resource the authenticated user does not own or cannot access. Authorization evaluates the caller's permission for the specific action and resource."
+    },
+    {
+      "key": "validation-error-contract",
+      "prompt": "What makes an API validation response useful to a client?",
+      "answer": "It identifies invalid fields or request rules with stable, actionable messages in a consistent machine-readable shape, without leaking exceptions or persistence details."
+    }
+  ]
+}
