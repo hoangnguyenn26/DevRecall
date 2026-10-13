@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000215",
+  "slug": "mdn-http-request-methods",
+  "title": "HTTP request methods",
+  "summary": "Keep this concise HTTP reference beside the method-semantics lesson for quick comparison of method intent, safety, idempotency and cacheability during API design.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Beginner",
+  "estimatedMinutes": 15,
+  "resourceKind": "Reference",
+  "source": {
+    "type": "External",
+    "name": "MDN Web Docs",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods"
+  },
+  "technologies": [],
+  "topics": ["http-semantics"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}

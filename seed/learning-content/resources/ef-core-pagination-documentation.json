@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000210",
+  "slug": "ef-core-pagination-documentation",
+  "title": "Pagination",
+  "summary": "Use this after the pagination contracts lesson to compare offset and keyset pagination, understand ordering requirements and translate the trade-offs into EF Core queries.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/ef/core/querying/pagination"
+  },
+  "technologies": ["DotNet", "EfCore"],
+  "topics": ["pagination"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}

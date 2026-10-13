@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000217",
+  "slug": "aspnet-core-model-validation",
+  "title": "Model validation in ASP.NET Core MVC",
+  "summary": "Read this after the validation-boundaries lesson for framework-specific model binding errors, validation behavior and automatic API error responses at the HTTP boundary.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/aspnet/core/mvc/models/validation"
+  },
+  "technologies": ["DotNet", "AspNetCore"],
+  "topics": ["validation"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}

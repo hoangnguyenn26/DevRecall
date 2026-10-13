@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000208",
+  "slug": "dotnet-dependency-injection-guidelines",
+  "title": "Dependency injection guidelines",
+  "summary": "Use this after the DI and lifetime lessons for official guidance on service design, disposal, thread safety and dependency-injection anti-patterns.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Guide",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection/guidelines"
+  },
+  "technologies": ["DotNet"],
+  "topics": ["dependency-injection"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}

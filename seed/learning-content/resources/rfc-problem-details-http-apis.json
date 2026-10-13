@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000214",
+  "slug": "rfc-problem-details-http-apis",
+  "title": "Problem Details for HTTP APIs",
+  "summary": "Use this standards reference after the API error lesson when you need the canonical Problem Details members, extension rules and security guidance behind framework implementations.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 25,
+  "resourceKind": "Reference",
+  "source": {
+    "type": "External",
+    "name": "RFC Editor",
+    "url": "https://www.rfc-editor.org/rfc/rfc9457.html"
+  },
+  "technologies": [],
+  "topics": ["api-error-contracts"],
+  "goals": ["ImproveBackendFundamentals"]
+}

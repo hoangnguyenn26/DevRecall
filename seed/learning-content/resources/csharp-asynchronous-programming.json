@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000206",
+  "slug": "csharp-asynchronous-programming",
+  "title": "Asynchronous programming with async and await",
+  "summary": "Use this official C# guide after the async/await lesson to deepen task composition, nonblocking waits, concurrent work and asynchronous exception handling.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Beginner",
+  "estimatedMinutes": 25,
+  "resourceKind": "Guide",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/"
+  },
+  "technologies": ["CSharp", "DotNet"],
+  "topics": ["asynchronous-programming"],
+  "goals": ["ImproveBackendFundamentals", "PrepareForInterviews"]
+}

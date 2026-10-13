@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000213",
+  "slug": "aspnet-core-api-error-handling",
+  "title": "Handle errors in ASP.NET Core APIs",
+  "summary": "Read this after the API error-handling lesson for ASP.NET Core mechanisms that map exceptions and client failures to deliberate Problem Details responses without exposing development diagnostics.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling-api"
+  },
+  "technologies": ["DotNet", "AspNetCore"],
+  "topics": ["api-error-contracts"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}

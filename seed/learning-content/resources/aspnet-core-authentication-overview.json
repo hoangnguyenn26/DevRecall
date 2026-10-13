@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000211",
+  "slug": "aspnet-core-authentication-overview",
+  "title": "Overview of ASP.NET Core authentication",
+  "summary": "Read this after authentication versus authorization to connect the identity concept to ASP.NET Core schemes, handlers, challenges and the ClaimsPrincipal used for authorization.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 20,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/aspnet/core/security/authentication/"
+  },
+  "technologies": ["DotNet", "AspNetCore"],
+  "topics": ["access-control"],
+  "goals": ["ImproveBackendFundamentals", "PrepareForInterviews"]
+}

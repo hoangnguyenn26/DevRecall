@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000216",
+  "slug": "rfc-http-idempotent-methods",
+  "title": "HTTP Semantics: Idempotent Methods",
+  "summary": "Use this focused standards section after the idempotent-operations lesson to anchor retry decisions in the precise HTTP meaning of method idempotency and its limits.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 15,
+  "resourceKind": "Reference",
+  "source": {
+    "type": "External",
+    "name": "RFC Editor",
+    "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2"
+  },
+  "technologies": [],
+  "topics": ["idempotency", "http-semantics"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}

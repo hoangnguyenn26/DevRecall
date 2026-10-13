@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000209",
+  "slug": "ef-core-transactions-documentation",
+  "title": "Using Transactions",
+  "summary": "Follow the EF Core transactions lesson with official details on SaveChanges guarantees, explicit transactions, savepoints and cross-context coordination.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 25,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/ef/core/saving/transactions"
+  },
+  "technologies": ["DotNet", "EfCore"],
+  "topics": ["transactions"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}

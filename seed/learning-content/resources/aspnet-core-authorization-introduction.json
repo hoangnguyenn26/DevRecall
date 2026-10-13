@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000212",
+  "slug": "aspnet-core-authorization-introduction",
+  "title": "Introduction to authorization in ASP.NET Core",
+  "summary": "Use this concise framework reference after the access-control lesson to see how roles, policies, claims and resource-aware checks express authorization decisions.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Beginner",
+  "estimatedMinutes": 15,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/aspnet/core/security/authorization/introduction"
+  },
+  "technologies": ["DotNet", "AspNetCore"],
+  "topics": ["access-control"],
+  "goals": ["ImproveBackendFundamentals", "PrepareForInterviews"]
+}

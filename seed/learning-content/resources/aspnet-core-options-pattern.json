@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "10000000-0000-0000-0000-000000000207",
+  "slug": "aspnet-core-options-pattern",
+  "title": "Options pattern in ASP.NET Core",
+  "summary": "Read this after the configuration lesson for framework details on strongly typed settings, options lifetimes and validation at the application boundary.",
+  "contentType": "ExternalResource",
+  "status": "Published",
+  "difficulty": "Intermediate",
+  "estimatedMinutes": 25,
+  "resourceKind": "Documentation",
+  "source": {
+    "type": "External",
+    "name": "Microsoft Learn",
+    "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options"
+  },
+  "technologies": ["DotNet", "AspNetCore"],
+  "topics": ["configuration"],
+  "goals": ["ImproveBackendFundamentals", "BuildProjects"]
+}
