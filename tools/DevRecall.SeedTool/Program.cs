@@ -60,15 +60,11 @@ internal static class Program
     private static async Task<int> ImportAsync(string[] args, SeedCatalog catalog,
         IReadOnlyList<SeedValidationIssue> validationIssues)
     {
-        if (!args.Contains("--dry-run", StringComparer.Ordinal))
-        {
-            Console.Error.WriteLine("Database mutation is not implemented on P1 Day 2. Use import --dry-run.");
-            return 2;
-        }
+        var dryRun = args.Contains("--dry-run", StringComparer.Ordinal);
         if (validationIssues.Any(issue => issue.Severity == SeedIssueSeverity.Error))
         {
             WriteIssues(validationIssues);
-            Console.Error.WriteLine("Dry-run stopped because validation failed.");
+            Console.Error.WriteLine("Import stopped because validation failed.");
             return 1;
         }
 
@@ -86,7 +82,7 @@ internal static class Program
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__Database");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            Console.Error.WriteLine("Set ConnectionStrings__Database before running import --dry-run.");
+            Console.Error.WriteLine("Set ConnectionStrings__Database before running import.");
             return 2;
         }
 
@@ -99,17 +95,52 @@ internal static class Program
         if (plan.Issues.Any(issue => issue.Severity == SeedIssueSeverity.Error))
         {
             WriteIssues(plan.Issues.Where(issue => issue.Severity == SeedIssueSeverity.Error));
-            Console.Error.WriteLine("Dry-run stopped because database comparison found unsafe changes.");
+            Console.Error.WriteLine("Import stopped because database comparison found unsafe changes.");
             return 1;
         }
 
         var items = requestedSlug is null ? plan.Items
             : plan.Items.Where(item => item.Slug == requestedSlug).ToArray();
-        WritePlan(items);
-        return 0;
+        if (dryRun)
+        {
+            var selectedTopicSlugs = items.SelectMany(item => catalog.Items.Single(source => source.Slug == item.Slug).Topics!)
+                .ToHashSet(StringComparer.Ordinal);
+            WritePlan(items, plan.Topics.Where(item => selectedTopicSlugs.Contains(item.Slug)).ToArray());
+            return 0;
+        }
+
+        var importer = new SeedCatalogImporter(dbContext);
+        var result = await importer.ApplyAsync(catalog, plan, requestedSlug, CancellationToken.None);
+        WriteImportResult(result);
+        return result.Failures.Count == 0 ? 0 : 1;
     }
 
-    private static void WritePlan(IReadOnlyList<SeedImportPlanItem> items)
+    private static void WriteImportResult(SeedImportResult result)
+    {
+        Console.WriteLine("DevRecall Portfolio Dataset Import");
+        foreach (var action in Enum.GetValues<SeedPlanAction>())
+        {
+            Console.WriteLine();
+            Console.WriteLine(action.ToString().ToUpperInvariant());
+            foreach (var item in result.AppliedItems.Where(item => item.Action == action))
+            {
+                var symbol = action switch { SeedPlanAction.Create => "+", SeedPlanAction.Update => "~", _ => "=" };
+                Console.WriteLine($"{symbol} {item.Slug} [{item.ContentType}]");
+                if (item.ChangedFieldGroups.Count > 0)
+                    Console.WriteLine($"  {string.Join(", ", item.ChangedFieldGroups)}");
+            }
+        }
+        Console.WriteLine();
+        Console.WriteLine("Summary");
+        foreach (var action in Enum.GetValues<SeedPlanAction>())
+            Console.WriteLine($"{action,-12}{result.AppliedItems.Count(item => item.Action == action),5}");
+        Console.WriteLine($"{"Failed",-12}{result.Failures.Count,5}");
+        Console.WriteLine($"Topics      {result.AppliedTopics.Count,5} ({result.AppliedTopics.Count(item => item.Action != SeedPlanAction.Unchanged)} changed)");
+        foreach (var failure in result.Failures)
+            Console.Error.WriteLine($"FAILED {failure.Slug}: {failure.Message}");
+    }
+
+    private static void WritePlan(IReadOnlyList<SeedImportPlanItem> items, SeedTopicPlanItem[] topics)
     {
         Console.WriteLine("Import plan");
         foreach (var action in Enum.GetValues<SeedPlanAction>())
@@ -129,6 +160,7 @@ internal static class Program
         Console.WriteLine("Summary");
         foreach (var action in Enum.GetValues<SeedPlanAction>())
             Console.WriteLine($"{action,-12}{items.Count(item => item.Action == action),5}");
+        Console.WriteLine($"Topics      {topics.Length,5} ({topics.Count(item => item.Action != SeedPlanAction.Unchanged)} changed)");
         Console.WriteLine();
         Console.WriteLine("Database writes: 0");
     }
@@ -172,6 +204,6 @@ internal static class Program
         Console.WriteLine("DevRecall portfolio dataset tooling");
         Console.WriteLine("  validate [--include-drafts]");
         Console.WriteLine("  preview");
-        Console.WriteLine("  import --dry-run [--slug <slug>]");
+        Console.WriteLine("  import [--dry-run] [--slug <slug>]");
     }
 }

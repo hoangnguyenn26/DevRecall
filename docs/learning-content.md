@@ -109,13 +109,14 @@ The list projection excludes objective and section bodies. Detail reads one boun
 
 ## Seed content
 
-Development content is created only through the explicit command:
+The shared catalog is materialized only through the explicit file-backed command:
 
 ```powershell
-dotnet run --project src/DevRecall.Api -- --seed-learning-content
+$env:ConnectionStrings__Database = "<local PostgreSQL connection string>"
+dotnet run --project tools/DevRecall.SeedTool -- import
 ```
 
-The command is guarded to the Development environment and is idempotent by stable slug. Known unchanged legacy seed text receives the bounded editorial upgrade described in the curriculum; customized lesson text is skipped. It currently supplies eleven lessons in .NET Backend Foundations:
+The importer validates the entire approved source, plans by stable slug, updates existing aggregates in place, and is idempotent. It currently supplies eleven lessons in .NET Backend Foundations:
 
 - Dependency Injection Fundamentals;
 - ASP.NET Core Service Lifetimes;

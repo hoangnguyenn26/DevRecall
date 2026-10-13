@@ -6,6 +6,10 @@ using LearningContentAggregate = DevRecall.Domain.LearningContent.LearningConten
 
 namespace DevRecall.Infrastructure.Development;
 
+/// <summary>
+/// Legacy hardcoded catalog fixture retained for existing integration tests only.
+/// Production and development catalog imports are owned by DevRecall.SeedTool and the approved seed files.
+/// </summary>
 public sealed partial class LearningContentSeeder(DevRecallDbContext dbContext)
 {
     public static void EnsureDevelopmentEnvironment(bool isDevelopment)

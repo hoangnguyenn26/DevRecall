@@ -33,7 +33,8 @@ history, use your own existing account; the global Learn catalog is shared.
 
 ## Run or replay
 
-After migrations and the existing Learning Content seed, build the API image and run:
+After migrations, import the approved Learning Content catalog with
+`dotnet run --project tools/DevRecall.SeedTool -- import`, then build the API image and run:
 
 ```powershell
 docker compose -f deploy/docker-compose.yml build api

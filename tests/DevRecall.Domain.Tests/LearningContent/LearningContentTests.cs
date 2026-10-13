@@ -38,6 +38,39 @@ public sealed class LearningContentTests
     }
 
     [Fact]
+    public void EditorialSynchronization_ShouldPreserveCandidateIdentityWhileChangingStructure()
+    {
+        var content = CreateDraft(reviewCandidates:
+        [
+            new("first-concept", "First prompt", "First answer"),
+            new("stable-concept", "Original prompt", "Original answer")
+        ]);
+        content.Publish(Now);
+        var stableCandidateId = content.ReviewCandidates.Single(item => item.Key == "stable-concept").Id;
+        var objectives = new[] { new LearningObjectiveInput("Replacement objective") };
+        var sections = new[] { new LearningContentSectionInput(
+            LearningContentSectionType.KeyTakeaway, "Takeaway", "Replacement body") };
+        var candidates = new[]
+        {
+            new LearningReviewCandidateInput("stable-concept", "Improved prompt", "Improved answer"),
+            new LearningReviewCandidateInput("new-concept", "New prompt", "New answer")
+        };
+
+        content.SynchronizeLessonEditorial("Updated title", "Updated summary", objectives, sections, candidates, Now);
+        var version = content.Version;
+        content.SynchronizeLessonEditorial("Updated title", "Updated summary", objectives, sections, candidates,
+            Now.AddMinutes(1));
+
+        content.Version.Should().Be(version);
+        content.Objectives.Select(item => item.Text).Should().Equal("Replacement objective");
+        content.Sections.Select(item => item.BodyMarkdown).Should().Equal("Replacement body");
+        content.ReviewCandidates.Select(item => (item.Position, item.Key)).Should().Equal(
+            (0, "stable-concept"), (1, "new-concept"));
+        content.ReviewCandidates.Single(item => item.Key == "stable-concept").Id.Should().Be(stableCandidateId);
+        content.ReviewCandidates.Should().NotContain(item => item.Key == "first-concept");
+    }
+
+    [Fact]
     public void CreateDraft_ShouldNormalizePositionsAndPreserveMarkdown()
     {
         var content = CreateDraft();

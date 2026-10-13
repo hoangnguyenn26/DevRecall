@@ -39,7 +39,7 @@ CandidateKey is a readable stable concept key within a lesson, e.g. `captive-dep
 
 Explicit Development seeding can fill missing candidates and perform guarded known-metadata upgrades. It does not automatically rewrite existing bodies/candidates or overwrite customized metadata. Any future editorial content upgrade needs its own bounded, identity-preserving change and regression check. No startup seed, destructive delete/reinsert, admin CMS or AI generation.
 
-The bounded editorial batch compares complete source text with known published seed baselines before revising it (the original eight lessons and the preceding authored batch). It updates wording in place while retaining objective/section positions and candidate IDs/keys; custom text is skipped. New lesson definitions and the revised batch live in `LearningContentSeeder.Curriculum.cs`, separate from the retained legacy baseline. Review each definition before using the existing Draft → Published seed construction. Do not extend this guard into a generic content synchronization engine.
+The approved file-backed catalog is the current authoring authority. The importer updates wording and ordered editorial children in place while retaining the LearningContent root and stable candidate IDs/keys. Review files before promotion and use the explicit validate, preview, dry-run, and import workflow in `portfolio-dataset-seeding.md`; the hardcoded seeder remains only as a legacy integration-test fixture.
 
 ## Foundation closure and next authoring boundary
 

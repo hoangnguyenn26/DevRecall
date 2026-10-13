@@ -187,16 +187,6 @@ if (args.Contains("--seed-dogfood", StringComparer.OrdinalIgnoreCase))
     return;
 }
 
-if (args.Contains("--seed-learning-content", StringComparer.OrdinalIgnoreCase))
-{
-    LearningContentSeeder.EnsureDevelopmentEnvironment(app.Environment.IsDevelopment());
-    await using var scope = app.Services.CreateAsyncScope();
-    var seeder = scope.ServiceProvider.GetRequiredService<LearningContentSeeder>();
-    var created = await seeder.SeedAsync();
-    Console.WriteLine($"Learning Content seed complete. Created {created} content item(s).");
-    return;
-}
-
 if (args.Contains("--repair-learning-content-consistency", StringComparer.OrdinalIgnoreCase))
 {
     LearningContentConsistencyRepair.EnsureDevelopmentEnvironment(app.Environment.IsDevelopment());

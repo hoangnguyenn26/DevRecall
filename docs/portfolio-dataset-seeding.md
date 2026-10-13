@@ -16,8 +16,8 @@ seed/drafts
     -> PostgreSQL
 ```
 
-This document records the Day 1 audit and the file contract for Day 2. It does
-not change the current seed authority, import data, or alter product behavior.
+This document records the file contract and the explicit importer now used for
+the portfolio catalog. Approved files are the sole runtime catalog authority.
 
 ## Current architecture
 
@@ -34,7 +34,7 @@ The solution is `DevRecall.slnx`. Relevant projects and files are:
   `src/DevRecall.Infrastructure/Persistence/Configurations/`, and
   `src/DevRecall.Infrastructure/Development/`.
 - Migrations: `src/DevRecall.Infrastructure/Persistence/Migrations/`.
-- Existing catalog seed:
+- Legacy catalog test fixture:
   `LearningContentSeeder.cs`, `LearningContentSeeder.Curriculum.cs`, and
   `LearningContentSeeder.Resources.cs` under
   `src/DevRecall.Infrastructure/Development/`.
@@ -45,7 +45,7 @@ The solution is `DevRecall.slnx`. Relevant projects and files are:
   `docs/external-resources.md`, `docs/content-curriculum.md`, and
   `docs/content-authoring.md`.
 
-There is no existing console/tool project suitable for the file pipeline.
+`tools/DevRecall.SeedTool` is the dedicated deterministic console importer.
 
 ## Actual LearningContent model
 
@@ -111,31 +111,17 @@ Consequences for importing:
 5. Preserve all user-owned progress, evidence, Knowledge, Review, Plan, and
    Session records.
 
-## Current seed mechanism
+## Legacy seed mechanism
 
-`LearningContentSeeder` is hardcoded C#. It creates nine canonical topic rows,
-11 internal lessons, and 5 external resources. It runs only through the
-explicit Development command:
+`LearningContentSeeder` was the hardcoded C# authority for nine canonical
+topics, 11 lessons, and five external resources. Its API command and production
+dependency registration have been removed. The class remains only as a bounded
+fixture used by existing integration tests; it is not reachable from normal or
+Development application composition. Demo and dogfood seeders remain separate.
 
-```powershell
-dotnet run --project src/DevRecall.Api -- --seed-learning-content
-```
-
-It does not run during normal application startup. Missing content is inserted
-by slug using stable root UUIDs. Existing external resources are deliberately
-insert-only. Existing lessons receive only bounded migrations: missing goals or
-candidates may be filled, known old metadata may be upgraded, and complete text
-is revised only when it still matches one of the known seed baselines. Custom
-editorial text is skipped. `ReviseLessonText` updates existing child rows in
-place and requires the objective/section counts and ordered candidate keys to
-remain unchanged.
-
-Reusable ideas are explicit execution, stable root IDs/slugs, no-op-aware
-aggregate methods, and conservative in-place updates. Hardcoded definitions and
-the chain of old C# comparison baselines should be replaced by approved files.
-The old seeder must remain active until the file importer can reproduce the
-same catalog and pass a dry run against the existing database; the two mechanisms
-must not remain competing authorities afterward.
+The approved files under `seed/learning-content` and the explicit
+`DevRecall.SeedTool` command are now the only runtime catalog authority. Nothing
+imports during API startup.
 
 ## Current taxonomy sources
 
@@ -211,7 +197,7 @@ These are candidate areas, not a quota or authorization to mass-create content.
 
 ## Final repository layout
 
-Day 2 should establish only the folders that have a concrete consumer:
+The file pipeline uses only folders with a concrete consumer:
 
 ```text
 seed/
@@ -431,9 +417,12 @@ dotnet run --project tools/DevRecall.SeedTool -- import --dry-run --slug <slug>
   update / no-op plan using only no-tracking queries and performs no writes.
 - `--slug` narrows the printed DB plan after full-catalog validation and
   comparison.
-- `import` without `--dry-run` is intentionally rejected until Day 3.
+- `import --dry-run [--slug <slug>]` prints the shared semantic plan and writes
+  nothing.
+- `import [--slug <slug>]` applies Create and Update entries from that same plan;
+  Unchanged entries are not tracked or saved.
 
-Set the standard connection string environment variable before dry-run:
+Set the standard connection string environment variable before dry-run or import:
 
 ```powershell
 $env:ConnectionStrings__Database = "Host=localhost;Port=5432;Database=devrecall;Username=devrecall;Password=<local-password>"
@@ -450,6 +439,26 @@ positions in order. Candidates are matched by CandidateKey, so wording or
 position changes are Updates. Missing approved files never generate Delete or
 Archive actions; unmatched DB rows are warnings only.
 
+Before any database write, the entire approved catalog is parsed and validated
+and the complete database plan is built. Canonical topics are synchronized by
+stable slug/UUID. Each changed LearningContent is then committed in its own
+transaction, so a failed item rolls back cleanly while previously committed
+items remain safe to replay. Known unique-constraint failures are reported by
+constraint name rather than by parsing PostgreSQL messages.
+
+Root rows are resolved by slug. A matching source UUID is mandatory, and an
+existing root is always updated in place. Technologies, topics, and goals are
+set-like. Objectives and sections are synchronized by ordered position;
+unchanged rows are retained and safe obsolete editorial rows may be removed.
+Review candidates are synchronized by stable CandidateKey, preserving existing
+candidate IDs through wording and position changes. Removing a candidate that
+has Review provenance is rejected during planning; an unreferenced obsolete
+candidate may be removed. Historical snapshots are never rewritten.
+
+An identical replay produces only Unchanged entries and does not increment root
+Version, change UpdatedAt, or rewrite children. Import never creates Progress,
+completion evidence, Knowledge, Review, Study Plan, or Study Session state.
+
 No command generates content, calls an AI provider, repairs data on GET, or
 imports drafts.
 
@@ -461,21 +470,21 @@ imports drafts.
 2. The files validate and preview as a 16-item approved catalog.
 3. `import --dry-run` against the existing seeded database returns 16 Unchanged,
    with no root/candidate replacement and zero database writes.
-4. Run against a clean migrated PostgreSQL database and compare root IDs,
-   slugs, counts, statuses, topic IDs, and candidate keys with the old seeder.
-5. Verify existing Progress, completion evidence, Knowledge provenance, Review
-   provenance, and polymorphic Study references remain queryable after a safe
-   editorial text update.
-6. Only after both paths pass, remove catalog definitions from
-   `LearningContentSeeder*.cs` and make the file tool the sole authority. Keep
-   demo/dogfood user data separate and make its prerequisite explicit.
+4. A clean migrated PostgreSQL rehearsal created 16 contents (11 lessons and
+   five resources), nine topics, and 32 candidates; its second import was 16
+   Unchanged.
+5. An existing lesson update preserved its root/candidate IDs, two Progress
+   rows, two completion evidence rows, two Knowledge sources, four Review
+   sources, and its Study Session reference. Historical Review snapshots kept
+   their original wording.
+6. The API `--seed-learning-content` command and production DI registration were
+   removed. The hardcoded class remains test-only while approved files and the
+   explicit tool are the sole runtime authority.
 7. Never interpret a removed file as deletion. Archive through an approved file
    status before any future source cleanup.
 
-The current aggregate supports safe text revision only for unchanged structure.
-Day 2 should validate and plan this boundary, not bypass it. A later, focused
-domain change may add in-place topic/source or structural synchronization after
-its historical rules are specified.
+Safe editorial structural synchronization is now part of the aggregate. Root
+identity remains stable, and referenced candidate removal is blocked.
 
 ## Explicit non-goals
 
@@ -488,10 +497,13 @@ its historical rules are specified.
 - resource completion/progress semantics;
 - mass authoring during Day 1.
 
-## Day 3 remaining work
+## Safe authoring and import workflow
 
-Day 2 has completed the deterministic reader, parser, validator, preview, and
-database dry-run planner. Day 3 owns only the real transactional mutation path,
-idempotency verification on clean/existing databases, and retirement of the
-hardcoded C# catalog authority after parity is proven. Structural edits remain a
-deliberate guardrail and are not a blocker for safe metadata/text importing.
+1. Create or revise content under `seed/drafts`.
+2. Run `validate --include-drafts`.
+3. Have a human review the content and metadata.
+4. Promote the approved item into `seed/learning-content`.
+5. Run `preview`.
+6. Run `import --dry-run`, optionally with `--slug <slug>`.
+7. Run `import`, using the same optional slug for a focused batch.
+8. Verify the item through Learn/Discover and rerun import to confirm Unchanged.

@@ -43,6 +43,7 @@ public sealed class LearningObjective
     public int Position { get; private set; }
     public string Text { get; private set; } = null!;
     internal void Revise(string text) => Text = text;
+    internal void Reposition(int position) => Position = position;
 }
 
 public sealed class LearningContentSection
@@ -70,6 +71,7 @@ public sealed class LearningContentSection
         Heading = heading;
         BodyMarkdown = body;
     }
+    internal void Reposition(int position) => Position = position;
 }
 
 public sealed class LearningReviewCandidate
@@ -96,6 +98,7 @@ public sealed class LearningReviewCandidate
         Prompt = prompt;
         Answer = answer;
     }
+    internal void Reposition(int position) => Position = position;
 
     public static LearningReviewCandidate Create(Guid id, Guid learningContentId, int position,
         string key, string prompt, string answer)

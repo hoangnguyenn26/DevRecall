@@ -118,6 +118,114 @@ public sealed class LearningContent
         Version = checked(Version + 1);
     }
 
+    public void SetTopics(IReadOnlyCollection<Guid> topicIds, DateTimeOffset currentUtc)
+    {
+        ArgumentNullException.ThrowIfNull(topicIds);
+        EnsureUtc(currentUtc);
+        if (topicIds.Count > MaximumTopics || topicIds.Any(id => id == Guid.Empty)
+            || topicIds.Distinct().Count() != topicIds.Count)
+            throw new ArgumentException("Topics must be unique non-empty ids.", nameof(topicIds));
+        if (_topics.Select(item => item.TopicId).Order().SequenceEqual(topicIds.Order())) return;
+        _topics.RemoveAll(item => !topicIds.Contains(item.TopicId));
+        _topics.AddRange(topicIds.Where(id => _topics.All(item => item.TopicId != id))
+            .Select(id => new LearningContentTopic(Id, id)));
+        UpdatedAtUtc = currentUtc;
+        Version = checked(Version + 1);
+    }
+
+    public bool StageReviewCandidatePositions(IReadOnlyList<string> desiredKeys)
+    {
+        ArgumentNullException.ThrowIfNull(desiredKeys);
+        if (ContentType != LearningContentType.Lesson)
+            throw new InvalidOperationException("Only lessons have review candidates.");
+        var normalizedKeys = desiredKeys.Select(LearningReviewCandidate.NormalizeKey).ToArray();
+        if (normalizedKeys.Distinct(StringComparer.Ordinal).Count() != normalizedKeys.Length)
+            throw new ArgumentException("Review candidate keys must be unique.", nameof(desiredKeys));
+        var currentKeys = _reviewCandidates.OrderBy(item => item.Position).Select(item => item.Key).ToArray();
+        if (currentKeys.SequenceEqual(normalizedKeys, StringComparer.Ordinal)) return false;
+        var ordered = _reviewCandidates.OrderBy(item => item.Position).ToArray();
+        for (var index = 0; index < ordered.Length; index++)
+            ordered[index].Reposition(MaximumReviewCandidates + 1 + index);
+        return ordered.Length > 0;
+    }
+
+    public void SynchronizeLessonEditorial(string title, string summary,
+        IReadOnlyList<LearningObjectiveInput> objectives,
+        IReadOnlyList<LearningContentSectionInput> sections,
+        IReadOnlyList<LearningReviewCandidateInput> candidates,
+        DateTimeOffset currentUtc)
+    {
+        EnsureUtc(currentUtc);
+        if (ContentType != LearningContentType.Lesson)
+            throw new InvalidOperationException("Only lessons have editorial text.");
+        ValidateCollections(_technologies.Select(item => item.Technology).ToArray(),
+            _topics.Select(item => item.TopicId).ToArray(), objectives, sections, candidates);
+        var normalizedTitle = LearningContentText.NormalizeRequired(title, nameof(title), 200, 3);
+        var normalizedSummary = LearningContentText.NormalizeRequired(summary, nameof(summary), 500);
+        var normalizedObjectives = objectives.Select(item =>
+            LearningContentText.NormalizeRequired(item.Text, "objective", 300)).ToArray();
+        var normalizedSections = sections.Select(item => new LearningContentSectionInput(item.SectionType,
+            LearningContentText.NormalizeOptional(item.Heading, "heading", 200),
+            LearningContentText.NormalizeRequired(item.BodyMarkdown, "bodyMarkdown", MaximumSectionBodyLength))).ToArray();
+        var normalizedCandidates = candidates.Select(item => new LearningReviewCandidateInput(
+            LearningReviewCandidate.NormalizeKey(item.Key),
+            LearningContentText.NormalizeRequired(item.Prompt, "prompt", 500),
+            LearningContentText.NormalizeRequired(item.Answer, "answer", 2_000))).ToArray();
+
+        var orderedObjectives = _objectives.OrderBy(item => item.Position).ToArray();
+        var orderedSections = _sections.OrderBy(item => item.Position).ToArray();
+        var orderedCandidates = _reviewCandidates.OrderBy(item => item.Position).ToArray();
+        var unchanged = Title == normalizedTitle && Summary == normalizedSummary
+            && orderedObjectives.Select(item => item.Text).SequenceEqual(normalizedObjectives)
+            && orderedSections.Select(item => new LearningContentSectionInput(item.SectionType, item.Heading, item.BodyMarkdown))
+                .SequenceEqual(normalizedSections)
+            && orderedCandidates.Select(item => new LearningReviewCandidateInput(item.Key, item.Prompt, item.Answer))
+                .SequenceEqual(normalizedCandidates);
+        if (unchanged) return;
+
+        Title = normalizedTitle;
+        Summary = normalizedSummary;
+        SynchronizeObjectives(normalizedObjectives);
+        SynchronizeSections(normalizedSections);
+        SynchronizeCandidates(normalizedCandidates);
+        UpdatedAtUtc = currentUtc;
+        Version = checked(Version + 1);
+    }
+
+    public void ReviseExternalResource(string title, string summary, string sourceName,
+        string sourceUrl, ExternalResourceKind resourceKind, DateTimeOffset currentUtc)
+    {
+        EnsureUtc(currentUtc);
+        if (ContentType != LearningContentType.ExternalResource)
+            throw new InvalidOperationException("Only external resources have external source metadata.");
+        if (!Enum.IsDefined(resourceKind)) throw new ArgumentOutOfRangeException(nameof(resourceKind));
+        var normalizedTitle = LearningContentText.NormalizeRequired(title, nameof(title), 200, 3);
+        var normalizedSummary = LearningContentText.NormalizeRequired(summary, nameof(summary), 500);
+        var normalizedName = LearningContentText.NormalizeRequired(sourceName, nameof(sourceName), 150);
+        var normalizedUrl = ValidateSource(ContentSourceType.External, sourceUrl)!;
+        if (Title == normalizedTitle && Summary == normalizedSummary && SourceName == normalizedName
+            && SourceUrl == normalizedUrl && ResourceKind == resourceKind) return;
+        Title = normalizedTitle;
+        Summary = normalizedSummary;
+        SourceName = normalizedName;
+        SourceUrl = normalizedUrl;
+        ResourceKind = resourceKind;
+        UpdatedAtUtc = currentUtc;
+        Version = checked(Version + 1);
+    }
+
+    public void ReviseInternalSource(string sourceName, DateTimeOffset currentUtc)
+    {
+        EnsureUtc(currentUtc);
+        if (ContentType != LearningContentType.Lesson || SourceType != ContentSourceType.Internal)
+            throw new InvalidOperationException("Only internally-authored lessons have internal source metadata.");
+        var normalizedName = LearningContentText.NormalizeRequired(sourceName, nameof(sourceName), 150);
+        if (SourceName == normalizedName) return;
+        SourceName = normalizedName;
+        UpdatedAtUtc = currentUtc;
+        Version = checked(Version + 1);
+    }
+
     public static LearningContent CreateDraft(Guid id, string slug, string title, string summary,
         LearningContentType contentType, ContentDifficulty difficulty, int estimatedMinutes,
         ContentSourceType sourceType, string sourceName, string? sourceUrl,
@@ -214,6 +322,52 @@ public sealed class LearningContent
             LearningContentText.NormalizeRequired(item.BodyMarkdown, "bodyMarkdown", MaximumSectionBodyLength))));
         _reviewCandidates.AddRange(reviewCandidates.Select((item, position) => LearningReviewCandidate.Create(
             Guid.NewGuid(), Id, position, item.Key, item.Prompt, item.Answer)));
+    }
+
+    private void SynchronizeObjectives(string[] objectives)
+    {
+        var ordered = _objectives.OrderBy(item => item.Position).ToArray();
+        for (var index = 0; index < Math.Min(ordered.Length, objectives.Length); index++)
+        {
+            ordered[index].Revise(objectives[index]);
+            ordered[index].Reposition(index);
+        }
+        _objectives.RemoveAll(item => item.Position >= objectives.Length);
+        for (var index = ordered.Length; index < objectives.Length; index++)
+            _objectives.Add(new LearningObjective(Guid.NewGuid(), Id, index, objectives[index]));
+    }
+
+    private void SynchronizeSections(LearningContentSectionInput[] sections)
+    {
+        var ordered = _sections.OrderBy(item => item.Position).ToArray();
+        for (var index = 0; index < Math.Min(ordered.Length, sections.Length); index++)
+        {
+            ordered[index].Revise(sections[index].SectionType, sections[index].Heading, sections[index].BodyMarkdown);
+            ordered[index].Reposition(index);
+        }
+        _sections.RemoveAll(item => item.Position >= sections.Length);
+        for (var index = ordered.Length; index < sections.Length; index++)
+            _sections.Add(new LearningContentSection(Guid.NewGuid(), Id, index, sections[index].SectionType,
+                sections[index].Heading, sections[index].BodyMarkdown));
+    }
+
+    private void SynchronizeCandidates(LearningReviewCandidateInput[] candidates)
+    {
+        var existingByKey = _reviewCandidates.ToDictionary(item => item.Key, StringComparer.Ordinal);
+        var desiredKeys = candidates.Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+        _reviewCandidates.RemoveAll(item => !desiredKeys.Contains(item.Key));
+        for (var position = 0; position < candidates.Length; position++)
+        {
+            var candidate = candidates[position];
+            if (existingByKey.TryGetValue(candidate.Key, out var existing))
+            {
+                existing.Revise(candidate.Prompt, candidate.Answer);
+                existing.Reposition(position);
+            }
+            else
+                _reviewCandidates.Add(LearningReviewCandidate.Create(Guid.NewGuid(), Id, position,
+                    candidate.Key, candidate.Prompt, candidate.Answer));
+        }
     }
 
     private static void ValidateCollections(IReadOnlyCollection<Technology> technologies,

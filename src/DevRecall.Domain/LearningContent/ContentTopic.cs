@@ -27,6 +27,16 @@ public sealed class ContentTopic
             LearningContentText.NormalizeRequired(name, nameof(name), 100, 2), currentUtc);
     }
 
+    public bool Rename(string name, DateTimeOffset currentUtc)
+    {
+        EnsureUtc(currentUtc);
+        var normalized = LearningContentText.NormalizeRequired(name, nameof(name), 100, 2);
+        if (Name == normalized) return false;
+        Name = normalized;
+        UpdatedAtUtc = currentUtc;
+        return true;
+    }
+
     private static void EnsureUtc(DateTimeOffset value)
     {
         if (value.Offset != TimeSpan.Zero) throw new ArgumentException("Timestamp must be UTC.", nameof(value));

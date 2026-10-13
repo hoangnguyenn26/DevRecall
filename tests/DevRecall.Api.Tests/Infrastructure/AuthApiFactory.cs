@@ -1,3 +1,4 @@
+using DevRecall.Infrastructure.Development;
 using DevRecall.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -70,6 +71,8 @@ public sealed class AuthApiFactory
                     .UseNpgsql(_postgres.GetConnectionString())
                     .UseSnakeCaseNamingConvention();
             });
+            // Legacy hardcoded catalog data remains available only as a bounded test fixture.
+            services.AddScoped<LearningContentSeeder>();
         });
     }
 }

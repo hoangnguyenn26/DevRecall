@@ -15,21 +15,30 @@ internal static class SeedImportPlanner
             .Include(item => item.Objectives).Include(item => item.Sections).Include(item => item.ReviewCandidates)
             .ToListAsync(cancellationToken);
         var databaseTopics = await dbContext.ContentTopics.AsNoTracking().ToListAsync(cancellationToken);
+        var referencedCandidateIds = await dbContext.ReviewLearningContentSources.AsNoTracking()
+            .Select(item => item.CandidateId).Distinct().ToHashSetAsync(cancellationToken);
         var topicSlugs = databaseTopics.ToDictionary(item => item.Id, item => item.Slug);
         var databaseBySlug = databaseItems.ToDictionary(item => item.Slug, StringComparer.Ordinal);
         var sourceSlugs = catalog.Items.Select(item => item.Slug!).ToHashSet(StringComparer.Ordinal);
         var plan = new List<SeedImportPlanItem>();
+        var topicPlan = new List<SeedTopicPlanItem>();
         var issues = new List<SeedValidationIssue>();
 
         var databaseTopicsBySlug = databaseTopics.ToDictionary(item => item.Slug, StringComparer.Ordinal);
-        foreach (var sourceTopic in catalog.Topics.Where(topic => topic.Slug is not null
-                     && databaseTopicsBySlug.ContainsKey(topic.Slug)))
+        foreach (var sourceTopic in catalog.Topics)
         {
-            var stored = databaseTopicsBySlug[sourceTopic.Slug!];
+            if (!databaseTopicsBySlug.TryGetValue(sourceTopic.Slug!, out var stored))
+            {
+                topicPlan.Add(new(sourceTopic.Id!.Value, sourceTopic.Slug!, sourceTopic.Name!, SeedPlanAction.Create));
+                continue;
+            }
             if (sourceTopic.Id != stored.Id)
                 issues.Add(new(SeedIssueSeverity.Error, "SEED_TOPIC_ID_MISMATCH",
                     $"Stored topic ID '{stored.Id}' does not match source ID '{sourceTopic.Id}'.",
                     "seed/taxonomy/topics.json", sourceTopic.Slug));
+            else
+                topicPlan.Add(new(stored.Id, stored.Slug, sourceTopic.Name!,
+                    stored.Name == sourceTopic.Name!.Trim() ? SeedPlanAction.Unchanged : SeedPlanAction.Update));
         }
 
         foreach (var source in catalog.Items.OrderBy(item => item.Slug, StringComparer.Ordinal))
@@ -52,7 +61,7 @@ internal static class SeedImportPlanner
                 continue;
             }
 
-            var changes = ChangedGroups(source, existing, topicSlugs, issues);
+            var changes = ChangedGroups(source, existing, topicSlugs, referencedCandidateIds, issues);
             plan.Add(new(source.Slug!, source.ContentType!,
                 changes.Count == 0 ? SeedPlanAction.Unchanged : SeedPlanAction.Update, changes));
         }
@@ -63,22 +72,28 @@ internal static class SeedImportPlanner
                 "Database content is absent from approved source; no action will be taken.",
                 "database", unmanaged.Slug));
 
-        return new(plan, issues);
+        return new(topicPlan, plan, issues);
     }
 
     private static List<string> ChangedGroups(LearningContentSeedDocument source,
         LearningContent existing, IReadOnlyDictionary<Guid, string> topicSlugs,
-        List<SeedValidationIssue> issues)
+        HashSet<Guid> referencedCandidateIds, List<SeedValidationIssue> issues)
     {
         var changes = new List<string>();
         var sourceDifficulty = Enum.Parse<ContentDifficulty>(source.Difficulty!, false);
         var sourceStatus = Enum.Parse<ContentStatus>(source.Status!, false);
+        if (sourceStatus == ContentStatus.Draft && existing.Status != ContentStatus.Draft)
+            issues.Add(DatabaseError("SEED_INVALID_STATUS_TRANSITION",
+                $"Existing {existing.Status} content cannot transition back to Draft.", source));
         if (existing.Title != source.Title!.Trim() || existing.Summary != source.Summary!.Trim()
             || existing.Difficulty != sourceDifficulty || existing.EstimatedMinutes != source.EstimatedMinutes
             || existing.Status != sourceStatus)
             changes.Add("Metadata");
 
         var sourceType = Enum.Parse<ContentSourceType>(source.Source!.Type!, false);
+        if (existing.SourceType != sourceType)
+            issues.Add(DatabaseError("SEED_SOURCE_TYPE_MISMATCH",
+                "An existing root cannot change source type.", source));
         var resourceKind = source is ExternalResourceSeedDocument resource
             ? Enum.Parse<ExternalResourceKind>(resource.ResourceKind!, false) : (ExternalResourceKind?)null;
         var sourceUrl = NormalizeOptional(source.Source.Url);
@@ -97,26 +112,24 @@ internal static class SeedImportPlanner
         if (source is LessonSeedDocument lesson)
         {
             var objectives = existing.Objectives.OrderBy(item => item.Position).Select(item => item.Text).ToArray();
-            if (objectives.Length != lesson.Objectives!.Count)
-                issues.Add(DatabaseError("SEED_UNSUPPORTED_OBJECTIVE_STRUCTURE",
-                    "Existing lesson objective count differs; structural import is deferred.", source));
-            else if (!objectives.SequenceEqual(lesson.Objectives.Select(value => value.Trim()), StringComparer.Ordinal))
+            if (!objectives.SequenceEqual(lesson.Objectives!.Select(value => value.Trim()), StringComparer.Ordinal))
                 changes.Add("Objectives");
 
             var sections = existing.Sections.OrderBy(item => item.Position).ToArray();
-            if (sections.Length != lesson.Sections!.Count)
-                issues.Add(DatabaseError("SEED_UNSUPPORTED_SECTION_STRUCTURE",
-                    "Existing lesson section count differs; structural import is deferred.", source));
-            else if (sections.Where((section, index) => !SectionEqual(section, lesson.Sections[index],
-                         lesson.ParsedSections[index])).Any())
+            if (sections.Length != lesson.Sections!.Count || sections.Where((section, index) =>
+                    !SectionEqual(section, lesson.Sections[index], lesson.ParsedSections[index])).Any())
                 changes.Add("Sections");
 
             var candidates = existing.ReviewCandidates.OrderBy(item => item.Position).ToArray();
             var sourceCandidates = lesson.ReviewCandidates!;
-            if (!SetEqual(candidates.Select(item => item.Key), sourceCandidates.Select(item => item.Key!)))
-                issues.Add(DatabaseError("SEED_UNSUPPORTED_CANDIDATE_STRUCTURE",
-                    "Existing CandidateKey set differs; candidates cannot be replaced safely.", source));
-            else if (CandidateChanges(candidates, sourceCandidates))
+            var sourceKeys = sourceCandidates.Select(item => item.Key!).ToHashSet(StringComparer.Ordinal);
+            var removedReferenced = candidates.Where(item => !sourceKeys.Contains(item.Key)
+                && referencedCandidateIds.Contains(item.Id)).Select(item => item.Key).ToArray();
+            if (removedReferenced.Length > 0)
+                issues.Add(DatabaseError("SEED_REFERENCED_CANDIDATE_REMOVAL",
+                    $"Cannot remove candidate(s) referenced by user Review provenance: {string.Join(", ", removedReferenced)}.", source));
+            if (!SetEqual(candidates.Select(item => item.Key), sourceKeys)
+                || CandidateChanges(candidates, sourceCandidates))
                 changes.Add("ReviewCandidates");
         }
         return changes;
@@ -135,7 +148,7 @@ internal static class SeedImportPlanner
         for (var position = 0; position < source.Count; position++)
         {
             var candidate = source[position];
-            var stored = byKey[candidate.Key!];
+            if (!byKey.TryGetValue(candidate.Key!, out var stored)) return true;
             if (stored.Position != position || stored.Prompt != candidate.Prompt!.Trim()
                 || stored.Answer != candidate.Answer!.Trim()) return true;
         }

@@ -45,7 +45,7 @@ public sealed partial class DogfoodDataSeeder(DevRecallDbContext db, IPasswordHa
             .Where(x => x.Status == ContentStatus.Published).OrderBy(x => x.Slug).ToListAsync(cancellationToken);
         string[] completedSlugs = ["dependency-injection-fundamentals", "aspnet-core-service-lifetimes", "ef-core-tracking-vs-no-tracking"];
         var lessons = completedSlugs.Select(slug => catalog.SingleOrDefault(x => x.Slug == slug && x.ContentType == LearningContentType.Lesson)
-            ?? throw new InvalidOperationException($"Published lesson '{slug}' is required; run --seed-learning-content first.")).ToArray();
+            ?? throw new InvalidOperationException($"Published lesson '{slug}' is required; import the approved catalog with DevRecall.SeedTool first.")).ToArray();
         var ongoing = catalog.First(x => x.ContentType == LearningContentType.Lesson && !completedSlugs.Contains(x.Slug));
         var resources = catalog.Where(x => x.ContentType == LearningContentType.ExternalResource).ToArray();
         if (resources.Length < 2) throw new InvalidOperationException("At least two Published external resources are required.");

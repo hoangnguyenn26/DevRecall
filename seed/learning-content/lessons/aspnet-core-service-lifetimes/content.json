@@ -53,8 +53,8 @@
   "reviewCandidates": [
     {
       "key": "three-service-lifetimes",
-      "prompt": "What are the three built-in ASP.NET Core service lifetimes?",
-      "answer": "Transient, Scoped, and Singleton."
+      "prompt": "How do Transient, Scoped, and Singleton lifetimes differ in ASP.NET Core?",
+      "answer": "Transient creates a new instance each time it is resolved, Scoped reuses one instance within a request scope, and Singleton reuses one instance for the application lifetime."
     },
     {
       "key": "scoped-per-request",

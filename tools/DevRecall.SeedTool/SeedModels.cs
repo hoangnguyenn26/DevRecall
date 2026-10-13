@@ -89,6 +89,16 @@ internal sealed record SeedImportPlanItem(
     SeedPlanAction Action,
     IReadOnlyList<string> ChangedFieldGroups);
 
+internal sealed record SeedTopicPlanItem(Guid Id, string Slug, string Name, SeedPlanAction Action);
+
 internal sealed record SeedImportPlan(
+    IReadOnlyList<SeedTopicPlanItem> Topics,
     IReadOnlyList<SeedImportPlanItem> Items,
     IReadOnlyList<SeedValidationIssue> Issues);
+
+internal sealed record SeedImportFailure(string Slug, string Message);
+
+internal sealed record SeedImportResult(
+    IReadOnlyList<SeedTopicPlanItem> AppliedTopics,
+    IReadOnlyList<SeedImportPlanItem> AppliedItems,
+    IReadOnlyList<SeedImportFailure> Failures);

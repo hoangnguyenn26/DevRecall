@@ -46,7 +46,7 @@ Five Documentation records, SourceName Microsoft Learn, reviewed against these o
 | `ef-core-tracking-documentation` | [Tracking vs. No-Tracking Queries](https://learn.microsoft.com/en-us/ef/core/querying/tracking) | Tracking, identity resolution and projection choices / 15 |
 | `ef-core-handling-concurrency-conflicts` | [Handling Concurrency Conflicts](https://learn.microsoft.com/en-us/ef/core/saving/concurrency) | Token configuration and conflict handling / 20 |
 
-Stable IDs use existing seed suffixes 201–205, distinct from lessons 101–111; canonical topics are reused. Sources were checked manually, not ingested. Run the existing explicit Development `--seed-learning-content` CLI after applying migrations. No startup seeding.
+Stable IDs use existing seed suffixes 201–205, distinct from lessons 101–111; canonical topics are reused. Sources were checked manually, not ingested. After applying migrations, run the explicit file-backed `DevRecall.SeedTool import` command documented in `portfolio-dataset-seeding.md`. No startup seeding.
 
 ## Deferred scope
 

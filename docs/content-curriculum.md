@@ -27,7 +27,7 @@ Distribution: BF 11/11, IP 6/11, BP 3/11; DotNet 11, AspNetCore 5, EfCore 3, CSh
 
 ### In-place editorial upgrades
 
-`LearningContentSeeder.Curriculum.cs` contains the current authored batch; the prior eight definitions in `Samples` are retained as one exact bounded upgrade baseline. Explicit Development seeding updates an existing Published, DevRecall-owned lesson only when its title, summary, objectives, sections and candidates still match the original eight-lesson definition or the preceding authored-batch definition. An editor's different text is skipped, not overwritten. This guard intentionally requires review for any customized legacy content that still contains an audit issue.
+The approved files under `seed/learning-content` contain the current authored catalog. The explicit file-backed importer validates and previews changes before updating existing rows in place by stable slug and CandidateKey. The former C# catalog remains only as a legacy integration-test fixture and is no longer registered by the application.
 
 Revisions keep lesson IDs/slugs, objective/section IDs and positions, candidate IDs/keys, publication time and lifecycle. Only source wording and the stated metadata change. Created Knowledge/Review snapshots, progress, completion evidence and scheduling are untouched. This is not automatic source-to-user synchronization. Repeated seeding is a no-op after the upgrade. No migration or new authoring API is required.
 
