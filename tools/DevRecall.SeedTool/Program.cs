@@ -21,6 +21,7 @@ internal static class Program
         }
 
         var command = args[0];
+        if (command == "demo") return await PortfolioDemoSeeder.RunAsync();
         var includeDrafts = command == "validate"
             && args.Contains("--include-drafts", StringComparer.Ordinal);
         var reader = new SeedFileReader(root);
@@ -205,5 +206,6 @@ internal static class Program
         Console.WriteLine("  validate [--include-drafts]");
         Console.WriteLine("  preview");
         Console.WriteLine("  import [--dry-run] [--slug <slug>]");
+        Console.WriteLine("  demo (Development only; requires ConnectionStrings__Database and PortfolioDemo__Password)");
     }
 }

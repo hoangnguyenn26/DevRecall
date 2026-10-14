@@ -1,6 +1,52 @@
 # Portfolio dataset seeding
 
-## Purpose and scope
+## Portfolio persona (explicit local scenario)
+
+After catalog import, create the small portfolio account separately:
+
+```powershell
+$env:DOTNET_ENVIRONMENT = 'Development'
+# Set ConnectionStrings__Database to your LOCAL database privately.
+# Set PortfolioDemo__Password to a unique local-only password (12+ characters).
+dotnet run --project tools/DevRecall.SeedTool -- demo
+```
+
+Account: `portfolio@devrecall.local`, display name Alex — Backend Portfolio.
+Junior Backend Developer, 30 minutes/day, C#/.NET/ASP.NET Core/EF Core primary,
+PostgreSQL supporting; backend fundamentals and interview preparation goals.
+This is **synthetic portfolio history**, not evidence of the owner's performance.
+
+The single scenario in `tools/DevRecall.SeedTool/PortfolioDemoSeeder.cs` creates
+six lesson completions across 22 days, one ongoing transactions lesson, five
+concise source-linked notes, ten lesson-candidate cards with twenty normal
+ratings, one Draft data-access plan (two lessons plus one reference), and one
+completed mixed session. Its 34 minutes come from simulated start/end timestamps,
+never content estimates. Four cards are due at seed time; Today selects Review.
+The Draft plan is a small multi-block backlog, not a claim that 60 minutes fit
+inside the 30-minute daily preference.
+
+There is no active session competing with Review. No DSA/Interview attempts,
+fabricated weakness scores, recommendation rows, or external-resource progress
+are inserted. Lesson reviews have no valid personal-topic attribution, so Weak
+Topics intentionally remains empty. The configured V2 profile drives Discover;
+the separate legacy onboarding preference is not fabricated.
+
+All references and candidate keys are validated before writes. Domain factories
+and transitions create state, including canonical evidence and scheduler history.
+Stable IDs, a transaction and an advisory lock make replay safe. **Run the same
+command again to reseed: an existing portfolio account is left entirely unchanged,
+including password, activity and dates.** Failed initial runs roll back fully and
+can be retried. There is no destructive reset command; use a fresh local database
+for an exact fresh scenario, importing the catalog first. Never delete a user to
+refresh a dashboard. Due dates naturally age after initial creation.
+
+For a freshly seeded account, run `seed/demo/verify-portfolio.sql` with psql and
+`ON_ERROR_STOP=1`. It is read-only and checks evidence separation, chronology,
+counts, ownership and elapsed duration. Repeat after a second seed invocation.
+Do not expect initial counts to hold after personally using the account.
+Verification uses authenticated read-only APIs/SQL, not browser inspection.
+
+## Global catalog scope
 
 P1 makes the repository the reviewable source of truth for DevRecall's global
 Learn/Discover catalog. Codex may author files, but a human reviews and promotes
